@@ -145,6 +145,43 @@ pub struct PhaseRun {
     pub clocks: ClockPlan,
     /// Power of every enforced cap's members (kiln-phys `caps` order) at the central, low and high corners, W.
     pub caps_w: Vec<(f64, f64, f64)>,
+    /// Tier A thermal checks at the central, low and high corners (only the central one without corners); empty
+    /// without kiln-phys M3.
+    pub heat: Vec<Heat>,
+}
+
+/// Tier A thermal checks of one run (04 §9), each zone on its own power: the hottest package junction, thermal
+/// runaway in any package, and the densest die's average power density at its central and smallest area.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Heat {
+    pub t_j_c: f64,
+    pub runaway: bool,
+    pub q_w_mm2: f64,
+    pub q_small_w_mm2: f64,
+}
+
+/// One corner's result, cap powers and [`Heat`].
+type CornerOut = (SimResult, (Vec<f64>, Option<Heat>));
+
+/// [`Heat`] of an assembled run; `None` without kiln-phys M3 zones.
+pub fn heat(a: &Assembly, run: &RunOut, makespan: f64) -> Option<Heat> {
+    let m = a.view.phys.m3().filter(|m| !m.zones.is_empty())?;
+    let mut h = Heat { t_j_c: f64::NEG_INFINITY, ..Heat::default() };
+    for z in &m.zones {
+        let pe = crate::result::phase_energy_within(a, run, makespan, &z.nodes);
+        let b = z.power.power(&pe, &a.clocks.hz);
+        match z.die.and_then(|i| m.report.dies.get(i)) {
+            Some(d) => {
+                h.q_w_mm2 = h.q_w_mm2.max(b.chip_w / d.area_mm2.max(1e-9));
+                h.q_small_w_mm2 = h.q_small_w_mm2.max(b.chip_w / d.area_low_mm2.max(1e-9));
+            }
+            None => {
+                h.t_j_c = h.t_j_c.max(b.t_j_c);
+                h.runaway |= b.runaway;
+            }
+        }
+    }
+    Some(h)
 }
 
 struct Ctx<'a> {
@@ -286,6 +323,23 @@ fn op_times(prog: &Program, g: &TaskGraph, run: &RunOut) -> Vec<(String, f64)> {
     g.ops.iter().map(|o| (prog.ops[o.op].id.clone(), run.segs[seg_of[o.group as usize]].time_est)).collect()
 }
 
+/// The physical corner (kiln-phys parameters) of a simulation corner; none at the center.
+fn phys_corner(c: Corner) -> Option<kiln_phys::PCorner> {
+    match c {
+        Corner::Central => None,
+        Corner::Low => Some(kiln_phys::PCorner::Optimistic),
+        Corner::High => Some(kiln_phys::PCorner::Pessimistic),
+    }
+}
+
+/// `f` over the mapper's cost model under `opts`: the base model, padded to the stack's library tiles.
+fn with_cost<R>(view: &HwView, prog: &Program, opts: &SimOptions, f: impl FnOnce(&dyn UnitCostModel) -> R) -> Result<R, Diagnostic> {
+    let base = opts.cost();
+    let rows = crate::stack::row_padding(prog, &opts.stack(view))?;
+    let padded = kiln_map::cost::TilePadded { inner: base.as_ref(), rows };
+    Ok(f(if padded.rows.iter().all(|&f| f <= 1.0) { base.as_ref() } else { &padded }))
+}
+
 /// Heuristic mapping, refined by the seeded beam when `opts.search` is set; with the matching task graph.
 pub fn map_program(view: &HwView, prog: &Program, opts: &SimOptions, workload_hash: &str) -> Result<(Mapping, MapReport, TaskGraph), Diagnostic> {
     let base = opts.cost();
@@ -342,19 +396,21 @@ pub fn simulate_mapped(
     provenance.flags.insert("stack".into(), stack.label());
     let params = opts.param_set(view);
     let telemetry = params.params.iter().any(|p| p.name == "f_cap_op");
-    let clocks = match opts.clock {
-        // 03 §4.5: largest V/f point whose phase power (04 §8) fits the cap, at the central parameters; the
-        // platform telemetry table (f_cap_op) overrides it when the calibration set carries one.
-        ClockMode::PowerCapped if !telemetry && view.phys.m3().is_some() => {
-            let p = params.at(Corner::Central);
+    // 03 §4.5: largest V/f point whose phase power (04 §8) fits the cap at corner `c`'s parameters; the platform
+    // telemetry table (f_cap_op) overrides it when the calibration set carries one.
+    let prov0 = provenance.clone();
+    let solve = |v: &HwView, g: &TaskGraph, c: Corner| match opts.clock {
+        ClockMode::PowerCapped if !telemetry && v.phys.m3().is_some() => {
+            let p = params.at(c);
             let mid = mid_iteration(prog);
-            let prov = provenance.clone();
-            let f = |hz: &[f64]| phase_cap_power(view, prog, &graph, mid, &ClockPlan { hz: hz.to_vec(), solved: true, throttled: false }, &p, scope, &prov);
-            view.phys.solve_clock(Some(&f)).0
+            let prov = prov0.clone();
+            let f = |hz: &[f64]| phase_cap_power(v, prog, g, mid, &ClockPlan { hz: hz.to_vec(), solved: true, throttled: false }, &p, scope, &prov);
+            v.phys.solve_clock(Some(&f)).0
         }
-        ClockMode::PowerCapped => view.phys.solve_clock(None).0,
-        ref m => view.phys.clock_plan(m),
+        ClockMode::PowerCapped => v.phys.solve_clock(None).0,
+        ref m => v.phys.clock_plan(m),
     };
+    let clocks = solve(view, &graph, Corner::Central);
     provenance.mapping_hash = Some(mapping.hash());
     provenance.calibration_hash = params.hash();
     provenance.calibration_id = Some(params.id.clone());
@@ -379,14 +435,29 @@ pub fn simulate_mapped(
         IntervalMethod::Corners | IntervalMethod::Sampled => vec![Corner::Central, Corner::Low, Corner::High],
         _ => vec![Corner::Central],
     };
-    let one = |c: Corner| -> (SimResult, Vec<f64>) {
+    // 03 §9.1: a corner re-costs the fixed mapping on the physical model at that corner (energies, latencies) and
+    // solves its own power cap.
+    let corner_views: Vec<Option<(HwView, TaskGraph, ClockPlan)>> = corners
+        .iter()
+        .map(|&c| -> Result<_, Diagnostic> {
+            let (Some(m), Some(pc)) = (view.phys.m3(), phys_corner(c)) else { return Ok(None) };
+            let cv = HwView::with_phys(view.hw.clone(), kiln_phys::Phys::with(&view.hw, m.params.at(pc), m.fp.tier))?;
+            let mut g = with_cost(&cv, prog, opts, |cost| lower(prog, &cv, &mapping, cost))??;
+            crate::stack::attach(&cv, prog, &mut g, &stack)?;
+            let k = solve(&cv, &g, c);
+            Ok(Some((cv, g, k)))
+        })
+        .collect::<Result<_, _>>()?;
+    let one = |(c, cv): (Corner, &Option<(HwView, TaskGraph, ClockPlan)>)| -> CornerOut {
+        let (view, graph, clocks) = cv.as_ref().map_or((view, &graph, &clocks), |x| (&x.0, &x.1, &x.2));
+        let ctx = Ctx { view, prog, graph, clocks, mid: mid_iteration(prog) };
         let p = params.at(c);
         let (run, clocks) = ctx.run(&p);
         let clocks = &clocks;
         let a = Assembly {
             view,
             prog,
-            graph: &graph,
+            graph,
             phase: phase.clone(),
             scope,
             corner: c,
@@ -397,6 +468,7 @@ pub fn simulate_mapped(
         };
         let mut r = assemble(&a, &run);
         let caps = cap_power(&a, &run, r.makespan_s);
+        let h = heat(&a, &run, r.makespan_s);
         if c == Corner::Central && opts.shadow_prices {
             let base = r.makespan_s;
             let index: std::collections::BTreeMap<&str, u32> = view.resource_ids().iter().enumerate().map(|(i, y)| (y.as_str(), i as u32)).collect();
@@ -411,19 +483,21 @@ pub fn simulate_mapped(
             }
         }
         let resident_overflow = report.capacity_overflow.is_some();
-        r.invariants = check_all(&r, &Inputs { view, prog, graph: &graph, run: &run, clocks, resident_overflow });
-        (r, caps)
+        r.invariants = check_all(&r, &Inputs { view, prog, graph, run: &run, clocks, resident_overflow });
+        (r, (caps, h))
     };
     opts.check_deadline()?;
-    let (mut results, caps): (Vec<SimResult>, Vec<Vec<f64>>) = if opts.threads > 1 && corners.len() > 1 {
+    let (mut results, caps): (Vec<SimResult>, Vec<_>) = if opts.threads > 1 && corners.len() > 1 {
         std::thread::scope(|s| {
-            let hs: Vec<_> = corners.iter().map(|&c| s.spawn(move || one(c))).collect();
+            let hs: Vec<_> = corners.iter().zip(&corner_views).map(|(&c, cv)| s.spawn(move || one((c, cv)))).collect();
             hs.into_iter().map(|h| h.join().expect("corner thread")).collect()
         })
     } else {
-        corners.iter().map(|&c| one(c)).collect()
+        corners.iter().zip(&corner_views).map(|(&c, cv)| one((c, cv))).collect()
     };
     opts.check_deadline()?;
+    let (caps, heat): (Vec<Vec<f64>>, Vec<Option<Heat>>) = caps.into_iter().unzip();
+    let heat = heat.into_iter().flatten().collect();
     let corner = |i: usize, k: usize| caps.get(i).unwrap_or(&caps[0])[k];
     let caps_w = (0..caps[0].len()).map(|k| (corner(0, k), corner(1, k), corner(2, k))).collect();
     let uncal = ctx.makespan(&SimParams::null(), scope, provenance);
@@ -465,5 +539,5 @@ pub fn simulate_mapped(
         _ => (Interval::point(central.makespan_s), Interval::point(central.energy.total_j), IntervalMethod::None),
     };
     let interval = IntervalInfo { method, corner_flips: vec![], drivers, low_remapped: None };
-    Ok(PhaseRun { mapping, report, graph, central, low, high, time, energy, interval, params, clocks, caps_w })
+    Ok(PhaseRun { mapping, report, graph, central, low, high, time, energy, interval, params, clocks, caps_w, heat })
 }

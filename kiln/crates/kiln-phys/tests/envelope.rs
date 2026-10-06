@@ -390,3 +390,162 @@ fn pipelined_links_clock_their_flops() {
     let widest = staged.iter().map(|&i| hw.channels[i].width_bits.unwrap_or(0) as f64 * m.links[i].e_j_per_cycle_idle).fold(0.0, f64::max);
     assert!(pipes.iter().any(|p| (p.e_cycle_j - widest).abs() <= 1e-9 * widest), "width x stages x idle flop energy");
 }
+
+/// 04 §9: each package's junction is solved on its own dies' area and power, each die's density on its own; an
+/// unrelated package's die never dilutes them.
+#[test]
+fn thermal_zones_are_per_package_and_per_die() {
+    let ph = Phys::new(&two_packages("air"));
+    let m = ph.m3().unwrap();
+    let areas: Vec<f64> = m.report.dies.iter().map(|d| d.area_mm2).collect();
+    assert_eq!(areas.len(), 2);
+    assert!((m.power.die_mm2 - areas.iter().sum::<f64>()).abs() < 1e-9, "the pooled model covers both");
+    let (pkgs, dies): (Vec<_>, Vec<_>) = m.zones.iter().partition(|z| z.die.is_none());
+    assert_eq!((pkgs.len(), dies.len()), (2, 2));
+    for z in &pkgs {
+        let own: f64 = m.fp.dies.iter().zip(&areas).filter(|(d, _)| z.nodes[d.node]).map(|x| x.1).sum();
+        assert!((z.power.die_mm2 - own).abs() < 1e-9, "{} vs {own}", z.power.die_mm2);
+    }
+    let e = kiln_phys::PhaseEnergy { makespan_s: 1.0, core_dyn_j: 120.0, ..Default::default() };
+    let pooled = m.power.power(&e, &[1e9]);
+    let alone = pkgs[0].power.power(&e, &[1e9]);
+    assert!(alone.t_j_c > pooled.t_j_c + 1.0, "{} vs pooled {}", alone.t_j_c, pooled.t_j_c);
+    assert_eq!(dies[0].die, Some(0));
+    assert!((dies[0].power.die_mm2 - areas[0]).abs() < 1e-9);
+}
+
+/// 04 §9: a disabled (harvested) die carries no power and spreads none: it is not cooling area.
+#[test]
+fn disabled_dies_are_not_cooling_area() {
+    let mut v = two_dies(json!({ "mode": "auto" }));
+    let d2 = &mut v["system"]["package"]["dies"][1];
+    d2["id"] = json!("xd");
+    d2["count"] = json!(2);
+    d2["disabled"] = json!(["xd1"]);
+    v["system"]["package"]["mem_stacks"][1]["attach"] = json!("xd0.noc");
+    let hw = model(&v);
+    let ph = Phys::new(&hw);
+    let m = ph.m3().unwrap();
+    let live: f64 = m.fp.dies.iter().zip(&m.report.dies).filter(|(d, _)| hw.nodes[d.node].enabled).map(|(_, r)| r.area_mm2).sum();
+    assert!(m.report.dies.len() == 3 && m.power.die_mm2 > 0.0, "{:?}", m.report.dies.iter().map(|d| &d.path).collect::<Vec<_>>());
+    assert!((m.power.die_mm2 - live).abs() < 1e-9, "{} vs {live}", m.power.die_mm2);
+    assert_eq!(m.zones.iter().filter(|z| z.die.is_some()).count(), 2);
+}
+
+/// 04 §7: a custom edge's own declared latency and energy reach the channels expanded from it.
+#[test]
+fn custom_edge_link_overrides_are_priced() {
+    let mut v = mesh(json!("128b"), clk(1e9));
+    let net = &mut v["system"]["package"]["dies"][0]["networks"][0];
+    let slow = json!({ "width_bits": 128, "latency": "1ms", "energy": 1e-6 });
+    net["topology"] = json!({ "type": "custom", "routers": 4, "edges": [ { "a": 0, "b": 1 }, { "a": 1, "b": 2 }, { "a": 2, "b": 3 }, { "a": 3, "b": 0, "link": slow } ] });
+    net["endpoints"][0]["at"] = json!("auto");
+    let hw = model(&v);
+    let ph = Phys::new(&hw);
+    let router = |n: kiln_ir::hw::model::NodeIx| matches!(n, kiln_ir::hw::model::NodeIx::Router(_));
+    let coord = |n: kiln_ir::hw::model::NodeIx| match n {
+        kiln_ir::hw::model::NodeIx::Router(r) => hw.routers[r].coord.clone(),
+        _ => vec![],
+    };
+    let mut seen = 0;
+    for (i, c) in hw.channels.iter().enumerate().filter(|(_, c)| router(c.src) && router(c.dst)) {
+        let pair = [coord(c.src)[0], coord(c.dst)[0]];
+        let l = ph.link(i);
+        if pair == [3, 0] || pair == [0, 3] {
+            seen += 1;
+            assert!(l.latency_s >= 1e-3 && l.energy_j_per_b >= 1e-6, "{pair:?}: {l:?}");
+        } else {
+            assert!(l.latency_s < 1e-6 && l.energy_j_per_b < 1e-9, "{pair:?}: {l:?}");
+        }
+    }
+    assert_eq!(seen, 2);
+}
+
+/// 01 §10.5: a port bound to a declared PHY block uses that block's PHY; only unbound ports get a synthesized one.
+#[test]
+fn bound_ports_reuse_their_phy_block() {
+    let phys = |bound: bool| {
+        let mut v = mesh(json!("128b"), clk(1e9));
+        v["system"]["package"]["substrate"] = json!({ "kind": "silicon_interposer" });
+        let die = &mut v["system"]["package"]["dies"][0];
+        die["blocks"] = json!([ { "id": "dphy", "kind": { "type": "phy", "for_kind": "d2d", "lanes": 1 } } ]);
+        die["ports"] = json!([ { "id": "ucie", "kind": "d2d", "internal": "noc", "phy": if bound { json!("dphy") } else { Value::Null } } ]);
+        let ph = Phys::new(&model(&v));
+        let m = ph.m3().unwrap();
+        (m.ch.phys.len(), m.ch.phys.iter().map(|p| p.area_um2).sum::<f64>(), m.ch.phys.iter().map(|p| p.shoreline_um).sum::<f64>())
+    };
+    let (free, bound) = (phys(false), phys(true));
+    let hbm = free.0 - 2;
+    assert_eq!(bound.0, hbm + 1, "{free:?} vs {bound:?}");
+    assert!(bound.1 < free.1 && bound.2 < free.2, "{free:?} vs {bound:?}");
+}
+
+/// 01 §11: an upper die sits over the die its `over` names, not over the first base die.
+#[test]
+fn upper_dies_are_placed_over_their_named_die() {
+    let mut v = mesh(json!("128b"), clk(1e9));
+    let pkg = &mut v["system"]["package"];
+    let a = pkg["dies"][0].clone();
+    let fixed = |w: &str| json!({ "outline": { "type": "fixed", "w": w, "h": w } });
+    let base = |id: &str, x: &str| {
+        let mut d = a.clone();
+        d["id"] = json!(id);
+        d["layer"] = json!("base");
+        d["floorplan"] = fixed("10mm");
+        d["placement"] = json!({ "mode": "pinned", "x": x, "y": "0mm" });
+        d
+    };
+    let (da, db) = (base("a", "0mm"), base("b", "20mm"));
+    let mut up = a.clone();
+    up["id"] = json!("u");
+    up["layer"] = json!("top");
+    up["over"] = json!("b");
+    up["floorplan"] = fixed("4mm");
+    up["placement"] = json!({ "mode": "pinned", "x": "1mm", "y": "1mm" });
+    pkg["dies"] = json!([da, db, up]);
+    pkg["layers"] = json!([ { "id": "base", "index": 0, "bond": "microbump", "pitch_um": 36 }, { "id": "top", "index": 1, "bond": "hybrid", "pitch_um": 9 } ]);
+    pkg["substrate"] = json!({ "kind": "silicon_interposer" });
+    let stack = pkg["mem_stacks"][0].clone();
+    pkg["mem_stacks"] = json!(["a", "b", "u"].map(|d| {
+        let mut s = stack.clone();
+        s["id"] = json!(format!("hbm_{d}"));
+        s["attach"] = json!(format!("{d}.noc"));
+        s
+    }));
+    let hw = model(&v);
+    let ph = Phys::new(&hw);
+    let fp = &ph.m3().unwrap().fp;
+    let x0 = |id: &str| fp.dies.iter().find(|d| d.path.ends_with(id)).map(|d| fp.rect[d.node].unwrap().x0).unwrap();
+    assert!((x0(".b") - 20_000.0).abs() < 1e-6, "{}", x0(".b"));
+    assert!((x0(".u") - 21_000.0).abs() < 1e-6, "upper die at {} um", x0(".u"));
+}
+
+/// 04 §6.2: an auto die that grows past a square reticle field but whose area fits it takes a field-filling aspect.
+#[test]
+fn grown_auto_dies_take_a_reticle_aspect() {
+    let mut v = big_compute(json!({ "type": "auto" }));
+    let die = &mut v["system"]["package"]["dies"][0];
+    die["clusters"][0]["layout"] = json!({ "grid": [6, 7] });
+    die["networks"][0]["topology"]["dims"] = json!([6, 7]);
+    let ph = Phys::new(&model(&v));
+    let d = &ph.m3().unwrap().fp.dies[0];
+    let (lo, hi) = (d.outline.w().min(d.outline.h()), d.outline.w().max(d.outline.h()));
+    assert!(lo * hi > 26_000.0 * 26_000.0, "larger than a square field: {lo} x {hi}");
+    assert!(!codes(&ph).contains(&"E-PHYS-RETICLE".to_string()) && lo <= 26_000.0 * (1.0 + 1e-9) && hi <= 33_000.0, "{lo} x {hi}: {:?}", codes(&ph));
+}
+
+/// 04 §10: every reference design's die and package area bands are ordered (low <= central <= high).
+#[test]
+fn reference_area_bands_are_ordered() {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../designs/reference");
+    for e in std::fs::read_dir(dir).unwrap() {
+        let p = e.unwrap().path();
+        let hw = kiln_ir::hw::check_file(&p, kiln_ir::hw::Profile::Reference).model.expect("reference expands");
+        let ph = Phys::new(&hw);
+        let r = ph.report().unwrap();
+        assert!(r.package_low_mm2 <= r.package_mm2 && r.package_mm2 <= r.package_high_mm2, "{p:?}: package {} / {} / {}", r.package_low_mm2, r.package_mm2, r.package_high_mm2);
+        for d in &r.dies {
+            assert!(d.area_low_mm2 <= d.area_mm2 && d.area_mm2 <= d.area_high_mm2, "{p:?} {}", d.path);
+        }
+    }
+}

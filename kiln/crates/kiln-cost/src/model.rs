@@ -496,9 +496,12 @@ pub(crate) fn evaluate_with(
 
             let down_buf = j == 0 || buf[j - 1];
             let chunk = if n > 1 { dn[1] } else { dn[0] };
-            let mut push = |dir: Direction, period: u64, amount: u64, buffered: bool| {
+            // `of` = (transfers' elements, of the nominal per-period elements): an output's readbacks skip the
+            // first pass, which reads no partial sums.
+            let mut push = |dir: Direction, period: u64, amount: u64, buffered: bool, of: Option<(u64, u64)>| {
                 let d = dir_ix(dir);
                 let count = ttot / period;
+                let count = of.filter(|_| !p.compat).map_or(count, |(real, nominal)| ((u128::from(count) * u128::from(real)).div_ceil(u128::from(nominal.max(1))) as u64).min(count));
                 let act = |count: u64, bits: u32| Act { stream: si, j, dir, level: l, port: p.ports[si][j][d], period, count, amount, bits, inst: inst[j], buffered, chunk };
                 if split(d) {
                     // The final pass first (the drain carries it), then the partial-sum passes.
@@ -510,20 +513,20 @@ pub(crate) fn evaluate_with(
                 }
             };
             if s.is_output {
-                push(Direction::FromLow, per_dn[j], dn[j], down_buf);
+                push(Direction::FromLow, per_dn[j], dn[j], down_buf, None);
                 if c[0] > 0 {
-                    push(Direction::ToLow, per_dn[j], dn[j], down_buf);
+                    push(Direction::ToLow, per_dn[j], dn[j], down_buf, Some((c[0], c[3])));
                 }
                 if j + 1 < n {
-                    push(Direction::ToHigh, per_up[j], f[j], buf[j]);
+                    push(Direction::ToHigh, per_up[j], f[j], buf[j], None);
                     if c[1] > 0 {
-                        push(Direction::FromHigh, per_up[j], f[j], buf[j]);
+                        push(Direction::FromHigh, per_up[j], f[j], buf[j], Some((c[1], c[2])));
                     }
                 }
             } else {
-                push(Direction::ToLow, per_dn[j], dn[j], down_buf);
+                push(Direction::ToLow, per_dn[j], dn[j], down_buf, None);
                 if j + 1 < n {
-                    push(Direction::FromHigh, per_up[j], f[j], buf[j]);
+                    push(Direction::FromHigh, per_up[j], f[j], buf[j], None);
                 }
             }
         }
@@ -699,7 +702,7 @@ fn native_latency(p: &Prep, acts: &[Act], ttot: u64, ev: &mut ClassEval) {
         .iter()
         .position(|s| s.is_output)
         .map_or(1, |si| acts.iter().filter(|a| a.stream == si && a.j == 0 && a.dir == Direction::ToHigh).map(|a| a.count).sum::<u64>().max(1));
-    ev.fill_drain = pl.fill + pl.drain + pl.issue_overhead * out_tiles;
+    ev.fill_drain = pl.fill + pl.drain + (pl.issue_overhead * out_tiles as f64).ceil() as u64;
 
     let fd = ev.onload + ev.offload + ev.fill_drain;
     ev.limiter = Some(if ev.issue >= ev.stall && ev.issue >= fd {

@@ -433,12 +433,23 @@ impl Engine<'_> {
                     }
                 }
             }
-            let mut cp = 0.0f64;
-            for (r, d) in on_path {
-                let rho = ((busy_e[r] - d) / base).max(0.0);
-                cp = cp.max(d * rho / (2.0 * (1.0 - rho.min(self.params.rho_max))));
+            // M/D/1 wait of the path at each of its resources, the others' traffic spread over the segment's own
+            // length T: T = L + wait(T). The wait falls as T grows, so the root is unique and never falls when
+            // the path or any demand grows.
+            let loads: Vec<(f64, f64)> = on_path.into_iter().map(|(r, d)| (d, (busy_e[r] - d).max(0.0))).filter(|x| x.0 > 0.0 && x.1 > 0.0).collect();
+            let (scale, rho_max) = (self.params.contention_scale, self.params.rho_max);
+            let wait = |t: f64| {
+                scale * loads.iter().map(|&(d, o)| {
+                    let rho = (o / t.max(f64::MIN_POSITIVE)).min(1.0);
+                    d * rho / (2.0 * (1.0 - rho.min(rho_max)))
+                }).fold(0.0, f64::max)
+            };
+            let (mut lo, mut hi) = (le, le + wait(le));
+            for _ in 0..64 {
+                let mid = 0.5 * (lo + hi);
+                if mid - le >= wait(mid) { hi = mid } else { lo = mid }
             }
-            contention = ((le + cp * self.params.contention_scale) - base).max(0.0);
+            contention = (hi - base).max(0.0);
         }
         let core = base;
         for &r in touched.iter() {

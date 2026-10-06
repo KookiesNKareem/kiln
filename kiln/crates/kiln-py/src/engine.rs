@@ -113,6 +113,11 @@ impl Engine for SimEngine {
             })
             .collect();
         let (mut r, seed_scores) = median_seed(runs);
+        let extrapolated = sim_opts.param_set(&p.view).extrapolated;
+        if !extrapolated.is_empty() {
+            r.calibration.get_or_insert_with(Default::default).extrapolated = extrapolated.clone();
+            r.audit.extrapolated_components = extrapolated;
+        }
         r.provenance = provenance(req);
         if let Some(s) = r.sim.first() {
             let sp = &s.provenance;

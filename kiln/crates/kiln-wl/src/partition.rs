@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use kiln_ir::common::Diagnostic;
 use kiln_ir::wl::{Model, ParallelPlan, PipelinePlan, plan_hash};
 
-use crate::graph::{Binding, Resident, bind_type, eval_dim};
+use crate::graph::{Binding, Resident, resident};
 
 #[derive(Clone, Debug)]
 pub struct StageProgram {
@@ -37,7 +37,10 @@ pub fn partition(
     b: &Binding,
     plan: &ParallelPlan,
 ) -> Result<PartitionedProgram, Diagnostic> {
-    if plan.ranks() != 1 || plan.pipeline.is_some() || !plan.shardings.is_empty() {
+    let Some(ranks) = plan.ranks() else {
+        return Err(Diagnostic::error("E-WL-DIM-001", "mesh rank count exceeds u64"));
+    };
+    if ranks != 1 || plan.pipeline.is_some() || !plan.shardings.is_empty() {
         return Err(Diagnostic::error(
             "E-WL-OP-001",
             "multi-rank partitioning is deferred past M0",
@@ -45,20 +48,7 @@ pub fn partition(
         .hint("use a mesh of size 1"));
     }
     let layers = b.values.get("L").copied().unwrap_or(0) as u32;
-    let mut resident = Resident::default();
-    for (id, t) in &model.tensors {
-        let bytes = bind_type(t, b, id.as_str())?.footprint()
-            * u128::from(
-                t.stack
-                    .as_ref()
-                    .map_or(Ok(1), |e| eval_dim(e, b, id.as_str()))?,
-            );
-        match t.class {
-            kiln_ir::wl::TensorClass::Weight => resident.weights += bytes,
-            kiln_ir::wl::TensorClass::KvCache => resident.kv_cache += bytes,
-            _ => resident.constants += bytes,
-        }
-    }
+    let resident = resident(model, b)?;
     Ok(PartitionedProgram {
         plan_hash: plan_hash(plan),
         mesh: plan.mesh.clone(),

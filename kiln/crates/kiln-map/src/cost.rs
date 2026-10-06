@@ -233,6 +233,55 @@ pub(crate) fn vector_mode(hw: &HwModel, unit: usize, dtypes: &[Precision]) -> Re
         })
 }
 
+/// Op classes (01 §6.3) the vector unit running `op` must declare, transcendentals aside (special units may take
+/// them): its body's elementwise ops and conversions, its combiner's and its kernel class's data movement.
+pub fn vector_classes(op: &POp) -> Vec<OpClass> {
+    use kiln_ir::wl::Combiner;
+    let b = op.body();
+    let mut v = vec![];
+    if b.vector() > 0 {
+        v.push(OpClass::Elementwise);
+    }
+    if b.cvt > 0 {
+        v.push(OpClass::Convert);
+    }
+    match (op.class(), op.kernel.combine) {
+        (_, Some(Combiner::TopK(_))) => v.push(OpClass::SortTopk),
+        (_, Some(Combiner::Scan)) => v.push(OpClass::Scan),
+        (KernelClass::Reduce, _) => v.push(OpClass::Reduction),
+        (KernelClass::Layout, _) => v.push(OpClass::Permute),
+        (KernelClass::Gather | KernelClass::Scatter, _) => v.push(OpClass::GatherScatter),
+        _ => {}
+    }
+    v
+}
+
+/// An error unless unit `unit` declares every op class in `classes`.
+pub(crate) fn require_ops(hw: &HwModel, unit: usize, classes: &[OpClass]) -> Result<(), Diagnostic> {
+    let u = &hw.units[unit];
+    match classes.iter().find(|c| !u.ops.contains(c)) {
+        None => Ok(()),
+        Some(c) => Err(Diagnostic::error("E-MAP-OP-004", format!("{} does not declare op class {c:?}", hw.nodes[u.node].path))
+            .hint("add the op class to the unit's `ops` or map the work elsewhere")),
+    }
+}
+
+/// [`vector_mode`] of unit `unit` for `op`, once the unit declares the op classes `op` needs; transcendentals it
+/// does not declare must all go to its special units.
+pub(crate) fn vector_unit_mode(hw: &HwModel, unit: usize, prog: &Program, op: &POp) -> Result<(Precision, f64), Diagnostic> {
+    require_ops(hw, unit, &vector_classes(op))?;
+    let mode = vector_mode(hw, unit, &vector_dtypes(prog, op))?;
+    let body = op.body();
+    if body.transcendental() > 0 && !hw.units[unit].ops.contains(&OpClass::Transcendental) {
+        let specials = special_units(hw, unit);
+        let covered = !specials.is_empty() && special_terms(hw, &specials, body, mode.0, 1.0).0 >= f64::from(body.transcendental());
+        if !covered {
+            require_ops(hw, unit, &[OpClass::Transcendental])?;
+        }
+    }
+    Ok(mode)
+}
+
 /// Precisions vector work over `op` must hold: its operands' but the index operands of indirect accesses; over
 /// float data only the floats (integer operands such as positions or an argmax result take the integer path).
 pub fn vector_dtypes(prog: &Program, op: &POp) -> Vec<Precision> {
@@ -270,6 +319,9 @@ impl UnitCostModel for RooflineCost {
     fn cost(&self, q: &NestQuery) -> Result<NestCost, Diagnostic> {
         let (op, s, hw) = (q.op, q.slice, q.hw);
         let ui = &hw.units[q.unit];
+        if op.class() == KernelClass::Contraction {
+            require_matmul(hw, q.unit).map_err(|d| d.at(op.id.clone()))?;
+        }
         let points = q.points as f64;
         let density = if s.box_points() == 0 { 0.0 } else { points / s.box_points() as f64 };
         let fp = |oi: usize| {
@@ -379,7 +431,8 @@ impl UnitCostModel for RooflineCost {
             });
         }
         let lanes = ui.spec.kind.base_ops_per_cycle() as f64;
-        let (mdt, rate) = vector_mode(hw, q.unit, &vector_dtypes(q.prog, op)).map_err(|d| d.at(op.id.clone()))?;
+        let (mdt, rate) = vector_unit_mode(hw, q.unit, q.prog, op).map_err(|d| d.at(op.id.clone()))?;
+        let vec_transc = ui.ops.contains(&OpClass::Transcendental);
         let kr = |c: OpClass| ui.spec.kind.class_rate(c);
         // A ganged slice runs on every member (the SM's four ALUs), as a contraction's does.
         let gang = f64::from(q.gang.max(1));
@@ -401,7 +454,13 @@ impl UnitCostModel for RooflineCost {
         let mul = points * muls / kr(OpClass::Elementwise) / per;
         // The special units' time on all of it, in vector-unit cycles: the busiest one's.
         let sfu = sfu_pt.iter().zip(&specials).map(|(&c, &u)| points * c / nominal_hz(hw, u)).fold(0.0, f64::max) * nominal_hz(hw, q.unit);
-        let share = if on_vec > mul && sfu > 0.0 { ((base + on_vec) / (sfu + on_vec - mul)).min(1.0) } else { 0.0 };
+        let share = if !vec_transc && sfu > 0.0 {
+            1.0
+        } else if on_vec > mul && sfu > 0.0 {
+            ((base + on_vec) / (sfu + on_vec - mul)).min(1.0)
+        } else {
+            0.0
+        };
         let vec = vec + share * points * muls;
         // One instruction per lane-width of operations each member issues, each paying the issue overhead.
         let pl = &ui.spec.pipeline;
@@ -424,6 +483,12 @@ impl UnitCostModel for RooflineCost {
             special_cycles: sfu_pt.iter().map(|&c| (share * points * c).ceil()).collect(),
         })
     }
+}
+
+/// An error unless unit `unit` declares a contraction op class (`matmul` or `conv`).
+pub(crate) fn require_matmul(hw: &HwModel, unit: usize) -> Result<(), Diagnostic> {
+    let ops = &hw.units[unit].ops;
+    if ops.contains(&OpClass::Conv) { Ok(()) } else { require_ops(hw, unit, &[OpClass::Matmul]) }
 }
 
 /// Template level the unit reads (or writes) operands of `role` through its feed: the first level of its chain
@@ -710,6 +775,9 @@ impl KilnCost {
             dim.extent = seg.ext[d];
         }
         k.domain = kiln_ir::wl::Domain::Box;
+        for o in &mut k.operands {
+            o.index.iter_mut().for_each(|e| bind_params(e, &seg.params));
+        }
         let dtypes: Vec<PrecisionSpec> = (0..op.operands.len()).map(|oi| q.operand_spec(oi)).collect();
         let roles: Option<Vec<kiln_ir::hw::compute::OperandRole>> = op.mac.as_ref().map(|m| {
             use kiln_ir::hw::compute::OperandRole as R;
@@ -732,6 +800,23 @@ impl KilnCost {
     }
 }
 
+/// Folds a segment's index-map params into `e`'s coefficients; params it does not bind stay (kiln-cost rejects them).
+fn bind_params(e: &mut kiln_ir::wl::IndexExpr, params: &[(String, i64)]) {
+    use kiln_ir::wl::IndexExpr::*;
+    match e {
+        Affine { terms, .. } => {
+            for t in terms {
+                if let Some(v) = t.param.as_ref().and_then(|p| params.iter().find(|x| x.0 == *p)).map(|x| x.1) {
+                    t.coeff *= v;
+                    t.param = None;
+                }
+            }
+        }
+        FloorDiv { inner, .. } => bind_params(inner, params),
+        Indirect { index, .. } => index.iter_mut().for_each(|i| bind_params(i, params)),
+    }
+}
+
 impl UnitCostModel for KilnCost {
     fn name(&self) -> &str {
         "kiln-cost"
@@ -745,6 +830,7 @@ impl UnitCostModel for KilnCost {
         if q.op.class() != KernelClass::Contraction {
             return RooflineCost.cost(q);
         }
+        require_matmul(q.hw, q.unit).map_err(|d| d.at(q.op.id.clone()))?;
         self.query(q).or_else(|e| {
             if !UNSUPPORTED.contains(&e.code.as_str()) {
                 return Err(e);
@@ -797,5 +883,19 @@ impl UnitCostModel for TilePadded<'_> {
 
     fn cost_floor(&self, q: &NestQuery) -> Option<Result<NestCost, Diagnostic>> {
         self.inner.cost_floor(q).map(|r| r.map(|c| self.pad(q, c)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use kiln_ir::wl::*;
+
+    #[test]
+    fn segment_params_reach_kiln_cost_indices() {
+        let t = |coeff, dim: Option<&str>, param: Option<&str>| Term { coeff, dim: dim.map(Into::into), param: param.map(Into::into) };
+        let mut e = IndexExpr::FloorDiv { inner: Box::new(IndexExpr::Affine { terms: vec![t(1, Some("k"), None), t(2, None, Some("p"))], offset: 0 }), by: 32 };
+        super::bind_params(&mut e, &[("p".into(), 8)]);
+        let want = IndexExpr::FloorDiv { inner: Box::new(IndexExpr::Affine { terms: vec![t(1, Some("k"), None), t(16, None, None)], offset: 0 }), by: 32 };
+        assert_eq!(e, want);
     }
 }

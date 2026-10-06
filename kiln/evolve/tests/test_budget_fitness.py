@@ -193,3 +193,19 @@ def test_audited_interval_follows_the_minimum_over_seeds(make_cfg, tmp_path):
     assert rec["features"]["score_rel_width"] == pytest.approx(0.02)
     real = rec["realistic"]
     assert (real["score"], real["low"], real["high"]) == (pytest.approx(1.0), pytest.approx(0.98), pytest.approx(1.02))
+
+
+def test_engine_extrapolation_reaches_the_aggregate_and_the_redteam(make_cfg, tmp_path):
+    import kiln
+    s = kiln.Session(cache="none")
+    wl = "llama3_8b:decode_b1"
+    d = s.evaluate("tpu_v6e", wl, {"profile": "full", "trace": "none", "interval": "sensitivity",
+                                   "fitness": {"kind": "baseline_relative"}}).to_dict()
+    assert d["status"] == "ok", d.get("errors")
+    cal = d["calibration"]
+    assert "unit_eff" in cal["extrapolated"] and d["audit"]["extrapolated_components"] == cal["extrapolated"]
+    ev = Evaluator(make_cfg("x", redteam={"objective": "extrapolation_leverage", "hole_threshold": 0.5}),
+                   _Session(2.0), tmp_path / "ev")
+    assert ev.aggregate({wl: d}, [wl])["extrapolated"] == cal["extrapolated"]
+    obj, hole, info = ev.redteam_value({"fitness": 2.0, "_results": {wl: d}})
+    assert info["extrapolated_share"][wl] > 0.5 and hole and obj > 0.5, info

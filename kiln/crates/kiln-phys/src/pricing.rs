@@ -40,6 +40,13 @@ pub fn strip_overrides(hw: &HwModel) -> HwModel {
         }
         n.spec = Arc::new(s);
     }
+    for c in &mut h.channels {
+        if let Some(l) = &c.link {
+            let mut x = (**l).clone();
+            (x.latency, x.energy) = (None, None);
+            c.link = Some(Arc::new(x));
+        }
+    }
     for m in &mut h.memories {
         match &mut m.spec {
             MemSpec::OnChip(s) => {
@@ -117,6 +124,10 @@ impl Pricer for PhysPricer {
             ("overrides.energy_per_byte", NodeIx::Mem(m)) => Some(ch.mems[m].read_j_per_b),
             ("overrides.power", NodeIx::Mem(m)) => Some(ch.mems[m].background_w),
             ("link.latency", _) => self.net_channels(f.node).iter().map(|&c| self.m.links[c].latency_s).reduce(f64::max),
+            ("bond.pitch_um", _) => {
+                let bond = serde_json::from_value(serde_json::Value::from(f.key.as_deref()?)).ok()?;
+                crate::links::bond_table(crate::tables::Tables::get(), bond)?.pitch_um
+            }
             ("link.energy", _) => self.net_channels(f.node).iter().map(|&c| self.m.links[c].e_j_per_byte).reduce(f64::max),
             _ => None,
         }

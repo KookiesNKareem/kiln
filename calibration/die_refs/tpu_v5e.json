@@ -1,0 +1,31 @@
+{
+ "chip": "Google TPU v5e",
+ "die": {
+  "w_mm": null,
+  "h_mm": null,
+  "source": "unpublished. A '~325 mm2' SemiAnalysis estimate circulates second-hand (aiwiki.ai); not verified, not used.",
+  "area_mm2": null
+ },
+ "blocks": [],
+ "edges": {},
+ "package": {
+  "hbm_capacity_GB": 16,
+  "hbm_bw_GBps": 819,
+  "hbm_stacks": null,
+  "source": "Google Cloud TPU v5e docs (16 GB HBM, 819 GB/s per chip); stack count not published and no package photo found (819 GB/s is not one HBM2e stack at <=3.6 Gb/s, so 'single HBM2e stack' claims look wrong)."
+ },
+ "transistors": {
+  "value": null,
+  "source": "unpublished"
+ },
+ "node": {
+  "value": null,
+  "source": "unpublished"
+ },
+ "images": [],
+ "notes": [
+  "No die photo or floorplan found."
+ ],
+ "kiln_disagreements": [],
+ "coverage_frac": 0
+}

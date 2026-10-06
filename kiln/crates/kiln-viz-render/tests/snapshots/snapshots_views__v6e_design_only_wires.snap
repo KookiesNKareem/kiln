@@ -25,33 +25,33 @@ expression: "one(&v6e, &spec(ViewKind::Wires))"
 <rect x="84" y="76" width="240" height="280" fill="none" stroke="#a0a4ac" stroke-width="1"/>
 <text x="204" y="389.98" font-size="12" text-anchor="middle" fill="#1c1e24">length (um, 0 drawn at 1 um)</text>
 <text x="22" y="213.98" font-size="12" text-anchor="middle" fill="#1c1e24" transform="rotate(-90 22 216)">energy (pJ/bit)</text>
-<circle cx="214.24" cy="220.08" r="3" fill="#e69f00" fill-opacity="0.78"/>
-<circle cx="234.37" cy="196.6" r="3" fill="#e69f00" fill-opacity="0.78"/>
-<circle cx="225.72" cy="205.74" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="187.58" cy="199.08" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="187.58" cy="250.32" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="240.73" cy="170.49" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="240.73" cy="188.22" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="233.71" cy="175.56" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="233.71" cy="196.37" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="243.64" cy="168.23" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="243.64" cy="184.78" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="233.65" cy="175.6" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="233.65" cy="196.43" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="222.14" cy="183.09" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="222.14" cy="209.88" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="249.2" cy="163.83" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="249.2" cy="178.33" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="242.29" cy="169.27" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="242.29" cy="186.36" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="245.97" cy="166.41" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="245.97" cy="182.06" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="214.24" cy="187.59" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="214.24" cy="219.09" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="234.37" cy="175.11" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="234.37" cy="195.62" r="3" fill="#009e73" fill-opacity="0.78"/>
-<circle cx="225.72" cy="205.74" r="3" fill="#0072b2" fill-opacity="0.78"/>
-<circle cx="162.73" cy="279.53" r="3" fill="#0072b2" fill-opacity="0.78"/>
+<circle cx="214.24" cy="220.11" r="3" fill="#e69f00" fill-opacity="0.78"/>
+<circle cx="234.37" cy="196.63" r="3" fill="#e69f00" fill-opacity="0.78"/>
+<circle cx="225.72" cy="205.77" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="187.58" cy="199.11" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="187.58" cy="250.35" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="240.73" cy="170.51" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="240.73" cy="188.25" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="233.71" cy="175.59" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="233.71" cy="196.4" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="243.64" cy="168.26" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="243.64" cy="184.81" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="233.65" cy="175.62" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="233.65" cy="196.46" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="222.14" cy="183.12" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="222.14" cy="209.91" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="249.2" cy="163.86" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="249.2" cy="178.36" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="242.29" cy="169.3" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="242.29" cy="186.38" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="245.97" cy="166.44" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="245.97" cy="182.09" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="214.24" cy="187.61" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="214.24" cy="219.12" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="234.37" cy="175.14" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="234.37" cy="195.65" r="3" fill="#009e73" fill-opacity="0.78"/>
+<circle cx="225.72" cy="205.77" r="3" fill="#0072b2" fill-opacity="0.78"/>
+<circle cx="162.73" cy="279.56" r="3" fill="#0072b2" fill-opacity="0.78"/>
 <text x="84" y="411.15" font-size="11" text-anchor="start" fill="#1c1e24">channel kind</text>
 <rect x="84" y="420" width="12" height="12" fill="#0072b2" stroke="#a0a4ac" stroke-width="0.5"/>
 <text x="102" y="429.65" font-size="11" text-anchor="start" fill="#1c1e24">feed (78)</text>
@@ -89,7 +89,7 @@ expression: "one(&v6e, &spec(ViewKind::Wires))"
 <text x="697.8" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">819…</text>
 <text x="745.68" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">3.58 TB/s</text>
 <text x="793.56" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">5.14 ns-…</text>
-<text x="846.76" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">0.71-1.15</text>
+<text x="846.76" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">0.71-1.14</text>
 <text x="873.36" y="107.31" font-size="10" text-anchor="end" fill="#1c1e24">32</text>
 <rect x="350" y="112" width="536" height="14" fill="none"/>
 <rect x="342" y="115" width="6" height="8" fill="#009e73"/>

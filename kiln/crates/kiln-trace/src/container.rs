@@ -209,6 +209,13 @@ pub fn read_manifest(bytes: &[u8]) -> Result<Manifest, Diagnostic> {
             format!("manifest format {:?}", m.format),
         ));
     }
+    let mut names = std::collections::BTreeSet::new();
+    if let Some(e) = m.tables.iter().find(|e| !names.insert(e.name.as_str())) {
+        return Err(Diagnostic::error(
+            "E-TRACE-CONTAINER",
+            format!("table {:?} has more than one member", e.name),
+        ));
+    }
     Ok(m)
 }
 
@@ -606,6 +613,17 @@ mod tests {
             read_manifest(&bytes[..BLOCK]).unwrap_err().code,
             "E-TRACE-CONTAINER"
         );
+    }
+
+    #[test]
+    fn duplicate_table_members_are_rejected() {
+        let t = crate::trace::Trace::empty(Manifest::new(TraceLevel::Ops, provenance()));
+        let bytes = write_kiln(&t);
+        let mut m = read_manifest(&bytes).unwrap();
+        let ops = m.tables.iter().find(|e| e.name == "ops").unwrap().clone();
+        m.tables.push(ops);
+        let dup = write_manifest_only(&m);
+        assert_eq!(read_manifest(&dup).unwrap_err().code, "E-TRACE-CONTAINER");
     }
 
     #[test]

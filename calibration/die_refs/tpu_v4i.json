@@ -1,0 +1,402 @@
+{
+ "chip": "Google TPU v4i",
+ "die": {
+  "w_mm": 23.07,
+  "h_mm": 17.38,
+  "orientation": "landscape as drawn in Fig. 6",
+  "source": "paper gives only '< 400 mm2'; mm values here assume exactly 400 mm2 (upper bound) at the Fig. 6 aspect 892:672 = 1.327. Fractions do not depend on this assumption.",
+  "area_mm2": 401.0
+ },
+ "blocks": [
+  {
+   "id": "mxu",
+   "kind": "mxu",
+   "count": 4,
+   "confidence": "high",
+   "source": "Fig. 6 (paper text/Table 7: MXUs 11% of die).",
+   "bbox_mm": [
+    [
+     0.65,
+     6.7,
+     3.26,
+     10.89
+    ],
+    [
+     3.7,
+     6.7,
+     6.31,
+     10.89
+    ],
+    [
+     17.22,
+     6.7,
+     19.81,
+     10.89
+    ],
+    [
+     20.25,
+     6.7,
+     23.02,
+     10.89
+    ]
+   ],
+   "area_mm2": 44.3,
+   "frac": 0.1106,
+   "area_each_mm2": 11.08
+  },
+  {
+   "id": "xlu",
+   "kind": "xlu",
+   "count": 2,
+   "confidence": "high",
+   "source": "Fig. 6",
+   "bbox_mm": [
+    [
+     6.31,
+     6.7,
+     7.14,
+     10.89
+    ],
+    [
+     16.42,
+     6.7,
+     17.22,
+     10.89
+    ]
+   ],
+   "area_mm2": 6.8,
+   "frac": 0.017,
+   "area_each_mm2": 3.41
+  },
+  {
+   "id": "vpu_vmem",
+   "kind": "vpu_vmem",
+   "count": 1,
+   "confidence": "high",
+   "source": "Fig. 6",
+   "bbox_mm": [
+    7.14,
+    6.7,
+    16.42,
+    10.89
+   ],
+   "area_mm2": 38.9,
+   "frac": 0.097,
+   "area_each_mm2": 38.88
+  },
+  {
+   "id": "tcs_smem_imem",
+   "kind": "tc_ctrl",
+   "count": 1,
+   "confidence": "high",
+   "source": "Fig. 6",
+   "bbox_mm": [
+    17.28,
+    10.94,
+    19.81,
+    12.44
+   ],
+   "area_mm2": 3.8,
+   "frac": 0.0095,
+   "area_each_mm2": 3.79
+  },
+  {
+   "id": "cmem",
+   "kind": "cmem",
+   "count": 2,
+   "confidence": "high",
+   "source": "Fig. 6 (paper: CMEM = 28% of die, 128 MB).",
+   "bbox_mm": [
+    [
+     6.49,
+     10.91,
+     17.25,
+     15.98
+    ],
+    [
+     6.39,
+     1.66,
+     17.12,
+     6.67
+    ]
+   ],
+   "area_mm2": 108.3,
+   "frac": 0.2701,
+   "area_each_mm2": 54.16
+  },
+  {
+   "id": "oci",
+   "kind": "oci",
+   "count": 11,
+   "confidence": "high",
+   "source": "Fig. 6 (caption: OCI blocks are stretched to fill space).",
+   "bbox_mm": [
+    [
+     5.12,
+     16.16,
+     18.31,
+     17.25
+    ],
+    [
+     5.12,
+     10.91,
+     6.44,
+     15.98
+    ],
+    [
+     3.31,
+     10.91,
+     5.02,
+     11.95
+    ],
+    [
+     17.3,
+     12.54,
+     20.79,
+     15.98
+    ],
+    [
+     19.86,
+     10.97,
+     20.79,
+     12.44
+    ],
+    [
+     3.31,
+     6.7,
+     3.65,
+     10.89
+    ],
+    [
+     19.86,
+     6.7,
+     20.2,
+     10.89
+    ],
+    [
+     3.31,
+     5.61,
+     5.02,
+     6.67
+    ],
+    [
+     5.12,
+     1.66,
+     6.28,
+     6.67
+    ],
+    [
+     17.3,
+     1.6,
+     20.72,
+     6.67
+    ],
+    [
+     5.12,
+     0.18,
+     18.34,
+     1.42
+    ]
+   ],
+   "area_mm2": 80.4,
+   "frac": 0.2006,
+   "area_each_mm2": 7.31
+  },
+  {
+   "id": "hbmc_serdes",
+   "kind": "hbm_ctrl_phy",
+   "count": 2,
+   "confidence": "high",
+   "source": "Fig. 6: 'HBMC & SerDes' on the east edge (2 HBM2 stacks).",
+   "bbox_mm": [
+    [
+     20.95,
+     10.97,
+     22.99,
+     17.25
+    ],
+    [
+     20.9,
+     0.18,
+     22.99,
+     6.62
+    ]
+   ],
+   "area_mm2": 26.3,
+   "frac": 0.0655,
+   "area_each_mm2": 13.14
+  },
+  {
+   "id": "ici_icr_lst",
+   "kind": "ici",
+   "count": 2,
+   "confidence": "high",
+   "source": "Fig. 6: ICR + 2x 'LST & SerDes' (ICI, 2 x 400 Gb/s) in the NW corner.",
+   "bbox_mm": [
+    [
+     0.08,
+     12.0,
+     5.02,
+     16.06
+    ],
+    [
+     0.08,
+     16.06,
+     3.44,
+     17.25
+    ]
+   ],
+   "area_mm2": 24.1,
+   "frac": 0.06,
+   "area_each_mm2": 12.03
+  },
+  {
+   "id": "pcie_uhi_mgr",
+   "kind": "pcie",
+   "count": 3,
+   "confidence": "high",
+   "source": "Fig. 6: PCIe controller & SerDes, UHI, MGR in the SW corner.",
+   "bbox_mm": [
+    [
+     0.08,
+     0.05,
+     5.02,
+     3.28
+    ],
+    [
+     3.31,
+     3.34,
+     4.97,
+     5.51
+    ],
+    [
+     1.24,
+     3.34,
+     3.26,
+     5.1
+    ]
+   ],
+   "area_mm2": 23.1,
+   "frac": 0.0576,
+   "area_each_mm2": 7.7
+  },
+  {
+   "id": "misc_gpio",
+   "kind": "misc",
+   "count": 7,
+   "confidence": "high",
+   "source": "Fig. 6: Misc and GPIO blocks.",
+   "bbox_mm": [
+    [
+     3.44,
+     16.06,
+     5.07,
+     17.3
+    ],
+    [
+     0.1,
+     10.84,
+     3.26,
+     11.33
+    ],
+    [
+     0.1,
+     6.7,
+     0.62,
+     10.84
+    ],
+    [
+     1.24,
+     5.12,
+     3.23,
+     6.57
+    ],
+    [
+     0.16,
+     2.25,
+     1.14,
+     6.57
+    ],
+    [
+     18.36,
+     16.16,
+     20.79,
+     17.25
+    ],
+    [
+     18.44,
+     0.18,
+     20.72,
+     1.42
+    ]
+   ],
+   "area_mm2": 18.3,
+   "frac": 0.0457,
+   "area_each_mm2": 2.62
+  }
+ ],
+ "edges": {
+  "e": [
+   {
+    "kind": "hbm_ctrl_phy",
+    "count": 2,
+    "length_mm_at_400mm2": 6.3
+   }
+  ],
+  "w": [
+   {
+    "kind": "ici serdes (LST)",
+    "count": 2
+   },
+   {
+    "kind": "pcie serdes",
+    "count": 1
+   },
+   {
+    "kind": "gpio",
+    "count": 1
+   }
+  ],
+  "n": [
+   {
+    "kind": "gpio",
+    "count": 1
+   }
+  ],
+  "s": [
+   {
+    "kind": "gpio",
+    "count": 1
+   }
+  ],
+  "note": "From Fig. 6 as drawn; HBM on ONE edge only."
+ },
+ "package": {
+  "hbm_stacks": 2,
+  "source": "Jouppi et al., Ten Lessons From Three Generations Shaped Google's TPUv4i, ISCA 2021 (Table 1, Fig. 6) (8 GB HBM2, 614 GB/s; 2 HBMC blocks in Fig. 6)"
+ },
+ "transistors": {
+  "value": 16000000000.0,
+  "source": "Jouppi et al., Ten Lessons From Three Generations Shaped Google's TPUv4i, ISCA 2021 (Table 1, Fig. 6) Table 1"
+ },
+ "node": {
+  "value": "7 nm",
+  "source": "Jouppi et al., Ten Lessons From Three Generations Shaped Google's TPUv4i, ISCA 2021 (Table 1, Fig. 6)"
+ },
+ "images": [
+  {
+   "path": "img/nonfree/tpu_v4i_floorplan_jouppi2021_fig6.png (local only)",
+   "url": "https://gwern.net/doc/ai/scaling/hardware/2021-jouppi.pdf (page 7, Fig. 6); doi 10.1109/ISCA52012.2021.00010",
+   "attribution": "Jouppi et al., ISCA 2021, copyright IEEE",
+   "type": "published floorplan figure (schematic, to scale per paper)"
+  }
+ ],
+ "notes": [
+  "Validation: the redrawn boxes give CMEM 27.1% (paper: 28%) and 4 MXUs 10.8% (paper: 11%).",
+  "Caption: 'The TensorCore and CMEM block arrangements are derived from the TPUv4 floorplan.'"
+ ],
+ "kiln_disagreements": [
+  "tpu_v4i.json5 uses outline auto with no shoreline; the paper's floorplan puts both HBM controllers/PHYs on ONE edge (E), ICI and PCIe SerDes on the opposite (W) edge, and splits CMEM into two halves above and below a central TensorCore row."
+ ],
+ "coverage_frac": 0.9336
+}

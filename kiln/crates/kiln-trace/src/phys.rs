@@ -199,6 +199,38 @@ fn slice_seq(areas: &[f64], r: Rect) -> Vec<Rect> {
     out
 }
 
+/// Largest axis-aligned rectangle inside `r` overlapping none of `taken`.
+fn largest_free(r: Rect, taken: &[Rect]) -> Option<Rect> {
+    let mut xs: Vec<f64> = taken
+        .iter()
+        .flat_map(|t| [t.x0, t.x1])
+        .chain([r.x0, r.x1])
+        .map(|x| x.clamp(r.x0, r.x1))
+        .collect();
+    xs.sort_by(f64::total_cmp);
+    xs.dedup();
+    let mut best: Option<(f64, Rect)> = None;
+    for (i, &x0) in xs.iter().enumerate() {
+        for &x1 in &xs[i + 1..] {
+            let mut ys: Vec<(f64, f64)> = taken
+                .iter()
+                .filter(|t| t.x0 < x1 && t.x1 > x0)
+                .map(|t| (t.y0, t.y1))
+                .collect();
+            ys.sort_by(|a, b| a.0.total_cmp(&b.0));
+            let mut y = r.y0;
+            for (y0, y1) in ys.into_iter().chain([(r.y1, r.y1)]) {
+                let a = (x1 - x0) * (y0.min(r.y1) - y);
+                if a > best.map_or(0.0, |b| b.0) {
+                    best = Some((a, Rect::new(x0, y, x1, y0.min(r.y1))));
+                }
+                y = y.max(y1);
+            }
+        }
+    }
+    best.map(|b| b.1)
+}
+
 fn under(hw: &HwModel, mut n: usize, root: usize) -> bool {
     loop {
         if n == root {
@@ -373,8 +405,18 @@ pub fn place(
         if kids.is_empty() || !(force[n] || kids.iter().any(|&k| rect[k].is_none() && in_unit[k])) {
             continue;
         }
+        // kiln-phys's placement (macros, shoreline PHYs) stays put unless its parent moved; the rest goes into the
+        // largest free rectangle around it.
+        let (keep, kids): (Vec<usize>, Vec<usize>) = kids
+            .into_iter()
+            .partition(|&k| !force[n] && src[k] == source::PLACED && rect[k].is_some());
+        let kept: Vec<Rect> = keep.iter().filter_map(|&k| rect[k]).collect();
+        let (space, cap) = match largest_free(r, &kept) {
+            Some(f) if !kept.is_empty() => (f, f.w() * f.h()),
+            _ => (r, sub[n]),
+        };
         let content: f64 = kids.iter().map(|&k| sub[k]).sum();
-        let inner = shrink(r, (content / sub[n].max(1e-9)).clamp(1e-6, 1.0).sqrt());
+        let inner = shrink(space, (content / cap.max(1e-9)).clamp(1e-6, 1.0).sqrt());
         for (k, kr) in arrange(hw, &kids, &sub, inner) {
             rect[k] = Some(kr);
             src[k] = source::FILLED;
@@ -611,9 +653,11 @@ pub fn place(
                 || cont_kind(i) == Some(ContainerKind::Die));
         if let (true, Some(r), Some(f)) = (harvested, fp.rect[i], frame_of[i]) {
             let r = frames[f].rect(r);
+            let owner = std::iter::successors(hw.nodes[i].parent, |&p| hw.nodes[p].parent)
+                .find_map(|p| resource(&hw.nodes[p].path));
             package.push(PackageRow {
                 kind: 2,
-                resource: None,
+                resource: owner,
                 layer: layer(i),
                 x_um: r.x0,
                 y_um: r.y0,
@@ -676,8 +720,10 @@ pub fn design_summary(
                         (hw.nodes[mm.node].entity_id.clone(), kind)
                     },
                 );
+                let read_j_per_b = mem.and_then(|mi| ph.m3().map(|m| m.ch.mems[mi].read_j_per_b));
                 json!({"level": l.level, "name": name, "kind": kind, "instances": l.instances,
-                    "capacity_b": l.capacity.0 as f64, "bandwidth_bps": l.bandwidth.0})
+                    "capacity_b": l.capacity.0 as f64, "bandwidth_bps": l.bandwidth.0,
+                    "read_j_per_b": read_j_per_b, "full_bw_w": read_j_per_b.map(|e| e * l.bandwidth.0)})
             })
             .collect()
     });
@@ -732,8 +778,11 @@ pub fn design_summary(
 
     let rep = ph.report();
     let area = rep.map_or(Value::Null, |r| {
-        json!({"package_mm2": r.package_mm2, "package_low_mm2": r.package_low_mm2,
-            "package_high_mm2": r.package_high_mm2, "package_table": r.package_table,
+        // Package packing is not monotone in the area corners (fixed-outline dies can pack larger at the optimistic
+        // corner): the band is the envelope over both corners and the central placement.
+        let corners = [r.package_low_mm2, r.package_high_mm2, r.package_mm2];
+        json!({"package_mm2": r.package_mm2, "package_low_mm2": corners.iter().copied().fold(f64::INFINITY, f64::min),
+            "package_high_mm2": corners.iter().copied().fold(0.0, f64::max), "package_table": r.package_table,
             "dies": r.dies.iter().map(|d| json!({"path": d.path, "node": d.node, "layer": d.layer,
                 "area_mm2": d.area_mm2, "area_low_mm2": d.area_low_mm2, "area_high_mm2": d.area_high_mm2,
                 "outline_mm2": d.outline_mm2, "legalized_mm2": d.legalized_mm2, "fixed_outline": d.fixed_outline,
@@ -815,6 +864,7 @@ pub fn design_summary(
         "elem_ops": elem,
         "memory": levels,
         "onchip_capacity_b": s.onchip_capacity.0 as f64,
+        "chip_onchip_capacity_b": s.chips.first().map(|c| c.onchip_capacity.0 as f64),
         "offchip": offchip,
         "networks": nets,
         "inter_chip": inter,
@@ -885,12 +935,70 @@ mod tests {
             }
             assert!(t.floorplan.iter().any(|f| f.source == source::FILLED), "{name}: units filled in");
             assert!(!t.wires.is_empty() && t.wires.iter().all(|w| w.link != NONE_U32), "{name}: wires");
-            assert!(t.scalar("design_summary").is_some_and(|v| v["area"]["package_mm2"].as_f64() > Some(0.0)));
+            let area = &t.scalar("design_summary").unwrap()["area"];
+            let (lo, c, hi) = (area["package_low_mm2"].as_f64().unwrap(), area["package_mm2"].as_f64().unwrap(), area["package_high_mm2"].as_f64().unwrap());
+            assert!(0.0 < lo && lo <= c && c <= hi, "{name}: package [{lo}, {c}, {hi}]");
             let bytes = write_kiln(&t);
             assert_eq!(bytes, write_kiln(&trace(name)), "{name}: deterministic");
             let mut back = read_kiln(&bytes).unwrap();
             back.manifest.tables.clear();
             assert_eq!(back, t, "{name}: round trip");
+        }
+    }
+
+    /// kiln-phys's die and macro rectangles survive the unit fill unchanged, and no filled sibling overlaps one.
+    fn placed_kept(name: &str, hw: &HwModel, t: &Trace) -> usize {
+        let ph = Phys::new(hw);
+        let fp = &ph.m3().unwrap().fp;
+        let row: BTreeMap<&str, &FloorplanRow> =
+            t.floorplan.iter().map(|f| (t.resources[f.resource as usize].path.as_str(), f)).collect();
+        let placed = fp.dies.iter().flat_map(|d| d.macros.iter().flat_map(|m| m.nodes.iter().copied()).chain([d.node]));
+        let mut n = 0;
+        for i in placed.filter(|&i| hw.nodes[i].enabled) {
+            let (Some(r), Some(f)) = (fp.rect[i], row.get(hw.nodes[i].path.as_str())) else { continue };
+            let path = &hw.nodes[i].path;
+            assert_eq!(f.source, source::PLACED, "{name}: {path} relaid");
+            assert!((f.w_um - r.w()).abs() < 1e-6 && (f.h_um - r.h()).abs() < 1e-6, "{name}: {path} resized");
+            for g in t.floorplan.iter().filter(|g| g.source == source::FILLED) {
+                let gp = &t.resources[g.resource as usize].path;
+                if g.layer == f.layer && hw.nodes[i].parent.is_some_and(|p| gp.starts_with(&format!("{}.", hw.nodes[p].path))) && !gp.starts_with(&format!("{path}.")) {
+                    let ox = (f.x_um + f.w_um).min(g.x_um + g.w_um) - f.x_um.max(g.x_um);
+                    let oy = (f.y_um + f.h_um).min(g.y_um + g.h_um) - f.y_um.max(g.y_um);
+                    assert!(ox <= 1e-6 || oy <= 1e-6, "{name}: {gp} filled over {path}");
+                }
+            }
+            n += 1;
+        }
+        n
+    }
+
+    /// tpu_v5e with the tensorcore's units, memories and networks directly on the die.
+    fn flat_die() -> (HwModel, kiln_ir::hw::Design) {
+        let p = format!("{}/../../designs/reference/tpu_v5e.json5", env!("CARGO_MANIFEST_DIR"));
+        let t = std::fs::read_to_string(p).unwrap();
+        let (a, b) = (t.find("    tensorcore: { kind: \"cluster\", body: {\n").unwrap(), t.find("    v5e_chip:").unwrap());
+        let body = &t[a + "    tensorcore: { kind: \"cluster\", body: {\n".len()..b];
+        let body = &body[..body.rfind("    } },").unwrap()];
+        let t = t
+            .replacen("        clusters: [ { id: \"tc\", use: \"tensorcore\" } ],\n", body, 1)
+            .replacen("endpoints: [\"tc.vmem\", \"tc.smem\"]", "endpoints: [\"vmem\", \"smem\"]", 1)
+            .replacen(&t[a..b], "", 1);
+        let d = kiln_ir::hw::Design::from_source(&kiln_ir::hw::FsLoader, None, &t).expect("loads");
+        let (hw, _) = d.expand(&Default::default()).expect("expands");
+        (hw, d)
+    }
+
+    #[test]
+    fn unit_fill_keeps_kiln_phys_placement() {
+        let (hw, d) = flat_die();
+        let t = structure(&hw, Some(d.canonical.clone()), Some("flat".into()), &profile_checks(&d, &hw));
+        contained(&t);
+        assert!(placed_kept("flat", &hw, &t) >= 11);
+        assert!(t.floorplan.iter().any(|f| f.source == source::FILLED && t.resources[f.resource as usize].path == "board.chip.die.mxu0"));
+        for name in ["a100_sxm4_40gb", "h100_sxm5_80gb", "tpu_v6e", "tpu_v5e_2x2", "tpu_v4", "ember"] {
+            let (hw, d) = design(name);
+            let t = structure(&hw, Some(d.canonical.clone()), Some(name.into()), &profile_checks(&d, &hw));
+            assert!(placed_kept(name, &hw, &t) > 0, "{name}");
         }
     }
 

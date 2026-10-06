@@ -23,10 +23,12 @@ fn axis_of(e: &IndexExpr, kernel: &Kernel) -> Result<AxisExpr, Diagnostic> {
         IndexExpr::Affine { terms, offset } => {
             let mut out = AxisExpr { terms: vec![], div: 1, offset: *offset };
             for t in terms {
+                if let Some(p) = &t.param {
+                    return Err(err("E-COST-NEST", format!("kernel {}: index uses unbound param {p:?}", kernel.id)));
+                }
                 match &t.dim {
                     Some(d) => out.terms.push((ix(d)?, t.coeff)),
-                    None if t.param.is_none() => out.offset += t.coeff,
-                    None => {}
+                    None => out.offset += t.coeff,
                 }
             }
             Ok(out)

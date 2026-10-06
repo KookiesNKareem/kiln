@@ -891,7 +891,8 @@ impl<'a> Lowerer<'a> {
                 let b = prog.ops[c].body();
                 let work = |k: &ComputeKind| elems * (f64::from(b.cvt) / k.class_rate(OpClass::Convert) + f64::from(b.mul) / k.class_rate(OpClass::Elementwise));
                 let io = (prog.tensors[t].bytes(fps[oi].elems()) as f64, prog.tensors[op.operands[oi].tensor].bytes(fps[oi].elems()) as f64);
-                let vw = self.vector_cycles(u, &prog.ops[c], "convert a contraction operand", &[prog.tensors[t].dtype.scalar, to], work, io)?;
+                let classes = classes_of(&[(OpClass::Convert, b.cvt > 0), (OpClass::Elementwise, b.mul > 0)]);
+                let vw = self.vector_cycles(u, &prog.ops[c], "convert a contraction operand", (&[prog.tensors[t].dtype.scalar, to], &classes), work, io)?;
                 dem.extend(self.vector_demands(&vw)?);
                 let ops = elems * f64::from(b.cvt + b.mul);
                 fx.stats.vec_ops += ops as u128;
@@ -953,7 +954,8 @@ impl<'a> Lowerer<'a> {
                 // Each operation reads an accumulator; conversions write the result, scale passes an accumulator.
                 let (acc_b, out_b) = (f64::from(acc.element_bits()) / 8.0, op.mac.as_ref().map_or(0.0, |m| prog.tensors[op.operands[m.out].tensor].dtype.elem_bits() as f64 / 8.0));
                 let io = ((cvt + rest) * acc_b, cvt * out_b + rest * acc_b);
-                let vw = self.vector_cycles(u, op, "run the contraction's conversions and scale passes", &[acc], work, io)?;
+                let classes = classes_of(&[(OpClass::Convert, cvt > 0.0), (OpClass::Elementwise, rest > 0.0)]);
+                let vw = self.vector_cycles(u, op, "run the contraction's conversions and scale passes", (&[acc], &classes), work, io)?;
                 let vdem = self.vector_demands(&vw)?;
                 ct = self.push_task(TaskKind::Compute, oi_prog, 0.0, &[], &vdem, &[ct], 0.0);
                 vw.charge(&mut fx.stats, nc.vec_ops as f64);
@@ -1002,7 +1004,8 @@ impl<'a> Lowerer<'a> {
                 let cvt = if op.mac.is_some() && out != acc { b.elems() as f64 } else { 0.0 };
                 let work = |k: &ComputeKind| n / k.class_rate(OpClass::Elementwise) + cvt / k.class_rate(OpClass::Convert);
                 let io = ((2.0 * n + cvt) * acc_b, n * acc_b + cvt * out_b);
-                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", &[acc], work, io)?;
+                let classes = classes_of(&[(OpClass::Elementwise, true), (OpClass::Convert, cvt > 0.0)]);
+                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", (&[acc], &classes), work, io)?;
                 fx.stats.vec_ops += (n + cvt) as u128;
                 vw.charge(&mut fx.stats, n + cvt);
                 let dem = self.vector_demands(&vw)?;
@@ -1097,7 +1100,7 @@ impl<'a> Lowerer<'a> {
 
     /// Compute resources and per-resource cycles of vector work beside MAC unit `u` (a fused convert's, a
     /// contraction's own conversions and scale passes, a split reduction's combine): on the vector unit (gang)
-    /// sharing its feed memory, in its mode for `dtypes` ([`crate::cost::vector_mode`]) over `work` (lane
+    /// sharing its feed memory, declaring op `classes`, in its mode for `dtypes` ([`crate::cost::vector_mode`]) over `work` (lane
     /// operations at the unit's class rates); an error when the design has no such unit or mode. Also the bytes
     /// `(read, written)` it moves through its feeds and feed memories, spread over its gang, and the unit's energy
     /// per operation in that mode.
@@ -1106,7 +1109,7 @@ impl<'a> Lowerer<'a> {
         u: usize,
         op: &POp,
         what: &str,
-        dtypes: &[kiln_ir::precision::Precision],
+        (dtypes, classes): (&[kiln_ir::precision::Precision], &[OpClass]),
         work: impl Fn(&ComputeKind) -> f64,
         (rd, wr): (f64, f64),
     ) -> Result<VectorWork, Diagnostic> {
@@ -1114,6 +1117,7 @@ impl<'a> Lowerer<'a> {
         let v = self.reducer(u).ok_or_else(|| self.no_vector_unit(u, op, what))?;
         let vu = &view.units[view.units[v].lead];
         let spec = &view.hw.units[vu.unit].spec;
+        crate::cost::require_ops(&view.hw, vu.unit, classes).map_err(|d| d.at(op.id.clone()))?;
         let (dt, rate) = crate::cost::vector_mode(&view.hw, vu.unit, dtypes).map_err(|d| d.at(op.id.clone()))?;
         let lanes = spec.kind.base_ops_per_cycle() as f64 * rate * vu.members.len() as f64;
         let e_op = view.phys.unit_energies(vu.unit, dt.name(), (dt.element_bits(), dt.element_bits())).2;
@@ -1479,4 +1483,8 @@ pub fn lower(prog: &Program, view: &HwView, mapping: &Mapping, cost: &dyn UnitCo
         l.end_group();
     }
     Ok(l.finish())
+}
+
+fn classes_of(needed: &[(OpClass, bool)]) -> Vec<OpClass> {
+    needed.iter().filter(|x| x.1).map(|x| x.0).collect()
 }

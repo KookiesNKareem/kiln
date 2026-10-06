@@ -1,0 +1,30 @@
+{
+ "chip": "Google TPU v6e (Trillium)",
+ "die": {
+  "w_mm": null,
+  "h_mm": null,
+  "source": "unpublished",
+  "area_mm2": null
+ },
+ "blocks": [],
+ "edges": {},
+ "package": {
+  "hbm_capacity_GB": 32,
+  "hbm_stacks": "2 (low confidence)",
+  "source": "ServeTheHome SC24 board photos (https://www.servethehome.com/?p=82380, copyright, not stored): the lid window shows one large die and a column split into two pieces along one edge, read as 2 HBM stacks on one side; resolution too low to confirm. 32 GB per chip from Google Cloud docs."
+ },
+ "transistors": {
+  "value": null,
+  "source": "unpublished"
+ },
+ "node": {
+  "value": null,
+  "source": "unpublished"
+ },
+ "images": [],
+ "notes": [
+  "No die photo or floorplan found."
+ ],
+ "kiln_disagreements": [],
+ "coverage_frac": 0
+}

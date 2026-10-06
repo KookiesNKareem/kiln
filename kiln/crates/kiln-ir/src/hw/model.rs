@@ -216,6 +216,9 @@ pub struct Channel {
     pub bandwidth: Option<BytesPerSec>,
     /// `bandwidth` without overrides; None when kiln-ir cannot derive it (e.g. an on-die link with no clock).
     pub bandwidth_derived: Option<BytesPerSec>,
+    /// The link spec the channel was expanded from (a custom edge's or an endpoint port's own, else the network's).
+    #[serde(skip)]
+    pub link: Option<Arc<crate::hw::net::LinkSpec>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

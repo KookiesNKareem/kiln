@@ -248,6 +248,22 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
             );
         }
     }
+    for c in &r.collectives {
+        let path = format!("{p}.collectives[{}]", c.collective);
+        quantity(&mut out, &format!("{path}.bytes"), c.bytes);
+        for (k, x) in c.link_bytes_by_tier.iter().enumerate() {
+            quantity(&mut out, &format!("{path}.link_bytes_by_tier[{k}]"), *x);
+        }
+        if !(c.start_s >= 0.0 && c.start_s <= c.end_s && c.end_s <= r.makespan_s * (1.0 + SUM_REL_TOL)) {
+            out.push(
+                Diagnostic::error(
+                    "E-TRACE-SPAN",
+                    format!("collective span [{}, {}] s outside [0, makespan {}]", c.start_s, c.end_s, r.makespan_s),
+                )
+                .at(path),
+            );
+        }
+    }
     for res in &r.resources {
         let path = format!("{p}.resources[{}]", res.resource);
         for (name, x) in [
@@ -730,6 +746,37 @@ pub fn check_result(r: &EvalResult) -> Vec<Diagnostic> {
                     ),
                 )
                 .at(format!("{p}.floors")),
+            );
+        }
+        let (by_time, by_energy) = (
+            ph.tokens_per_s.central * ph.time_s.central,
+            ph.tokens_per_j.central * ph.energy_j.central,
+        );
+        if !close(by_time, by_energy) {
+            out.push(
+                Diagnostic::error(
+                    "E-TRACE-PHASE",
+                    format!(
+                        "tokens_per_s x time_s = {by_time} tokens but tokens_per_j x energy_j = {by_energy}"
+                    ),
+                )
+                .at(format!("{p}.tokens_per_s")),
+            );
+        }
+        if !r.sim.iter().any(|c| c.phase == ph.phase && c.corner == Corner::Central)
+            && ph.time_s.central > 0.0
+            && !close(ph.avg_power_w.central, ph.energy_j.central / ph.time_s.central)
+        {
+            out.push(
+                Diagnostic::error(
+                    "E-TRACE-PHASE",
+                    format!(
+                        "avg_power_w central {} != energy_j / time_s = {}",
+                        ph.avg_power_w.central,
+                        ph.energy_j.central / ph.time_s.central
+                    ),
+                )
+                .at(format!("{p}.avg_power_w")),
             );
         }
         for c in r.sim.iter().filter(|c| c.phase == ph.phase) {
@@ -1394,6 +1441,8 @@ pub(crate) mod tests {
         let mut r = result();
         r.sim[0].corner = Corner::Low;
         r.phases[0].time_s = Interval::new(0.01, 100.0, 200.0).unwrap();
+        r.phases[0].tokens_per_s = r.phases[0].time_s.recip_scaled(1.0);
+        r.phases[0].avg_power_w = Interval::new(0.04, 0.05, 500.0).unwrap();
         assert!(!codes(&check_result(&r)).contains(&"E-TRACE-PHASE"));
     }
 
@@ -1568,6 +1617,42 @@ pub(crate) mod tests {
             r.phases[0].floors[0].seconds = x;
             assert!(!check_result(&r).is_empty(), "{x}");
         }
+    }
+
+    #[test]
+    fn phase_throughput_energy_and_power_agree() {
+        assert!(check_result(&result()).is_empty());
+        let mut r = result();
+        r.phases[0].tokens_per_s = Interval::point(1e300);
+        assert!(codes(&check_result(&r)).contains(&"E-TRACE-PHASE"));
+        let mut r = result();
+        r.sim.clear();
+        assert!(check_result(&r).is_empty(), "{:?}", check_result(&r));
+        r.phases[0].avg_power_w = Interval::point(1.0);
+        assert!(codes(&check_result(&r)).contains(&"E-TRACE-PHASE"));
+    }
+
+    #[test]
+    fn simulation_collectives_are_validated() {
+        let collective = |start_s: f64, end_s: f64, bytes: f64| crate::sim::CollectiveResult {
+            collective: id("ar0"),
+            op: id("ar"),
+            algorithm: "ring".into(),
+            chips: vec![],
+            steps: 1,
+            bytes,
+            start_s,
+            end_s,
+            link_bytes_by_tier: vec![bytes],
+        };
+        let mut ok = sim(Corner::Central, 1.0);
+        ok.collectives.push(collective(0.25, 0.5, 100.0));
+        assert!(check_sim(&ok).is_empty(), "{:?}", check_sim(&ok));
+        let mut bad = sim(Corner::Central, 1.0);
+        bad.collectives.push(collective(-1.0, 2.0, -100.0));
+        let d = check_sim(&bad);
+        let c = codes(&d);
+        assert!(c.contains(&"E-TRACE-SPAN") && c.len() >= 3, "{c:?}");
     }
 
     #[test]

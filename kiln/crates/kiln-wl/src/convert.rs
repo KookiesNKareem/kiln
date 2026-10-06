@@ -153,7 +153,8 @@ fn scaled_sig_bits(elem: Precision, scale: Precision, zero_point: Option<Precisi
 /// numerics). Block-scaled sources widen into 8-bit-exponent floats that hold their elements, their
 /// E8M0/bf16/fp8 scales (applied inside the reduction) and the significand of every product of the two, or into
 /// an MX type of the same block whose element type holds theirs; per-tensor and per-axis
-/// scaled sources into those floats when they hold the elements (the scale applies to the accumulator).
+/// scaled sources into those floats when they hold the elements (the scale applies to the accumulator; a
+/// per-axis scale along a reduced dim is applied before the reduction, see [`insert_converts`]).
 pub fn widens(to: Precision, from: &ElemType) -> bool {
     let src = operand_spec(from).precision;
     if to == src && !unregistered_scaling(from) {
@@ -311,15 +312,32 @@ fn convert_kernel(k: &Kernel, oi: usize, src: &ElemType, to: Id, id: String) -> 
     }
 }
 
-/// Per-element work of `(q - z) * scale` from `src`, converted: the subtraction only with a zero point, the
-/// multiply only with scales.
+/// Per-element work of `(q - z) * scale (* tensor_scale)` from `src`, converted: the subtraction only with a
+/// zero point, a multiply per scale level.
 pub fn dequant_body(src: &ElemType) -> ScalarBody {
     let (mul, add) = match src.scaling {
         Scaling::None => (0, 0),
-        Scaling::Block { zero_point, .. } => (1, u16::from(zero_point.is_some())),
+        Scaling::Block { zero_point, tensor_scale, .. } => (1 + u16::from(tensor_scale.is_some()), u16::from(zero_point.is_some())),
         Scaling::PerTensor { .. } | Scaling::PerAxis { .. } => (1, 0),
     };
     ScalarBody { cvt: 1, mul, add, ..ScalarBody::default() }
+}
+
+/// A per-axis scale along a dim that `k` reduces cannot wait for the accumulator: it is applied before the
+/// reduction, as a block scale of one element along that axis.
+fn reduction_scaled(k: &Kernel, oi: usize, t: ElemType) -> ElemType {
+    let Scaling::PerAxis { axis, scale } = t.scaling else { return t };
+    let index = &k.operands[oi].index;
+    let Some(ix) = usize::try_from(if axis < 0 { index.len() as i64 + i64::from(axis) } else { i64::from(axis) }).ok().and_then(|i| index.get(i)) else {
+        return t;
+    };
+    let mut dims = vec![];
+    ix.dims(&mut dims);
+    let reduced = dims.iter().any(|d| k.dims.iter().any(|l| l.name == *d && l.kind == kiln_ir::wl::DimKind::Reduction));
+    if !reduced {
+        return t;
+    }
+    ElemType { scaling: Scaling::Block { axis, block: 1, scale, zero_point: None, tensor_scale: None }, ..t }
 }
 
 /// Inserts the converts every contraction of `lg` needs under `modes`; returns how many it inserted. A
@@ -339,7 +357,10 @@ pub fn insert_converts(lg: &mut LoweredGraph, modes: &MacModes) -> Result<usize,
                 ki += 1;
                 continue;
             };
-            let ty = |i: usize| local(n, &k.operands[i].tensor);
+            let ty = |i: usize| local(n, &k.operands[i].tensor).map(|mut t| {
+                t.dtype = reduction_scaled(k, i, t.dtype);
+                t
+            });
             let (Some(ta), Some(tb)) = (ty(a), ty(b)) else {
                 ki += 1;
                 continue;

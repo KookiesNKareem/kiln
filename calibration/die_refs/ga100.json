@@ -1,0 +1,460 @@
+{
+ "chip": "NVIDIA GA100 (A100)",
+ "die": {
+  "w_mm": 25.58,
+  "h_mm": 32.3,
+  "orientation": "portrait; HBM PHYs on the long (W/E) edges",
+  "source": "area = 826 mm2 (whitepaper); aspect 6065/7657 = 0.792 from the die photo. Independent caliper value: 25.65 x 32.35 mm = 829.8 mm2 (Kurnal Insights).",
+  "area_mm2": 826.2
+ },
+ "blocks": [
+  {
+   "id": "gpc",
+   "kind": "sm_array",
+   "count": 8,
+   "confidence": "medium",
+   "source": "own reading: SM-tile arrays (repeated mirrored tiles with register-file/L1 SRAM bars) in 2 columns x 4 rows. The split into 8 GPCs uses one bright marker square per array (8 markers at x~400/860, y~300/580/1025/1300 in the frame) plus the published 8-GPC count; GPC boundaries inside the middle rows are not visible as gaps. Boxes include GPC-level logic (raster/PE/MMU) and inter-TPC wiring.",
+   "bbox_mm": [
+    [
+     1.78,
+     25.48,
+     12.52,
+     30.85
+    ],
+    [
+     13.02,
+     25.48,
+     23.82,
+     30.85
+    ],
+    [
+     1.78,
+     16.15,
+     12.52,
+     20.99
+    ],
+    [
+     13.02,
+     16.15,
+     23.82,
+     20.99
+    ],
+    [
+     1.78,
+     11.1,
+     12.52,
+     16.15
+    ],
+    [
+     13.02,
+     11.1,
+     23.82,
+     16.15
+    ],
+    [
+     1.78,
+     1.41,
+     12.32,
+     6.66
+    ],
+    [
+     13.12,
+     1.41,
+     23.82,
+     6.66
+    ]
+   ],
+   "area_mm2": 440.2,
+   "frac": 0.5328,
+   "area_each_mm2": 55.03
+  },
+  {
+   "id": "l2_band",
+   "kind": "l2",
+   "count": 4,
+   "confidence": "medium",
+   "source": "own reading: two horizontal bands (~25% and ~70% of die height) of cross-shaped units with dense SRAM bars; per half-band I count 8 crosses + 4 smaller units = ~20 slice-like units, x4 = ~80, matching 80 x 512 KB L2 slices (40 MB). Bands include slice logic/tags, so this is the L2 *region*, not bitcell area. Which band is which partition is inferred (each band sits between two GPC rows, next to one crossbar).",
+   "bbox_mm": [
+    [
+     1.78,
+     20.99,
+     10.09,
+     25.48
+    ],
+    [
+     15.44,
+     20.99,
+     23.82,
+     25.48
+    ],
+    [
+     1.78,
+     6.66,
+     10.09,
+     11.1
+    ],
+    [
+     15.44,
+     6.66,
+     23.82,
+     11.1
+    ]
+   ],
+   "area_mm2": 149.0,
+   "frac": 0.1804,
+   "area_each_mm2": 37.26
+  },
+  {
+   "id": "xbar",
+   "kind": "xbar",
+   "count": 2,
+   "confidence": "low",
+   "source": "own reading: two dark, wire-dominated macros at die centre of each L2 band, joined by a vertical bus; consistent with one GPC<->L2 crossbar per partition (whitepaper), but not annotated anywhere I found.",
+   "bbox_mm": [
+    [
+     10.09,
+     20.69,
+     15.44,
+     25.64
+    ],
+    [
+     10.09,
+     6.36,
+     15.44,
+     11.61
+    ]
+   ],
+   "area_mm2": 54.6,
+   "frac": 0.066,
+   "area_each_mm2": 27.28
+  },
+  {
+   "id": "center_spine",
+   "kind": "spine",
+   "count": 3,
+   "confidence": "low",
+   "source": "own reading: vertical routing channel on the die centre line (top stem, inter-crossbar bus, bottom stem).",
+   "bbox_mm": [
+    [
+     12.52,
+     25.64,
+     13.02,
+     30.85
+    ],
+    [
+     12.52,
+     11.61,
+     13.02,
+     20.69
+    ],
+    [
+     12.32,
+     2.83,
+     13.12,
+     6.36
+    ]
+   ],
+   "area_mm2": 10.0,
+   "frac": 0.0121,
+   "area_each_mm2": 3.32
+  },
+  {
+   "id": "hbm_phy_w",
+   "kind": "hbm_phy",
+   "count": 3,
+   "confidence": "high",
+   "source": "own reading: three identical PHY strips on the west edge (pale macro + orange bump-fanout channel); 6 sites total matches whitepaper. Length 6.2-6.7 mm each, depth ~1.5 mm incl. fanout.",
+   "bbox_mm": [
+    [
+     0.0,
+     25.23,
+     1.51,
+     31.69
+    ],
+    [
+     0.0,
+     13.02,
+     1.51,
+     19.38
+    ],
+    [
+     0.0,
+     1.01,
+     1.51,
+     7.67
+    ]
+   ],
+   "area_mm2": 29.4,
+   "frac": 0.0356,
+   "area_each_mm2": 9.8
+  },
+  {
+   "id": "hbm_phy_e",
+   "kind": "hbm_phy",
+   "count": 3,
+   "confidence": "high",
+   "source": "own reading: mirror of the west edge.",
+   "bbox_mm": [
+    [
+     24.03,
+     25.13,
+     25.58,
+     31.39
+    ],
+    [
+     24.03,
+     13.02,
+     25.58,
+     19.38
+    ],
+    [
+     24.03,
+     0.91,
+     25.58,
+     7.07
+    ]
+   ],
+   "area_mm2": 29.1,
+   "frac": 0.0352,
+   "area_each_mm2": 9.7
+  },
+  {
+   "id": "fb_edge_logic",
+   "kind": "mem_ctrl_edge",
+   "count": 4,
+   "confidence": "low",
+   "source": "own reading: irregular logic between the HBM PHYs on each long edge; plausibly memory-controller/FBPA logic (the whitepaper's 10+2 512-bit controllers), but not identified from structure. The controllers may also sit inside the L2 bands next to the slices.",
+   "bbox_mm": [
+    [
+     0.0,
+     19.38,
+     1.78,
+     25.13
+    ],
+    [
+     0.0,
+     7.67,
+     1.78,
+     13.02
+    ],
+    [
+     23.82,
+     19.38,
+     25.58,
+     25.13
+    ],
+    [
+     23.82,
+     7.07,
+     25.58,
+     13.02
+    ]
+   ],
+   "area_mm2": 40.3,
+   "frac": 0.0488,
+   "area_each_mm2": 10.09
+  },
+  {
+   "id": "serdes_n",
+   "kind": "serdes",
+   "count": 3,
+   "confidence": "medium",
+   "source": "own reading: three identical SerDes macros on the north edge, each with 2 rows x 8 lane cells and a central PLL column (16 lanes each). 12 NVLink3 x 4 lanes = 48 lanes = 3 macros, so these are most likely NVLink.",
+   "bbox_mm": [
+    [
+     1.62,
+     31.13,
+     7.81,
+     32.3
+    ],
+    [
+     9.65,
+     31.13,
+     15.95,
+     32.3
+    ],
+    [
+     17.77,
+     31.13,
+     23.99,
+     32.3
+    ]
+   ],
+   "area_mm2": 21.9,
+   "frac": 0.0265,
+   "area_each_mm2": 7.3
+  },
+  {
+   "id": "serdes_s",
+   "kind": "serdes",
+   "count": 1,
+   "confidence": "medium",
+   "source": "own reading: a 4th macro identical to the north ones on the south edge (west end). 16 lanes = PCIe Gen4 x16 is the natural fit (NVLink/PCIe share the NVHS SerDes design), but which of the four macros is PCIe is inferred.",
+   "bbox_mm": [
+    1.45,
+    0.0,
+    8.48,
+    1.21
+   ],
+   "area_mm2": 8.5,
+   "frac": 0.0103,
+   "area_each_mm2": 8.51
+  },
+  {
+   "id": "io_misc_n",
+   "kind": "io_misc",
+   "count": 3,
+   "confidence": "low",
+   "source": "own reading: non-SerDes I/O cells between the north macros and the logic strip under them.",
+   "bbox_mm": [
+    [
+     7.81,
+     31.13,
+     9.65,
+     32.3
+    ],
+    [
+     15.95,
+     31.13,
+     17.77,
+     32.3
+    ],
+    [
+     1.62,
+     30.85,
+     23.99,
+     31.13
+    ]
+   ],
+   "area_mm2": 10.5,
+   "frac": 0.0128,
+   "area_each_mm2": 3.52
+  },
+  {
+   "id": "uncore_s",
+   "kind": "uncore",
+   "count": 1,
+   "confidence": "low",
+   "source": "own reading: irregular non-SM logic along the south edge with a small I/O strip (GPIO/misc). Front end, copy engines, NVDEC/NVJPG are expected somewhere here but individual blocks are not identifiable.",
+   "bbox_mm": [
+    8.48,
+    0.0,
+    24.03,
+    1.41
+   ],
+   "area_mm2": 21.9,
+   "frac": 0.0265,
+   "area_each_mm2": 21.93
+  }
+ ],
+ "edges": {
+  "w": [
+   {
+    "kind": "hbm_phy",
+    "count": 3,
+    "length_mm": [
+     6.5,
+     6.4,
+     6.7
+    ]
+   }
+  ],
+  "e": [
+   {
+    "kind": "hbm_phy",
+    "count": 3,
+    "length_mm": [
+     6.3,
+     6.4,
+     6.2
+    ]
+   }
+  ],
+  "n": [
+   {
+    "kind": "serdes (NVLink, inferred)",
+    "count": 3,
+    "length_mm": [
+     6.2,
+     6.3,
+     6.2
+    ],
+    "lanes_each": 16
+   }
+  ],
+  "s": [
+   {
+    "kind": "serdes (PCIe x16, inferred)",
+    "count": 1,
+    "length_mm": 7.0,
+    "lanes_each": 16
+   },
+   {
+    "kind": "uncore + small misc I/O",
+    "length_mm": 15.6
+   }
+  ],
+  "note": "Image orientation is arbitrary; what is fixed is: HBM on both long edges (3+3), SerDes on both short edges (3+1)."
+ },
+ "package": {
+  "hbm_sites": 6,
+  "hbm_active": 5,
+  "hbm_placement": "3 per side along the die's long (W/E) edges; stack long axis parallel to the die long edge",
+  "disabled_site": "A100 40GB enables 5 of 6 HBM2 sites (whitepaper); all six sites look identical in NVIDIA's module render, so which site is unused cannot be read from public images",
+  "hbm_stack_mm": [
+   7.6,
+   11.5
+  ],
+  "interposer_mm": [
+   44.7,
+   37.8
+  ],
+  "substrate_mm": [
+   54.4,
+   54.3
+  ],
+  "source": "measured on NVIDIA's SXM4 module render (developer blog 'NVIDIA Ampere Architecture In-Depth', nvidia-a100-gpu-on-sxm4.jpg), scale set by the die (350 x 442 px = 826 mm2, aspect 0.792 matches the die photo). Cross-check: stacks come out 7.6 x 11.5 mm vs 7.75 x 11.87 mm HBM2 KGSD. Interposer = dark mould ring around die+stacks (~1690 mm2), low confidence. Render, not photo.",
+  "confidence": "medium (stack count/placement), low (interposer/substrate size)"
+ },
+ "transistors": {
+  "value": 54200000000.0,
+  "source": "NVIDIA A100 Tensor Core GPU Architecture whitepaper (2020): 54.2 B transistors, 826 mm2, TSMC 7N"
+ },
+ "node": {
+  "value": "TSMC N7 (NVIDIA: 7N)",
+  "source": "NVIDIA A100 Tensor Core GPU Architecture whitepaper (2020): 54.2 B transistors, 826 mm2, TSMC 7N"
+ },
+ "images": [
+  {
+   "path": "img/ga100_dieshot_kurnal_2400.jpg",
+   "url": "https://commons.wikimedia.org/wiki/File:GA100_Die_Shot.jpg (original 6065x7657, https://upload.wikimedia.org/wikipedia/commons/b/be/GA100_Die_Shot.jpg)",
+   "attribution": "Wikimedia Commons, CC BY 3.0, author listed as unknown, credit https://kurnal-insights.com/en/dieshot/?id=nvidia-ga100 (Kurnal Insights lists the die as 32.35 x 25.65 mm). Uploaded 2026-05-26, downloaded 2026-10-06.",
+   "type": "die photo (top-metal/colourised; real die, not a marketing render)"
+  },
+  {
+   "path": "img/nonfree/a100_sxm4_module_nvidia_render.jpg (local only, not committed)",
+   "url": "https://developer-blogs.nvidia.com/wp-content/uploads/2020/05/nvidia-a100-gpu-on-sxm4.jpg",
+   "attribution": "NVIDIA (marketing render), copyright NVIDIA",
+   "type": "package render"
+  },
+  {
+   "path": "img/nonfree/hc32_a100_slide3_blockdiagram.png (local only)",
+   "url": "https://hc32.hotchips.org/assets/program/conference/day1/HotChips2020_GPU_NVIDIA_Choquette_v01.pdf (slide 3)",
+   "attribution": "NVIDIA, Hot Chips 32",
+   "type": "logical block diagram (not physical)"
+  }
+ ],
+ "notes": [
+  "Fractions are of the 826 mm2 die; boxes tile the die with small overlaps/gaps (see coverage_frac).",
+  "NVIDIA's block diagram draws one central L2 band with GPCs above and below; the photo shows TWO L2 bands, each between two GPC rows, with a crossbar at the centre of each band."
+ ],
+ "kiln_disagreements": [
+  "a100_sxm4_40gb.json5 declares the L2 partitions as a separate [1,2] grid (placed below the GPC array, per the task brief; placer behaviour not re-checked here); the die has two full-width L2 bands at ~25% and ~70% of the height, each sandwiched between GPC rows, with the crossbar in the band centre.",
+  "GPC arrangement: kiln uses grid [2,4] (2 columns x 4 rows would match; check the grid's row/column convention). The photo is 2 columns x 4 rows, with L2 bands between rows 1/2 and 3/4.",
+  "Edges: kiln has 12 NVLinks on S and PCIe on N. The die has 3 NVLink-like SerDes macros on one short edge and the 4th (probably PCIe) on the opposite short edge; HBM W/E 3+3 agrees.",
+  "Outline 25.6 x 32.3 mm agrees with the photo aspect (0.792) and Kurnal's caliper 25.65 x 32.35 mm.",
+  "Disabled HBM site: kiln disables hbm5/hbm_if5; which physical site is unused is not determinable from public photos.",
+  "uncore footprint 60 mm2 (assumed in kiln) vs ~14 mm2 of clearly non-SM, non-L2 logic on the south edge plus ~33 mm2 of edge logic between HBM PHYs; front-end/copy-engine/decoder logic may also be distributed in the bands."
+ ],
+ "coverage_frac": 0.987
+}

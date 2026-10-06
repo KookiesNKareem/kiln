@@ -625,18 +625,34 @@ pub fn stats(model: &Model, b: &Binding, lg: &LoweredGraph) -> Result<StepStats,
             TensorClass::Activation => {}
         }
     }
+    s.resident = resident(model, b)?;
+    Ok(s)
+}
+
+/// Bytes of model-level state, stacked tensors at their full stack (E-WL-DIM-001 beyond `u128`).
+pub fn resident(model: &Model, b: &Binding) -> Result<Resident, Diagnostic> {
+    let mut r = Resident::default();
     for (id, t) in &model.tensors {
         let ti = bind_type(t, b, &format!("tensors.{id}"))?;
         let stack = t
             .stack
             .as_ref()
             .map_or(Ok(1), |e| eval_dim(e, b, &format!("tensors.{id}.stack")))?;
-        let bytes = ti.footprint() * u128::from(stack);
-        match t.class {
-            TensorClass::Weight => s.resident.weights += bytes,
-            TensorClass::KvCache => s.resident.kv_cache += bytes,
-            _ => s.resident.constants += bytes,
-        }
+        let slot = match t.class {
+            TensorClass::Weight => &mut r.weights,
+            TensorClass::KvCache => &mut r.kv_cache,
+            _ => &mut r.constants,
+        };
+        *slot = ti
+            .footprint()
+            .checked_mul(u128::from(stack))
+            .and_then(|bytes| slot.checked_add(bytes))
+            .ok_or_else(|| {
+                Diagnostic::error(
+                    "E-WL-DIM-001",
+                    format!("tensors.{id}: resident bytes over the stack of {stack} overflow"),
+                )
+            })?;
     }
-    Ok(s)
+    Ok(r)
 }

@@ -230,6 +230,39 @@ pub struct Pipe {
     pub e_cycle_j: f64,
 }
 
+/// A region with its own Tier A thermal and density check (04 §9): an enabled package (its dies' junction
+/// estimate over its own cooling) or an enabled die (its own power over its own area).
+#[derive(Clone, Debug)]
+pub struct ThermalZone {
+    /// Index into the floorplan's (and report's) dies for a die zone.
+    pub die: Option<usize>,
+    /// Arena nodes inside the zone.
+    pub nodes: Vec<bool>,
+    pub power: PowerModel,
+}
+
+impl ThermalZone {
+    /// One zone per enabled package holding an enabled die, then one per enabled die.
+    pub fn build_all(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], pipes: &[Pipe]) -> Vec<ThermalZone> {
+        let subtree = |root: usize| -> Vec<bool> { (0..hw.nodes.len()).map(|i| std::iter::successors(Some(i), |&x| hw.nodes[x].parent).any(|x| x == root)).collect() };
+        let zone = |die: Option<usize>, nodes: Vec<bool>| {
+            let power = PowerModel::scoped(hw, ch, params, dies, clocked_um2, pipes, Some((&nodes, Some(0.0))));
+            ThermalZone { die, nodes, power }
+        };
+        let live: Vec<(usize, usize)> = dies.iter().enumerate().filter(|(_, d)| hw.nodes[d.0].enabled).map(|(i, d)| (i, d.0)).collect();
+        let mut zones: Vec<ThermalZone> = hw
+            .tree
+            .iter()
+            .filter(|c| c.kind == ContainerKind::Package && hw.nodes[c.node].enabled)
+            .map(|c| subtree(c.node))
+            .filter(|n| live.iter().any(|&(_, d)| n[d]))
+            .map(|n| zone(None, n))
+            .collect();
+        zones.extend(live.iter().map(|&(i, d)| zone(Some(i), subtree(d))));
+        zones
+    }
+}
+
 /// The pipelined links of `hw` between enabled endpoints, one per physical link resource.
 pub fn pipes(hw: &HwModel, links: &[LinkCost]) -> Vec<Pipe> {
     let mut by_res: BTreeMap<ResIx, Pipe> = BTreeMap::new();
@@ -280,8 +313,9 @@ impl Thermal {
     /// `theta_ja` and `tj_max`; the worst package sets each limit. With power spread over the dies by area, a
     /// package's junction rise is `P * theta_ja * A_pkg / A`, so `theta_ja` (K/W) enters as `theta_ja * A_pkg`.
     fn of(hw: &HwModel, params: &Params, dies: &[(usize, f64)], inside: &impl Fn(usize) -> bool) -> Thermal {
-        let scoped: Vec<(usize, f64)> = dies.iter().copied().filter(|d| inside(d.0)).collect();
-        let scoped = if scoped.iter().map(|d| d.1).sum::<f64>() > 0.0 { scoped } else { dies.to_vec() };
+        let live: Vec<(usize, f64)> = dies.iter().copied().filter(|d| hw.nodes[d.0].enabled).collect();
+        let scoped: Vec<(usize, f64)> = live.iter().copied().filter(|d| inside(d.0)).collect();
+        let scoped = if scoped.iter().map(|d| d.1).sum::<f64>() > 0.0 { scoped } else { live };
         let die_mm2: f64 = scoped.iter().map(|d| d.1).sum();
         let package_of = |n: usize| {
             std::iter::successors(Some(n), |&x| hw.nodes[x].parent).find_map(|x| match hw.nodes[x].ix {
@@ -290,7 +324,7 @@ impl Thermal {
             })
         };
         let mut pkgs: Vec<(Option<usize>, f64)> = vec![];
-        for &(n, a) in scoped.iter().filter(|d| hw.nodes[d.0].enabled) {
+        for &(n, a) in &scoped {
             let p = package_of(n);
             match pkgs.iter_mut().find(|x| x.0 == p) {
                 Some(x) => x.1 += a,

@@ -632,3 +632,11 @@ fn invalid_analog_cim_bits_are_diagnosed_without_panicking() {
         assert!(codes_with(&src, p).contains(&"E-IR-0609".into()), "{p:?}");
     }
 }
+
+#[test]
+fn phy_lane_totals_do_not_wrap() {
+    let phy = |id: &str, lanes: u64| format!("{{ id: \"{id}\", kind: {{ type: \"phy\", for_kind: \"hbm\", lanes: {lanes} }} }}");
+    let src = mutate("id: \"die\", default_clock: \"clk\",", &format!("id: \"die\", default_clock: \"clk\", blocks: [ {}, {}, {} ],", phy("p0", 1 << 31), phy("p1", 1 << 31), phy("p2", 1024)))
+        .replacen("attach: { network: \"die.noc\" }", "attach: { phys: [\"die.p0\", \"die.p1\", \"die.p2\"] }", 1);
+    expect(&src, "E-IR-0505");
+}

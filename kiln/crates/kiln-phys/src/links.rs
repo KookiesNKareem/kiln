@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use kiln_ir::common::Diagnostic;
 use kiln_ir::hw::model::{Channel, ChannelKind, ContainerKind, HwModel, NodeIx};
-use kiln_ir::hw::net::{BondKind, LinkPhys};
+use kiln_ir::hw::net::{BondKind, LinkPhys, LinkSpec};
 
 use crate::characterize::{Characterized, PhyUse};
 use crate::floorplan::Floorplan;
@@ -15,6 +15,11 @@ use crate::tables::Tables;
 use crate::wire::{self, LinkCost, LinkSource};
 
 fn phy_at<'a>(hw: &HwModel, ch: &'a Characterized, mut n: usize) -> Option<&'a PhyUse> {
+    if let NodeIx::Port(p) = hw.nodes[n].ix
+        && let Some(b) = crate::characterize::bound_phy(hw, &hw.ports[p])
+    {
+        n = b;
+    }
     for _ in 0..3 {
         if let Some(p) = ch.phys.iter().find(|p| p.node == n) {
             return Some(p);
@@ -45,7 +50,7 @@ fn cluster_lca(hw: &HwModel, a: usize, b: usize) -> Option<usize> {
     None
 }
 
-fn bond_table(t: &'static Tables, b: BondKind) -> Option<&'static crate::tables::PhyT> {
+pub(crate) fn bond_table(t: &'static Tables, b: BondKind) -> Option<&'static crate::tables::PhyT> {
     t.phy.get(match b {
         BondKind::Hybrid => "hybrid_bond",
         BondKind::Microbump => "microbump",
@@ -65,7 +70,7 @@ fn is_stack(hw: &HwModel, n: usize) -> bool {
 /// package layer, else hybrid.
 fn vertical_bond(hw: &HwModel, fp: &Floorplan, c: &Channel) -> (BondKind, f64) {
     let (s, d) = (hw.node_of(c.src), hw.node_of(c.dst));
-    let declared = c.network.map(|n| &hw.networks[n].spec.link).or_else(|| [s, d].into_iter().find_map(|x| match hw.nodes[x].ix {
+    let declared = link_spec(hw, c).or_else(|| [s, d].into_iter().find_map(|x| match hw.nodes[x].ix {
         NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
         _ => None,
     }));
@@ -82,6 +87,15 @@ fn vertical_bond(hw: &HwModel, fp: &Floorplan, c: &Channel) -> (BondKind, f64) {
         pkg.layers.iter().find(|l| l.id.as_str() == lid.as_str()).map(|l| (l.bond, l.pitch_um.0))
     };
     [s, d].into_iter().filter(|&n| !is_stack(hw, n)).filter_map(|n| die_at(fp, n)).max_by_key(|&x| fp.dies[x].layer).and_then(layer_bond).unwrap_or((BondKind::Hybrid, 0.0))
+}
+
+/// The link spec channel `c` was expanded from: its own (a custom edge's or an endpoint port's), else its network's
+/// main link, else its source port's.
+fn link_spec<'a>(hw: &'a HwModel, c: &'a Channel) -> Option<&'a LinkSpec> {
+    c.link.as_deref().or_else(|| c.network.map(|n| &hw.networks[n].spec.link)).or_else(|| match hw.nodes[hw.node_of(c.src)].ix {
+        NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
+        _ => None,
+    })
 }
 
 pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params) -> Vec<LinkCost> {
@@ -170,7 +184,7 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
                         lc.latency_cycles = 1;
                         lc.latency_s = 1.0 / f;
                     }
-                    if c.network.is_some_and(|n| matches!(hw.networks[n].spec.link.phys, LinkPhys::OnDie { swing: kiln_ir::hw::net::Swing::Low, .. })) {
+                    if link_spec(hw, c).is_some_and(|l| matches!(l.phys, LinkPhys::OnDie { swing: kiln_ir::hw::net::Swing::Low, .. })) {
                         // Low-swing: E = a_t c V_swing V_dd L + e_rx (04 §7.2).
                         let w = node.wire(lc.class.unwrap_or(crate::tables::WireClassId::SemiGlobal));
                         lc.e_j_per_byte = 8.0 * (0.25 * w.c_ff_um * 1e-15 * 0.2 * node.vdd_nom * len + 20e-15) * kw;
@@ -186,11 +200,7 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
                 }
             };
             // Declared link latency/energy (reference designs) only ever make a link slower or costlier.
-            let spec = c.network.map(|n| &hw.networks[n].spec.link).or_else(|| match hw.nodes[s].ix {
-                NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
-                _ => None,
-            });
-            if let Some(l) = spec {
+            if let Some(l) = link_spec(hw, c) {
                 if let Some(x) = l.latency {
                     lc.latency_s = lc.latency_s.max(x.0);
                 }

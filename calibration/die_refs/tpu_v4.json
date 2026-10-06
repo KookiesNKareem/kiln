@@ -1,0 +1,112 @@
+{
+ "chip": "Google TPU v4",
+ "die": {
+  "w_mm": 23.1,
+  "h_mm": 25.7,
+  "orientation": "portrait in Fig. 2; HBM on the long (W/E) edges",
+  "source": "paper: '< 600 mm2', and A100 (826) is '~40% larger' (=> ~590). Measured on Fig. 2 package photo: die 262 x 292 px, scale from HBM2 stack width 88 px = 7.75 mm -> 23.1 x 25.7 mm = 593 mm2 (using the stack length instead gives 638 mm2; so +-4%).",
+  "area_mm2": 593.7
+ },
+ "blocks": [
+  {
+   "id": "sparsecore",
+   "kind": "misc",
+   "count": 4,
+   "bbox_mm": null,
+   "frac": 0.05,
+   "confidence": "high (fraction only)",
+   "source": "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer..., ISCA 2023, arXiv 2304.01433 (Table 4, Fig. 2), CC BY 4.0: 'SCs are ... only ~5% of the die area'. Location unpublished.",
+   "area_mm2": 29.7
+  },
+  {
+   "id": "cmem",
+   "kind": "cmem",
+   "count": 1,
+   "bbox_mm": null,
+   "frac": null,
+   "confidence": "n/a",
+   "source": "128 MiB CMEM (Table 4); v4i's floorplan says its CMEM/TensorCore arrangement derives from v4's, but v4's own floorplan is unpublished."
+  }
+ ],
+ "edges": {
+  "w": [
+   {
+    "kind": "hbm (package)",
+    "count": 2
+   }
+  ],
+  "e": [
+   {
+    "kind": "hbm (package)",
+    "count": 2
+   }
+  ],
+  "note": "From the package photo: 2 HBM2 stacks on each long edge of the die."
+ },
+ "package": {
+  "hbm_stacks": 4,
+  "hbm_placement": "2 per side, long axis parallel to the die long edges",
+  "die_px": [
+   213,
+   186,
+   475,
+   478
+  ],
+  "hbm_px": [
+   [
+    122,
+    190,
+    210,
+    320
+   ],
+   [
+    122,
+    350,
+    210,
+    480
+   ],
+   [
+    478,
+    190,
+    567,
+    320
+   ],
+   [
+    478,
+    350,
+    567,
+    480
+   ]
+  ],
+  "source": "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer..., ISCA 2023, arXiv 2304.01433 (Table 4, Fig. 2), CC BY 4.0 Fig. 2 (package photo)"
+ },
+ "transistors": {
+  "value": 22000000000.0,
+  "source": "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer..., ISCA 2023, arXiv 2304.01433 (Table 4, Fig. 2), CC BY 4.0 Table 4"
+ },
+ "node": {
+  "value": "7 nm",
+  "source": "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer..., ISCA 2023, arXiv 2304.01433 (Table 4, Fig. 2), CC BY 4.0 Table 4"
+ },
+ "images": [
+  {
+   "path": "img/tpu_v4_package_jouppi2023_fig2.png",
+   "url": "https://arxiv.org/abs/2304.01433 (Fig. 2, inset bitmap)",
+   "attribution": "Jouppi et al. 2023, CC BY 4.0",
+   "type": "package photo"
+  },
+  {
+   "path": "img/tpu_v4_board_jouppi2023_fig2_commons.jpg",
+   "url": "https://commons.wikimedia.org/wiki/File:TPU_v4.png",
+   "attribution": "Jouppi et al. 2023 via Wikimedia Commons, CC BY 4.0",
+   "type": "board photo (packages under cold plates)"
+  }
+ ],
+ "notes": [
+  "No TPU v4 die photo or floorplan is published (ISCA 2023 has none; the v4i paper reuses its TensorCore/CMEM arrangement)."
+ ],
+ "kiln_disagreements": [
+  "tpu_v4.json5 assumes a 24 x 24 mm square (576 mm2); the package photo gives ~23.1 x 25.7 mm (aspect 0.90) with HBM 2+2 on the long edges."
+ ],
+ "coverage_frac": 0
+}

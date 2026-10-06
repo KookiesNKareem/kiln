@@ -336,12 +336,7 @@ impl<'a> Table<'a> {
     }
 
     pub fn i64(&self, col: &str) -> Result<Vec<i64>, Diagnostic> {
-        self.need(col)?;
-        Ok(self
-            .opt_i64(col)?
-            .into_iter()
-            .map(|x| x.unwrap_or(0))
-            .collect())
+        self.int(col)
     }
 
     pub fn opt_f64(&self, col: &str) -> Result<Vec<Option<f64>>, Diagnostic> {
@@ -665,6 +660,16 @@ mod tests {
             .push("m", false, map_utf8_f64([vec![("k", 1.5)], vec![]]))
             .push("d", false, dict_utf8(["p", "q"]));
         c.batch("t", "1.0")
+    }
+
+    #[test]
+    fn required_i64_columns_reject_nulls() {
+        let mut c = Cols::new();
+        c.push("t_start", true, i64s([Some(3), None]));
+        let batches = [c.batch("t", "1.0")];
+        let t = Table::new("t", &batches);
+        assert_eq!(t.i64("t_start").unwrap_err().code, CODE);
+        assert_eq!(t.opt_i64("t_start").unwrap(), vec![Some(3), None]);
     }
 
     #[test]

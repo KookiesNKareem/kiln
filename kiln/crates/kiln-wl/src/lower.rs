@@ -1948,6 +1948,28 @@ fn moe_dispatch(ctx: &NodeCtx, a: &MoeDispatchAttrs) -> Out {
     if ctx.inputs[1].shape != [t, k] {
         return Err(shape_err(ctx, "routing idx", &[t, k], &ctx.inputs[1].shape));
     }
+    let (tk, e) = (u128::from(t) * u128::from(k), u64::from(a.n_experts));
+    let dropless = a.drop_policy == DropPolicy::NoDrop;
+    let fits = match (a.layout, ctx.outputs[0].shape.as_slice()) {
+        (DispatchLayout::CapacityPadded, &[oe, c, od]) => {
+            oe == e && od == d && (!dropless || u128::from(e) * u128::from(c) >= tk)
+        }
+        (DispatchLayout::Ragged, &[rows, od]) => {
+            od == d && if dropless { u128::from(rows) == tk } else { u128::from(rows) <= tk }
+        }
+        _ => false,
+    };
+    if !fits {
+        return Err(err(
+            "E-WL-SHAPE-001",
+            ctx,
+            format!(
+                "{:?} dispatch of {tk} rows of width {d} over {e} experts ({:?}) cannot write output {:?}",
+                a.layout, a.drop_policy, ctx.outputs[0].shape
+            ),
+        )
+        .hint("capacity_padded: [n_experts, C, d] (C * n_experts >= T*k unless dropping); ragged: [T*k, d]"));
+    }
     let n = ctx.node;
     let mut kb = Kb::new(ctx);
     kb.push(

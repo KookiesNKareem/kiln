@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 pub use characterize::Characterized;
 pub use floorplan::{Floorplan, PlaceTier};
 pub use params::{PCorner, Params};
-pub use power::{CapDomain, PhaseEnergy, PowerBreakdown, PowerModel, VfTable};
+pub use power::{CapDomain, PhaseEnergy, PowerBreakdown, PowerModel, ThermalZone, VfTable};
 pub use report::{DieReport, PhysReport};
 pub use wire::LinkCost;
 
@@ -123,6 +123,8 @@ pub struct Model {
     pub report: PhysReport,
     /// Enforced caps, each with its members' power model.
     pub caps: Vec<CapDomain>,
+    /// Per-package junction and per-die density checks (04 §9).
+    pub zones: Vec<ThermalZone>,
     /// Enabled MAC units: (clock, MACs/cycle, J/MAC at V_nom, arena node) of their highest-power mode.
     pub mac_peak: Vec<(Option<ClockIx>, f64, f64, usize)>,
 }
@@ -474,7 +476,8 @@ fn build_model(hw: &HwModel, params: Params, tier: PlaceTier) -> Model {
         })
         .collect();
     let caps = CapDomain::build_all(hw, &ch, &params, &dies, &clocked, &pipes);
-    Model { params, ch, fp, power, links, report, caps, mac_peak }
+    let zones = ThermalZone::build_all(hw, &ch, &params, &dies, &clocked, &pipes);
+    Model { params, ch, fp, power, links, report, caps, zones, mac_peak }
 }
 
 #[cfg(test)]

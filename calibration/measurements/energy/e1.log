@@ -1,0 +1,96 @@
+[0] idle         none   P=67.2 W  sm=1410.0 T=33 
+[0] spin_1thread full   P=78.5 W  sm=1410.0 T=34 
+[0] spin_nap     full   P=83.1 W  sm=1410.0 T=34 
+[0] spin_busy    full   P=161.8 W  sm=1410.0 T=42 
+[0] spin_busy    half   P=119.8 W  sm=1410.0 T=39 
+[0] gemm_bf16    full   P=394.8 W  sm=1258.9375 T=60 mac 1.325e+14/s
+[0] gemm_bf16    duty50 P=304.3 W  sm=1372.176724137931 T=55 mac 7.243e+13/s
+[0] gemm_bf16    duty25 P=194.3 W  sm=1392.1333333333334 T=48 mac 3.631e+13/s
+[0] gemm_fp16    full   P=396.9 W  sm=1225.2330508474577 T=64 mac 1.282e+14/s
+[0] gemm_fp16    duty50 P=307.1 W  sm=1364.2978723404256 T=60 mac 7.075e+13/s
+[0] gemm_tf32    full   P=393.5 W  sm=1215.886075949367 T=66 mac 6.353e+13/s
+[0] gemm_tf32    duty50 P=311.2 W  sm=1363.2203389830509 T=60 mac 3.541e+13/s
+[0] gemm_int8    full   P=395.4 W  sm=1282.0550847457628 T=66 mac 1.990e+14/s
+[0] gemm_int8    duty50 P=299.6 W  sm=1380.1939655172414 T=62 mac 1.065e+14/s
+[0] ffma         full   P=246.9 W  sm=1410.0 T=58 fp32_fma 9.728e+12/s
+[0] ffma         half   P=159.0 W  sm=1410.0 T=51 fp32_fma 4.862e+12/s
+[0] ffma         duty50 P=158.8 W  sm=1410.0 T=49 fp32_fma 4.859e+12/s
+[0] smem_read    full   P=212.7 W  sm=1410.0 T=53 smem_byte 1.943e+13/s
+[0] smem_read    half   P=146.0 W  sm=1410.0 T=48 smem_byte 9.721e+12/s
+[0] smem_read    duty50 P=144.9 W  sm=1410.0 T=47 smem_byte 9.713e+12/s
+[0] l1_read      full   P=234.9 W  sm=1410.0 T=54 l1_byte 1.937e+13/s
+[0] l1_read      half   P=159.1 W  sm=1410.0 T=48 l1_byte 9.690e+12/s
+[0] l1_read      duty50 P=157.1 W  sm=1410.0 T=47 l1_byte 9.679e+12/s
+[0] l2_read      full   P=241.2 W  sm=1410.0 T=52 l2_byte 3.010e+12/s
+[0] l2_read      half   P=221.7 W  sm=1410.0 T=51 l2_byte 2.865e+12/s
+[0] l2_read      duty50 P=158.1 W  sm=1410.0 T=47 l2_byte 1.505e+12/s
+[0] hbm_read     full   P=285.2 W  sm=1410.0 T=51 hbm_byte 1.491e+12/s
+[0] hbm_read     half   P=265.8 W  sm=1410.0 T=51 hbm_byte 1.430e+12/s
+[0] hbm_read     duty50 P=183.3 W  sm=1410.0 T=47 hbm_byte 7.454e+11/s
+[0] hbm_copy     full   P=258.7 W  sm=1410.0 T=50 hbm_byte 1.372e+12/s
+[0] hbm_copy     half   P=255.0 W  sm=1410.0 T=51 hbm_byte 1.362e+12/s
+[0] hbm_copy     duty50 P=170.4 W  sm=1410.0 T=46 hbm_byte 6.858e+11/s
+[1] idle         none   P=71.7 W  sm=1410.0 T=40 
+[1] spin_1thread full   P=80.5 W  sm=1410.0 T=39 
+[1] spin_nap     full   P=84.1 W  sm=1410.0 T=39 
+[1] spin_busy    full   P=164.9 W  sm=1410.0 T=46 
+[1] spin_busy    half   P=122.1 W  sm=1410.0 T=43 
+[1] gemm_bf16    full   P=393.6 W  sm=1254.9141630901288 T=62 mac 1.320e+14/s
+[1] gemm_bf16    duty50 P=301.8 W  sm=1372.2413793103449 T=57 mac 7.238e+13/s
+[1] gemm_bf16    duty25 P=194.5 W  sm=1392.0796460176991 T=51 mac 3.630e+13/s
+[1] gemm_fp16    full   P=402.4 W  sm=1222.2457627118645 T=64 mac 1.278e+14/s
+[1] gemm_fp16    duty50 P=307.5 W  sm=1362.3191489361702 T=59 mac 7.071e+13/s
+[1] gemm_tf32    full   P=399.3 W  sm=1215.0632911392406 T=66 mac 6.340e+13/s
+[1] gemm_tf32    duty50 P=309.9 W  sm=1361.6808510638298 T=62 mac 3.538e+13/s
+[1] gemm_int8    full   P=401.5 W  sm=1280.2754237288136 T=67 mac 1.988e+14/s
+[1] gemm_int8    duty50 P=304.3 W  sm=1378.771551724138 T=61 mac 1.065e+14/s
+[1] ffma         full   P=243.9 W  sm=1410.0 T=59 fp32_fma 9.728e+12/s
+[1] ffma         half   P=162.7 W  sm=1410.0 T=52 fp32_fma 4.864e+12/s
+[1] ffma         duty50 P=160.2 W  sm=1410.0 T=50 fp32_fma 4.861e+12/s
+[1] smem_read    full   P=213.6 W  sm=1410.0 T=54 smem_byte 1.944e+13/s
+[1] smem_read    half   P=146.6 W  sm=1410.0 T=48 smem_byte 9.722e+12/s
+[1] smem_read    duty50 P=146.2 W  sm=1410.0 T=47 smem_byte 9.711e+12/s
+[1] l1_read      full   P=238.6 W  sm=1410.0 T=55 l1_byte 1.937e+13/s
+[1] l1_read      half   P=156.9 W  sm=1410.0 T=48 l1_byte 9.692e+12/s
+[1] l1_read      duty50 P=161.4 W  sm=1410.0 T=47 l1_byte 9.679e+12/s
+[1] l2_read      full   P=237.4 W  sm=1410.0 T=52 l2_byte 3.010e+12/s
+[1] l2_read      half   P=222.0 W  sm=1410.0 T=52 l2_byte 2.865e+12/s
+[1] l2_read      duty50 P=161.4 W  sm=1410.0 T=47 l2_byte 1.504e+12/s
+[1] hbm_read     full   P=280.6 W  sm=1410.0 T=51 hbm_byte 1.491e+12/s
+[1] hbm_read     half   P=266.5 W  sm=1410.0 T=51 hbm_byte 1.430e+12/s
+[1] hbm_read     duty50 P=185.8 W  sm=1410.0 T=47 hbm_byte 7.459e+11/s
+[1] hbm_copy     full   P=257.9 W  sm=1410.0 T=50 hbm_byte 1.372e+12/s
+[1] hbm_copy     half   P=258.7 W  sm=1410.0 T=51 hbm_byte 1.362e+12/s
+[1] hbm_copy     duty50 P=171.2 W  sm=1410.0 T=46 hbm_byte 6.858e+11/s
+[2] idle         none   P=71.7 W  sm=1410.0 T=40 
+[2] spin_1thread full   P=80.6 W  sm=1410.0 T=40 
+[2] spin_nap     full   P=84.2 W  sm=1410.0 T=39 
+[2] spin_busy    full   P=165.2 W  sm=1410.0 T=46 
+[2] spin_busy    half   P=122.3 W  sm=1410.0 T=43 
+[2] gemm_bf16    full   P=398.5 W  sm=1254.3347639484978 T=62 mac 1.319e+14/s
+[2] gemm_bf16    duty50 P=309.8 W  sm=1366.8103448275863 T=56 mac 7.232e+13/s
+[2] gemm_bf16    duty25 P=192.8 W  sm=1391.5486725663716 T=51 mac 3.628e+13/s
+[2] gemm_fp16    full   P=402.3 W  sm=1222.3093220338983 T=65 mac 1.278e+14/s
+[2] gemm_fp16    duty50 P=306.7 W  sm=1362.6382978723404 T=58 mac 7.068e+13/s
+[2] gemm_tf32    full   P=399.1 W  sm=1215.5672268907563 T=67 mac 6.338e+13/s
+[2] gemm_tf32    duty50 P=309.3 W  sm=1364.1702127659576 T=62 mac 3.537e+13/s
+[2] gemm_int8    full   P=394.5 W  sm=1279.5127118644068 T=67 mac 1.988e+14/s
+[2] gemm_int8    duty50 P=303.2 W  sm=1378.771551724138 T=59 mac 1.065e+14/s
+[2] ffma         full   P=248.3 W  sm=1410.0 T=59 fp32_fma 9.729e+12/s
+[2] ffma         half   P=159.6 W  sm=1410.0 T=52 fp32_fma 4.862e+12/s
+[2] ffma         duty50 P=158.1 W  sm=1410.0 T=51 fp32_fma 4.861e+12/s
+[2] smem_read    full   P=217.3 W  sm=1410.0 T=54 smem_byte 1.944e+13/s
+[2] smem_read    half   P=146.6 W  sm=1410.0 T=48 smem_byte 9.723e+12/s
+[2] smem_read    duty50 P=150.7 W  sm=1410.0 T=47 smem_byte 9.715e+12/s
+[2] l1_read      full   P=235.6 W  sm=1410.0 T=55 l1_byte 1.937e+13/s
+[2] l1_read      half   P=156.9 W  sm=1410.0 T=48 l1_byte 9.691e+12/s
+[2] l1_read      duty50 P=158.0 W  sm=1410.0 T=47 l1_byte 9.681e+12/s
+[2] l2_read      full   P=237.5 W  sm=1410.0 T=52 l2_byte 3.010e+12/s
+[2] l2_read      half   P=225.6 W  sm=1410.0 T=52 l2_byte 2.865e+12/s
+[2] l2_read      duty50 P=158.8 W  sm=1410.0 T=47 l2_byte 1.504e+12/s
+[2] hbm_read     full   P=280.4 W  sm=1410.0 T=51 hbm_byte 1.491e+12/s
+[2] hbm_read     half   P=265.9 W  sm=1410.0 T=51 hbm_byte 1.430e+12/s
+[2] hbm_read     duty50 P=182.8 W  sm=1410.0 T=47 hbm_byte 7.462e+11/s
+[2] hbm_copy     full   P=257.9 W  sm=1410.0 T=50 hbm_byte 1.372e+12/s
+[2] hbm_copy     half   P=258.6 W  sm=1410.0 T=51 hbm_byte 1.362e+12/s
+[2] hbm_copy     duty50 P=171.7 W  sm=1410.0 T=46 hbm_byte 6.859e+11/s

@@ -111,11 +111,22 @@ impl Col<'_> {
             self.s
                 .text([self.x, self.y], t, 11.0, self.th.muted, HAlign::Left, VAlign::Top);
         }
-        if let Some(t) = text::fit(v, 11.0, false, self.w - kw) {
-            self.s
-                .text([self.x + kw, self.y], t, 11.0, c, HAlign::Left, VAlign::Top);
+        // Long values (diagnostics, notes) wrap onto up to four lines.
+        let lines = text::wrap(v, 11.0, false, self.w - kw);
+        for (i, line) in lines.iter().enumerate().take(4) {
+            if i > 0 && !self.room(15.0) {
+                break;
+            }
+            let line = if i == 3 && lines.len() > 4 { format!("{line} {}", lines[4..].join(" ")) } else { line.clone() };
+            if let Some(t) = text::fit(&line, 11.0, false, self.w - kw) {
+                self.s
+                    .text([self.x + kw, self.y], t, 11.0, c, HAlign::Left, VAlign::Top);
+            }
+            self.y += 15.0;
         }
-        self.y += 15.0;
+        if lines.is_empty() {
+            self.y += 15.0;
+        }
     }
 
     /// Table with columns at the given fractions of the width (right-aligned after the first).
@@ -123,10 +134,29 @@ impl Col<'_> {
         if !self.room(30.0) {
             return;
         }
-        let xs: Vec<f32> = cols
+        // Each column gets the width its widest cell needs; the remaining width is shared by the given fractions.
+        let need: Vec<f32> = cols
             .iter()
-            .scan(0.0, |acc, c| {
-                *acc += c.1;
+            .enumerate()
+            .map(|(ci, (h, _))| {
+                rows.iter()
+                    .take(max_rows)
+                    .filter_map(|r| r.get(ci))
+                    .map(|v| text::measure(v, 10.5, false))
+                    .fold(text::measure(h, 10.5, false), f32::max)
+                    + 8.0
+            })
+            .collect();
+        let total: f32 = need.iter().sum();
+        let fracs: Vec<f32> = if total <= self.w {
+            cols.iter().zip(&need).map(|(c, n)| (n + c.1 * (self.w - total)) / self.w).collect()
+        } else {
+            cols.iter().map(|c| c.1).collect()
+        };
+        let xs: Vec<f32> = fracs
+            .iter()
+            .scan(0.0, |acc, f| {
+                *acc += f;
                 Some(*acc)
             })
             .collect();
@@ -373,15 +403,25 @@ pub fn scene(t: &Trace, spec: &ViewSpec, _sel: &Selection) -> Scene {
                     format!("{:.0}", f(l, "instances").unwrap_or(0.0)),
                     fmt_bytes(f(l, "capacity_b").unwrap_or(0.0)),
                     fmt_bw(f(l, "bandwidth_bps").unwrap_or(0.0)),
+                    f(l, "full_bw_w").map_or_else(|| "-".into(), fmt_power),
                 ]
             })
             .collect();
         c.table(
-            &[("level", 0.3), ("kind", 0.2), ("count", 0.12), ("capacity", 0.18), ("bandwidth", 0.2)],
+            &[("level", 0.26), ("kind", 0.16), ("count", 0.1), ("capacity", 0.16), ("bandwidth", 0.16), ("W @ full BW", 0.16)],
             &rows,
             8,
         );
-        c.kv("on-chip total", &fmt_bytes(f(&d, "onchip_capacity_b").unwrap_or(0.0)));
+        let chips = f(&d, "chips").unwrap_or(1.0);
+        let total = f(&d, "onchip_capacity_b").unwrap_or(0.0);
+        match f(&d, "chip_onchip_capacity_b") {
+            Some(x) => c.kv("on-chip per chip", &fmt_bytes(x)),
+            None if chips <= 1.0 => c.kv("on-chip per chip", &fmt_bytes(total)),
+            None => {}
+        }
+        if chips > 1.0 {
+            c.kv(&format!("on-chip, {chips:.0} chips"), &fmt_bytes(total));
+        }
         if let Some(o) = d.get("offchip") {
             c.section("Off-chip memory");
             let n = f(o, "stacks").unwrap_or(0.0);
@@ -468,22 +508,22 @@ pub fn scene(t: &Trace, spec: &ViewSpec, _sel: &Selection) -> Scene {
             &format!(
                 "{} mm^2 [{}, {}] ({})",
                 fmt_num(f(&area, "package_mm2").unwrap_or(0.0)),
-                fmt_num(pkg_lo.min(pkg_hi)),
-                fmt_num(pkg_lo.max(pkg_hi)),
+                fmt_num(pkg_lo),
+                fmt_num(pkg_hi),
                 st(&area, "package_table")
             ),
         );
         let dies = arr(&area, "dies");
         let full = dies.iter().filter_map(|x| f(x, "area_mm2")).fold(0.0, f64::max);
-        // Identical dies (chiplets) summarize once.
-        let mut shown: Vec<(String, usize, &Value)> = vec![];
+        // Identical dies (chiplets: every shown quantity equal) summarize once.
+        const SHOWN: [&str; 13] = [
+            "node", "layer", "area_mm2", "area_low_mm2", "area_high_mm2", "outline_mm2", "parts_mm2",
+            "whitespace_mm2", "transistors_b", "sram_mib", "hbm_shoreline_used_mm",
+            "hbm_shoreline_available_mm", "shoreline_limited",
+        ];
+        let mut shown: Vec<(Vec<Option<&Value>>, usize, &Value)> = vec![];
         for die in dies {
-            let key = format!(
-                "{:.3}|{}|{}",
-                f(die, "area_mm2").unwrap_or(0.0),
-                st(die, "node"),
-                f(die, "layer").unwrap_or(0.0)
-            );
+            let key: Vec<Option<&Value>> = SHOWN.iter().map(|k| die.get(*k)).collect();
             match shown.iter_mut().find(|x| x.0 == key) {
                 Some(x) => x.1 += 1,
                 None => shown.push((key, 1, die)),
@@ -605,7 +645,7 @@ pub fn scene(t: &Trace, spec: &ViewSpec, _sel: &Selection) -> Scene {
             }
             c.kv_c(
                 "note",
-                "estimate excludes on-chip SRAM and wire traffic energy; run a workload for phase power",
+                "peak row excludes SRAM and on-die wire energy (per-level SRAM at full bandwidth is in the memory table; levels never all saturate at once); run a workload for phase power",
                 th.muted,
             );
         }

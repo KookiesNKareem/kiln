@@ -73,7 +73,20 @@ pub struct ParallelPlan {
 }
 
 impl ParallelPlan {
-    pub fn ranks(&self) -> u64 {
-        self.mesh.values().map(|&v| u64::from(v)).product()
+    /// Product of the mesh axes; `None` when it exceeds `u64`.
+    pub fn ranks(&self) -> Option<u64> {
+        self.mesh.values().try_fold(1u64, |n, &v| n.checked_mul(u64::from(v)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rank_products_do_not_wrap() {
+        let plan = |mesh: serde_json::Value| serde_json::from_value::<ParallelPlan>(serde_json::json!({ "mesh": mesh })).unwrap();
+        assert_eq!(plan(serde_json::json!({ "a": 2147483648u32, "b": 2147483648u32, "c": 4 })).ranks(), None);
+        assert_eq!(plan(serde_json::json!({ "tp": 4, "dp": 2 })).ranks(), Some(8));
     }
 }

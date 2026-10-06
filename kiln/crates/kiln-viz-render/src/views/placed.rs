@@ -118,6 +118,7 @@ struct Agg {
     bw: f64,
     members: usize,
     hit: u32,
+    links: BTreeSet<u32>,
 }
 
 pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
@@ -370,7 +371,15 @@ pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
         // Shoreline marks and harvested parts.
         for g in &t.package_geometry {
             let kind = t.enum_name("package_geometry.kind", u32::from(g.kind));
-            let in_view = g.resource.is_none_or(|r| drawn[pi].get(r as usize).is_some_and(Option::is_some));
+            // Harvested rows of older traces carry only their path: the nearest ancestor resource owns them.
+            let owner = g.resource.or_else(|| {
+                std::iter::successors(Some(g.label.as_str()), |p| p.rsplit_once('.').map(|x| x.0))
+                    .find_map(|p| t.resource_by_path(p))
+            });
+            let in_view = match owner {
+                Some(r) => drawn[pi].get(r as usize).is_some_and(Option::is_some),
+                None => root.is_none(),
+            };
             if !in_view || p.layer.is_some_and(|l| l != g.layer) {
                 continue;
             }
@@ -507,12 +516,17 @@ pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
                 bw: 0.0,
                 members: 0,
                 hit: w.link,
+                links: BTreeSet::new(),
             });
             e.members += 1;
             e.bw += w.bw_bps;
             let sums = matches!(wmode, WireColor::Traffic | WireColor::Bandwidth);
+            // Traffic belongs to the link resource, which each of its channel rows reports in full.
+            let repeat = wmode == WireColor::Traffic && !e.links.insert(w.link);
             if sums {
-                e.value += value;
+                if !repeat {
+                    e.value += value;
+                }
             } else if value > e.value {
                 e.value = value;
                 e.hit = w.link;

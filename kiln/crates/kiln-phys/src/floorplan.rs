@@ -566,6 +566,16 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         let stitched = die_spec.as_ref().is_some_and(|d| d.stitched);
         // Reticle on the full die: unit area and dead area grow an auto outline in proportion.
         let grow = if fixed { 1.0 } else { ((w * h * stretch * stretch + dead_um2) / (w * h).max(1.0)).sqrt() };
+        // The grown auto outline takes the field-filling aspect when its area fits the field and that aspect stays
+        // within bounds and keeps every edge's shoreline (same area, so the same growth).
+        let full = w * h * grow * grow;
+        if !fixed && !stitched && (w.min(h) * grow > 26_000.0 || w.max(h) * grow > 33_000.0) && full / 26_000.0 <= 33_000.0 && full / 26_000.0 / 26_000.0 <= aspect.1 {
+            let (short, long) = (26_000.0 / grow, full / 26_000.0 / grow);
+            let (nw, nh) = if w <= h { (short, long) } else { (long, short) };
+            if need(0).max(need(2)) <= nw && need(1).max(need(3)) <= nh {
+                (w, h) = (nw, nh);
+            }
+        }
         let (lo, hi) = (w.min(h) * grow, w.max(h) * grow);
         if !stitched && (lo > 26_000.0 * (1.0 + 1e-9) || hi > 33_000.0 * (1.0 + 1e-9) || env_full > reticle) {
             problems.push(
@@ -861,21 +871,25 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
             };
             die_origin.insert(d, o);
         }
-        // Upper-layer dies sit over a base die of the same instance index (else the first base die): centred, or at
-        // their pinned offset from it (01 `over`: placement is relative to the die below).
-        for &d in &mine {
-            if die_origin[&d].0.is_nan() {
-                let idx = hw.nodes[dies[d].node].index as usize;
-                let bases: Vec<usize> = mine.iter().copied().filter(|&b| dies[b].layer == 0).collect();
-                let b = bases.iter().copied().find(|&b| hw.nodes[dies[b].node].index as usize == idx).or_else(|| bases.first().copied()).unwrap_or(d);
-                let (bx, by) = die_origin.get(&b).copied().unwrap_or((0.0, 0.0));
-                let (bw, bh) = (dies[b].outline.w(), dies[b].outline.h());
-                let o = match hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement) {
-                    Some(Placement::Pinned { x: px, y: py, .. }) => (bx + px.0, by + py.0),
-                    _ => (bx + 0.5 * (bw - dies[d].outline.w()), by + 0.5 * (bh - dies[d].outline.h())),
-                };
-                die_origin.insert(d, o);
-            }
+        // Upper-layer dies sit over the die their `over` names (01: placement is relative to the die below), lower
+        // layers first; without a resolvable `over`, over a base die of the same instance index (else the first base
+        // die): centred, or at their pinned offset from it.
+        let mut upper: Vec<usize> = mine.iter().copied().filter(|&d| die_origin[&d].0.is_nan()).collect();
+        upper.sort_by_key(|&d| dies[d].layer);
+        for d in upper {
+            let idx = hw.nodes[dies[d].node].index as usize;
+            let bases: Vec<usize> = mine.iter().copied().filter(|&b| dies[b].layer == 0).collect();
+            let b = over_die(hw, &dies, &mine, d)
+                .or_else(|| bases.iter().copied().find(|&b| hw.nodes[dies[b].node].index as usize == idx))
+                .or_else(|| bases.first().copied())
+                .unwrap_or(d);
+            let (bx, by) = die_origin.get(&b).copied().unwrap_or((0.0, 0.0));
+            let (bw, bh) = (dies[b].outline.w(), dies[b].outline.h());
+            let o = match hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement) {
+                Some(Placement::Pinned { x: px, y: py, .. }) => (bx + px.0, by + py.0),
+                _ => (bx + 0.5 * (bw - dies[d].outline.w()), by + 0.5 * (bh - dies[d].outline.h())),
+            };
+            die_origin.insert(d, o);
         }
         let mut bbox: Option<Rect> = None;
         let grow = |r: Rect, b: &mut Option<Rect>| {
@@ -1018,6 +1032,25 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
     }
     stats.place_us = t0.elapsed().as_secs_f64() * 1e6;
     Floorplan { tier, dies, packages, rect, pos, die_of, geo_um2: geo, stats, problems }
+}
+
+/// The die (index into `dies`, among `mine`) upper die `d`'s `over` names: an instance name, or a die id with an
+/// optional `[index]` (`{i}` is `d`'s own instance index); an id alone names its instance of `d`'s index, else its
+/// first.
+fn over_die(hw: &HwModel, dies: &[DieFp], mine: &[usize], d: usize) -> Option<usize> {
+    let me = &hw.nodes[dies[d].node];
+    let r = hw.tree[dies[d].container].die.as_ref()?.over.as_ref()?.replace("{i}", &me.index.to_string());
+    let (name, idx) = match r.split_once('[') {
+        Some((n, rest)) => (n, Some(rest.trim_end_matches(']').trim().parse::<u32>().ok()?)),
+        None => (r.as_str(), None),
+    };
+    let cands: Vec<usize> = mine.iter().copied().filter(|&b| b != d && dies[b].layer < dies[d].layer).collect();
+    let node = |b: usize| &hw.nodes[dies[b].node];
+    cands.iter().copied().find(|&b| idx.is_none() && node(b).inst_id == name).or_else(|| {
+        let of_id: Vec<usize> = cands.iter().copied().filter(|&b| node(b).entity_id == name).collect();
+        let want = idx.unwrap_or(me.index);
+        of_id.iter().copied().find(|&b| node(b).index == want).or_else(|| idx.is_none().then(|| of_id.first().copied()).flatten())
+    })
 }
 
 fn is_under(hw: &HwModel, mut n: usize, root: usize) -> bool {

@@ -126,14 +126,17 @@ pub fn build(hw: &HwModel, ch: &Characterized, fp: &Floorplan, pw: &PowerModel, 
     problems.extend(crate::links::bond_problems(hw, fp));
     problems.extend(crate::power::vf_problems(hw, ch));
     let node = dies.first().map_or_else(String::new, |d| d.node.clone());
+    // A band over both corners and the central placement: a fixed-outline die can pack into a larger package at
+    // the optimistic corner.
+    let pkg = fp.packages.iter().map(|p| p.outline.area()).sum::<f64>() / 1e6;
     let _ = Part::Datapath;
     PhysReport {
         model: crate::MODEL_ID.into(),
         data_hash: crate::data::data_hash().into(),
         calibration: params.set_ids.clone(),
-        package_mm2: fp.packages.iter().map(|p| p.outline.area()).sum::<f64>() / 1e6,
-        package_low_mm2: pkg_lo,
-        package_high_mm2: pkg_hi,
+        package_mm2: pkg,
+        package_low_mm2: pkg_lo.min(pkg_hi).min(pkg),
+        package_high_mm2: pkg_lo.max(pkg_hi).max(pkg),
         package_table: fp.packages.first().map_or_else(String::new, |p| p.table.clone()),
         dies,
         tdp_w: pw.cap_w,

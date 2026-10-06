@@ -336,3 +336,12 @@ fn rotation_footprints_do_not_wrap() {
     });
     assert!(!tpu.iter().any(|q| q.contains("< 512 MiB")), "{tpu:?}");
 }
+
+#[test]
+fn unrepresentable_flush_sizes_are_rejected() {
+    let raw = std::fs::read_to_string(calibration().join("measurements/a100_2026-10-04.json")).unwrap();
+    let mut v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    v["flush_bytes"] = serde_json::json!(1u64 << 62);
+    let e = import_legacy(v.to_string().as_bytes(), "a100_2026-10-04.json", None).unwrap_err();
+    assert_eq!(e.code, codes::FIELD);
+}

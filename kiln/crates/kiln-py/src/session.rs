@@ -617,9 +617,28 @@ fn merge(parts: Vec<EvalResult>, names: &[&str]) -> EvalResult {
         r.audit
             .extrapolated_components
             .extend(p.audit.extrapolated_components);
+        if let Some(c) = p.calibration {
+            let into = r.calibration.get_or_insert_with(Default::default);
+            for (k, v) in c.uncalibrated_time_s {
+                into.uncalibrated_time_s.insert(map.get(&k).map_or(k, |id| id.to_string()), v);
+            }
+            for (k, v) in c.contributions {
+                into.contributions.insert(map.get(&k).map_or(k, |id| id.to_string()), v);
+            }
+            into.extrapolated.extend(c.extrapolated);
+        }
     }
     for v in [&mut r.errors, &mut r.warnings, &mut r.violations] {
         dedup(v);
+    }
+    for v in r
+        .calibration
+        .iter_mut()
+        .map(|c| &mut c.extrapolated)
+        .chain([&mut r.audit.extrapolated_components])
+    {
+        v.sort();
+        v.dedup();
     }
     r
 }
@@ -1196,6 +1215,71 @@ mod tests {
             serde_json::from_str(&r.provenance.flags["seed_scores"]).unwrap();
         assert_eq!(seeds.keys().collect::<Vec<_>>(), ["0", "1", "2"]);
         assert_eq!(r.provenance.seeds, [0, 1, 2]);
+    }
+
+    #[test]
+    fn extrapolated_keys_reach_the_result_at_every_trace_level() {
+        let s = real();
+        let wl = WorkloadInput::Str("llama3_8b:decode_b1".into());
+        let d = DesignInput::Str("tpu_v6e".into());
+        let at = |trace: &str| {
+            let o = Options::from_value(&json!({"profile": "full", "trace": trace, "interval": "sensitivity",
+                "fitness": {"kind": "baseline_relative"}}))
+            .unwrap();
+            s.evaluate(&d, &wl, &o)
+        };
+        let summary = at("summary");
+        assert_eq!(summary.status, Status::Ok, "{:?}", summary.errors);
+        let flagged: Vec<String> = summary.provenance.flags["extrapolated"].split(',').map(String::from).collect();
+        for r in [&summary, &at("none")] {
+            assert_eq!(r.calibration.as_ref().unwrap().extrapolated, flagged);
+            assert_eq!(r.audit.extrapolated_components, flagged);
+        }
+    }
+
+    #[test]
+    fn merge_keeps_every_members_calibration() {
+        use kiln_trace::result::CalibrationReport;
+        use kiln_trace::sim::ParamContribution;
+        let part = |phase: &str, param: &str, extrap: &[&str]| {
+            let mut r = result_with(&[(phase, 10.0)], 800.0, 400.0);
+            r.calibration = Some(CalibrationReport {
+                uncalibrated_time_s: [(phase.to_string(), 0.1)].into(),
+                contributions: [(phase.to_string(), vec![ParamContribution { name: param.into(), key: Default::default(),
+                    delta_makespan_s: -1.0, delta_energy_j: 0.0 }])].into(),
+                extrapolated: extrap.iter().map(|x| x.to_string()).collect(),
+            });
+            r
+        };
+        let r = merge(
+            vec![part("decode_b1", "eta_dram", &["unit_eff"]), part("prefill_b1", "unit_eff", &["t_dram_ramp", "unit_eff"]),
+                part("decode_b1", "eta_res", &[])],
+            &["llama3_8b:decode_b1", "llama3_8b:prefill_b1", "llama3_8b:decode_b1+weights=fp8_e4m3"],
+        );
+        let c = r.calibration.unwrap();
+        let phases = ["decode_b1", "llama3_8b.decode_b1", "prefill_b1"];
+        assert_eq!(c.uncalibrated_time_s.keys().collect::<Vec<_>>(), phases);
+        assert_eq!(c.contributions.keys().collect::<Vec<_>>(), phases);
+        assert_eq!(c.contributions["prefill_b1"][0].name, "unit_eff");
+        assert_eq!(c.contributions["llama3_8b.decode_b1"][0].name, "eta_res");
+        assert_eq!(c.extrapolated, ["t_dram_ramp", "unit_eff"]);
+    }
+
+    #[test]
+    fn suite_bound_frac_mem_weights_every_decode_member_by_time() {
+        let member = |tps: f64, offchip: f64| {
+            let mut r = result_with(&[("decode_b1", tps)], 800.0, 400.0);
+            r.phases[0].bound_breakdown = [("mem:offchip".to_string(), offchip), ("compute".to_string(), 1.0 - offchip)].into();
+            r.features.insert("bound_frac_mem".into(), Feature::Scalar(offchip));
+            r
+        };
+        let names = ["llama3_8b:decode_b1", "llama3_8b:decode_b1+weights=fp8_e4m3"];
+        for parts in [vec![member(0.1, 1.0), member(1.0, 0.0)], vec![member(1.0, 0.0), member(0.1, 1.0)]] {
+            let mut r = merge(parts, &names);
+            features::fill(&mut r, None, None);
+            let Feature::Scalar(x) = r.features["bound_frac_mem"] else { panic!() };
+            assert!((x - 10.0 / 11.0).abs() < 1e-12, "{x}");
+        }
     }
 
     #[test]

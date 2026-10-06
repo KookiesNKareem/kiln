@@ -166,9 +166,9 @@ fn double_buffering_overlaps_refills() {
     let n = gemm(4, 4, 8, Precision::Bf16, Precision::Bf16);
     let single = evaluate(&u, &n, &worked_mapping(false), &CostOptions::default()).unwrap();
     let double = evaluate(&u, &n, &worked_mapping(true), &CostOptions::default()).unwrap();
-    // Buffer read port: buffered 120 busy, 32 rigid excess, over 32 compute cycles -> 88.
-    assert_eq!(double.stall_cycles, 88);
-    assert_eq!(double.cycles, 136);
+    // Buffer read port: buffered 112 busy (O's 48 readbacks, not 64), 32 rigid excess, over 32 compute cycles -> 80.
+    assert_eq!(double.stall_cycles, 80);
+    assert_eq!(double.cycles, 128);
     assert_eq!(single.accesses, double.accesses);
 }
 

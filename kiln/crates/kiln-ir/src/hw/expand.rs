@@ -963,7 +963,7 @@ impl B<'_> {
         network: Option<NetIx>,
         bandwidth: Option<BytesPerSec>,
     ) -> ChanIx {
-        self.m.channels.push(Channel { src, dst, kind, width_bits, clock, resource, network, bandwidth, bandwidth_derived: bandwidth });
+        self.m.channels.push(Channel { src, dst, kind, width_bits, clock, resource, network, bandwidth, bandwidth_derived: bandwidth, link: None });
         self.m.channels.len() - 1
     }
 
@@ -1048,8 +1048,10 @@ impl B<'_> {
             }
         }
         let derived = l.derived_bandwidth(self.m.clock_hz(clock));
+        let spec = std::sync::Arc::new(l.clone());
         for &c in &out {
             self.m.channels[c].bandwidth_derived = derived;
+            self.m.channels[c].link = Some(spec.clone());
         }
         out
     }

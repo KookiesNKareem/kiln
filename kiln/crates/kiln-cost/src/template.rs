@@ -432,7 +432,7 @@ pub(crate) fn from_hw(hw: &HwModel, unit: usize, opts: &TemplateOptions) -> Resu
             b.levels[top].ports = vec![MemPort { dir: PortDir::ReadWrite, bytes_per_cycle: bw / f_unit, serves: vec![], lanes: 1 }];
         }
     }
-    let cyc = |c: Option<kiln_ir::hw::quantity::Cycles>| c.map(|c| c.0.round() as u64);
+    let cyc = |c: Option<kiln_ir::hw::quantity::Cycles>| c.map(|c| c.0.ceil() as u64);
     let pl = &u.spec.pipeline;
     let fill_default = match kind {
         ComputeKind::Matrix(m) => match m.geometry {
@@ -451,7 +451,7 @@ pub(crate) fn from_hw(hw: &HwModel, unit: usize, opts: &TemplateOptions) -> Resu
         pipeline: PipelineCycles {
             fill: cyc(pl.fill).unwrap_or(fill_default),
             drain: cyc(pl.drain).unwrap_or(0),
-            issue_overhead: pl.issue_overhead.0.round() as u64,
+            issue_overhead: pl.issue_overhead.0,
         },
         psum_precision: None,
         fused_down_conversion: false,

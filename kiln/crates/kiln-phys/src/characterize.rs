@@ -202,6 +202,14 @@ pub fn package_table(kind: kiln_ir::hw::phys::SubstrateKind) -> &'static str {
 /// A characterized unit template: its spec, own-area result, leakage and energies.
 type UnitCached = (std::sync::Arc<kiln_ir::hw::compute::ComputeUnit>, NodePhys, f64, UnitEnergy);
 
+/// Arena node of the PHY block port `p` is bound to (01 §10.5 `phy`: a sibling block of that id); `None` when the
+/// port has no binding (its PHY is synthesized at an auto shoreline site).
+pub(crate) fn bound_phy(hw: &HwModel, p: &kiln_ir::hw::model::PortInst) -> Option<usize> {
+    let phy = p.spec.phy.as_ref()?;
+    let parent = hw.nodes[p.node].parent;
+    hw.blocks.iter().find(|b| hw.nodes[b.node].parent == parent && hw.nodes[b.node].entity_id == *phy && matches!(b.spec.kind, BlockKind::Phy(_))).map(|b| b.node)
+}
+
 pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
     let t = Tables::get();
     let mut problems = vec![];
@@ -688,7 +696,7 @@ pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
             np.leak_w += b.spec.power.leakage.map_or(area * 1e-6 * p_ll_of(n), |l| l.0);
         }
     }
-    for p in &hw.ports {
+    for p in hw.ports.iter().filter(|p| bound_phy(hw, p).is_none()) {
         let n = node_of(p.node, &mut missing);
         let serdes = p.spec.link.as_ref().and_then(|l| if let LinkPhys::Serdes(s) = &l.phys { Some(s) } else { None });
         let table = phy_table(t, p.spec.kind, serdes, &substrate_d2d(p.node), None);

@@ -1,0 +1,91 @@
+{
+ "chip": "NVIDIA GV100 (Tesla V100)",
+ "die": {
+  "w_mm": null,
+  "h_mm": null,
+  "area_mm2_pub": 815,
+  "orientation": "HBM on two opposite (long) edges",
+  "source": "no free die photo found; NVIDIA's GTC17 module render shows the die but in perspective with stylised content, so no aspect or block boxes are claimed.",
+  "area_mm2": 815
+ },
+ "blocks": [
+  {
+   "id": "l2_bands",
+   "kind": "l2",
+   "count": 2,
+   "bbox_mm": null,
+   "frac": null,
+   "confidence": "low",
+   "source": "NVIDIA GTC17 render (rectified by eye): two horizontal bands of SRAM-like blocks, each with a central hub, between rows of SM tiles, i.e. the same organisation as the GA100 photo. Not measured."
+  },
+  {
+   "id": "nvlink_pcie",
+   "kind": "serdes",
+   "count": null,
+   "bbox_mm": null,
+   "frac": null,
+   "confidence": "low",
+   "source": "NVIDIA render: SerDes-like I/O rows along one short edge only."
+  }
+ ],
+ "edges": {
+  "w": [
+   {
+    "kind": "hbm_phy",
+    "count": 2,
+    "length_mm": null
+   }
+  ],
+  "e": [
+   {
+    "kind": "hbm_phy",
+    "count": 2,
+    "length_mm": null
+   }
+  ],
+  "s": [
+   {
+    "kind": "serdes (NVLink2 x6 + PCIe3, render)",
+    "count": null,
+    "length_mm": null
+   }
+  ],
+  "note": "HBM 2+2 on the long edges is consistent across render, package photos and the GP100 predecessor."
+ },
+ "package": {
+  "hbm_sites": 4,
+  "hbm_active": 4,
+  "hbm_placement": "2 per side along the die long edges",
+  "source": "NVIDIA V100 SXM2 module render (GTC17) and product photos"
+ },
+ "transistors": {
+  "value": 21100000000.0,
+  "source": "NVIDIA Tesla V100 GPU Architecture whitepaper (2017): 21.1 B transistors, 815 mm2, TSMC 12 nm FFN; Hot Chips 29 slide 2 says '21B transistors, 815 mm2'"
+ },
+ "node": {
+  "value": "TSMC 12 nm FFN",
+  "source": "NVIDIA Tesla V100 GPU Architecture whitepaper (2017): 21.1 B transistors, 815 mm2, TSMC 12 nm FFN"
+ },
+ "images": [
+  {
+   "path": "img/nonfree/v100_sxm2_module_nvidia_render_gtc17.jpg (local only)",
+   "url": "https://cdn.wccftech.com/wp-content/uploads/2017/05/NVIDIA-Telsa-V100.jpg",
+   "attribution": "NVIDIA GTC 2017 marketing render, copyright NVIDIA",
+   "type": "marketing render"
+  },
+  {
+   "path": "img/nonfree/hc29_v100_slide2_blockdiagram.png (local only)",
+   "url": "https://old.hotchips.org/wp-content/uploads/hc_archives/hc29/HC29.21-Monday-Pub/HC29.21.10-GPU-Gaming-Pub/HC29.21.132-Volta-Choquette-NVIDIA-Final3.pdf (slide 2)",
+   "attribution": "NVIDIA, Hot Chips 29",
+   "type": "logical block diagram"
+  }
+ ],
+ "notes": [
+  "Searched Wikimedia Commons, Fritzchens Fritz's CC0 set, Kurnal Insights' gallery, TechPowerUp, NVIDIA blogs and Hot Chips decks: no GV100 die photo with a usable licence/geometry. Fritz/Kurnal have GP100/GA100 but not GV100."
+ ],
+ "kiln_disagreements": [
+  "v100_sxm2_32gb.json5: NVLink S / PCIe N; the render shows I/O only on one short edge.",
+  "L2: the render suggests two L2 bands between SM rows (GA100-like), not one block below all GPCs."
+ ],
+ "coverage_frac": 0
+}

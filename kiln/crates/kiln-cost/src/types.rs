@@ -164,11 +164,12 @@ pub struct OperandChain {
     pub levels: Vec<LevelIx>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct PipelineCycles {
     pub fill: u64,
     pub drain: u64,
-    pub issue_overhead: u64,
+    /// Cycles per output tile, fractional: the total over a mapping's tiles is rounded up once.
+    pub issue_overhead: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

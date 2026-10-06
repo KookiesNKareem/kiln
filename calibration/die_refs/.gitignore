@@ -1,0 +1,8 @@
+# Full-resolution originals (re-download from the URLs in the per-chip JSON / README)
+img/ga100_commons_dieshot.jpg
+img/gp100_fritz_swir_die.jpg
+img/gp100_fritz_swir_package.jpg
+img/gp100_fritz_angled_die.jpg
+# Copyrighted reference images (NVIDIA renders/slides, press photos, IEEE figure): local only, never committed
+img/nonfree/
+overlay_*_photo.png

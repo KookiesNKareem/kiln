@@ -89,6 +89,7 @@ pub fn normalized(features: &BTreeMap<String, Feature>) -> BTreeMap<String, f64>
 }
 
 const BF16: &str = "bf16*bf16";
+const OFFCHIP_BOUND: &str = "mem:offchip";
 
 /// The design's off-chip (mem stack interface) bandwidth and capacity, which the matched envelope pins (06 §6.4).
 pub fn offchip(r: &mut EvalResult, m: &HwModel) {
@@ -166,16 +167,13 @@ pub fn fill(r: &mut EvalResult, model: Option<&HwModel>, only: Option<&[String]>
         .filter(|p| p.phase.as_str().contains("decode"))
         .collect();
     let (num, den) = decode.iter().fold((0.0, 0.0), |(n, d), p| {
-        let mem: f64 = p
-            .bound_breakdown
-            .iter()
-            .filter(|(k, _)| k.starts_with("mem:"))
-            .map(|(_, v)| v)
-            .sum();
+        let mem = p.bound_breakdown.get(OFFCHIP_BOUND).copied().unwrap_or(0.0);
         (n + mem * p.time_s.central, d + p.time_s.central)
     });
     if den > 0.0 {
-        put("bound_frac_mem", Feature::Scalar(num / den));
+        // Over every merged decode phase: the engine's value describes one workload member only.
+        r.features
+            .insert("bound_frac_mem".into(), Feature::Scalar(num / den));
     }
     if let Some(si) = r.score_interval {
         // The engine's value describes its throughput interval; the descriptor is the final fitness interval's.
@@ -214,6 +212,9 @@ mod tests {
         .unwrap();
         let (model, _) = design.expand(&Default::default()).unwrap();
         let mut r = result_with(&[("decode_b1", 80.0), ("prefill_b1", 1000.0)], 826.0, 400.0);
+        for p in &mut r.phases {
+            p.bound_breakdown = [("compute".to_string(), 0.2), (OFFCHIP_BOUND.to_string(), 0.8)].into();
+        }
         fill(&mut r, Some(&model), None);
         let f = |k: &str| match &r.features[k] {
             Feature::Scalar(x) => *x,

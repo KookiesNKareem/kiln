@@ -14,7 +14,7 @@ const UNORDERED: &[&str] =
 /// form ([`jcs_number`]).
 pub fn to_canonical_value(doc: &HwDoc) -> Value {
     let mut v = serde_json::to_value(doc).expect("HwDoc serializes");
-    normalize(&mut v);
+    normalize(&mut v, false);
     v
 }
 
@@ -22,12 +22,15 @@ pub fn to_canonical_json(doc: &HwDoc) -> String {
     canonical_json(&to_canonical_value(doc))
 }
 
-fn normalize(v: &mut Value) {
+/// `null` inside a `vary` patch (`set`) clears a field, so it is kept there.
+fn normalize(v: &mut Value, keep_nulls: bool) {
     match v {
         Value::Object(m) => {
-            m.retain(|_, x| !x.is_null());
+            if !keep_nulls {
+                m.retain(|_, x| !x.is_null());
+            }
             for (k, x) in m.iter_mut() {
-                normalize(x);
+                normalize(x, keep_nulls || k == "set");
                 if UNORDERED.contains(&k.as_str())
                     && let Value::Array(a) = x
                 {
@@ -35,7 +38,7 @@ fn normalize(v: &mut Value) {
                 }
             }
         }
-        Value::Array(a) => a.iter_mut().for_each(normalize),
+        Value::Array(a) => a.iter_mut().for_each(|x| normalize(x, keep_nulls)),
         Value::Number(n) => *v = jcs_number(n),
         _ => {}
     }
@@ -140,8 +143,18 @@ mod tests {
     #[test]
     fn normalize_follows_jcs_numbers_and_sorts_unordered_arrays() {
         let mut v = json!({"a": 2.0, "b": -0.0, "c": null, "precisions": ["z", "a"], "dims": [3, 1], "f": 1.5});
-        normalize(&mut v);
+        normalize(&mut v, false);
         assert_eq!(v, json!({"a": 2, "b": 0, "precisions": ["a", "z"], "dims": [3, 1], "f": 1.5}));
+    }
+
+    #[test]
+    fn normalize_keeps_nulls_in_vary_patches() {
+        let mut clear = json!({"vary": [{"select": "v", "set": {"clock": null, "x": {"y": null}}}], "c": null});
+        normalize(&mut clear, false);
+        assert_eq!(clear, json!({"vary": [{"select": "v", "set": {"clock": null, "x": {"y": null}}}]}));
+        let mut empty = json!({"vary": [{"select": "v", "set": {}}]});
+        normalize(&mut empty, false);
+        assert_ne!(design_hash(&clear), design_hash(&empty));
     }
 
     #[test]

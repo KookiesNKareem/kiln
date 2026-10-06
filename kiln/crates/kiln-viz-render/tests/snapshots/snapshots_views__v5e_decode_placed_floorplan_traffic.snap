@@ -41,12 +41,12 @@ expression: "one(&run, &ViewSpec\n{ color: FloorColor::Energy, wire_color: WireC
 <polyline points="183.49,103.96 176.03,103.96 176.03,270.34" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
 <polyline points="256.68,103.96 162.9,103.96 162.9,300.99" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
 <polyline points="176.15,300.99 176.03,270.34" fill="none" stroke="#440154" stroke-width="2.64" stroke-opacity="0.88"/>
+<polyline points="279.19,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#6acc5b" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="219.25,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#6acc5b" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="279.19,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#6acc5b" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="219.25,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#6acc5b" stroke-width="2.87" stroke-opacity="0.88"/>
 <polyline points="210.88,319.03 210.88,427.84" fill="none" stroke="#b2dd2e" stroke-width="1.76" stroke-opacity="0.88"/>
 <polyline points="380.03,267.66 488.84,267.66" fill="none" stroke="#b2dd2e" stroke-width="1.76" stroke-opacity="0.88"/>
-<polyline points="279.19,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#e2e31c" stroke-width="2.87" stroke-opacity="0.88"/>
-<polyline points="219.25,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#e2e31c" stroke-width="2.87" stroke-opacity="0.88"/>
-<polyline points="279.19,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#e2e31c" stroke-width="2.87" stroke-opacity="0.88"/>
-<polyline points="219.25,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#e2e31c" stroke-width="2.87" stroke-opacity="0.88"/>
 <polyline points="199.42,218.41 235.97,218.41 235.97,174.84" fill="none" stroke="#fde725" stroke-width="2.19" stroke-opacity="0.88"/>
 <polyline points="235.97,174.84 176.03,174.84 176.03,270.34" fill="none" stroke="#fde725" stroke-width="3" stroke-opacity="0.88"/>
 <polygon points="199.42,214.91 202.92,218.41 199.42,221.91 195.92,218.41" fill="#aea271" stroke="#1c1e24" stroke-width="0.75"/>

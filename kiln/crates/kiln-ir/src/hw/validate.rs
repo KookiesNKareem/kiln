@@ -716,8 +716,8 @@ impl V<'_> {
                         _ => None,
                     })
                     .collect();
-                let width: u32 = phy_lanes.iter().map(|l| l.unwrap_or(s.io_width_bits)).sum();
-                if phy_lanes.len() != phys.len() || (width != s.io_width_bits && !phy_lanes.is_empty()) {
+                let width: u64 = phy_lanes.iter().map(|l| u64::from(l.unwrap_or(s.io_width_bits))).sum();
+                if phy_lanes.len() != phys.len() || (width != u64::from(s.io_width_bits) && !phy_lanes.is_empty()) {
                     self.push(
                         &key,
                         err("E-IR-0505", format!("stack '{}' needs PHYs totalling {} b; bound {} PHYs / {width} b", s.id, s.io_width_bits, phy_lanes.len()), &at),
@@ -1214,6 +1214,28 @@ impl V<'_> {
             }
         }
         self.bandwidth_overrides();
+        let (bonds, signals) = self.bond_fields();
+        for node in signals {
+            let n = &self.m.nodes[node];
+            self.push(
+                &format!("{}#1104signals", n.entity),
+                err("E-IR-1104", "vertical link `signals` is not priced by kiln-phys", &n.path).hint("remove it; vertical width is width_bits"),
+            );
+        }
+        if let Some(pr) = self.pricer {
+            for f in bonds {
+                let Some(d) = pr.derived(&f) else { continue };
+                if f.value < d * (1.0 - 1e-9) {
+                    let n = &self.m.nodes[f.node];
+                    let bond = f.key.as_deref().unwrap_or_default();
+                    self.push(
+                        &format!("{}#1101{}{bond}", n.entity, f.field),
+                        err("E-IR-1101", format!("{bond} bond pitch {} um below the priced {bond} pitch {d} um (ratio {:.2})", f.value, f.value / d), &n.path)
+                            .hint("a finer pitch than the bond's table pitch is unpriced; use a finer-pitch bond kind"),
+                    );
+                }
+            }
+        }
         for u in &self.m.units {
             let n = &self.m.nodes[u.node];
             let s = &u.spec;
@@ -1409,6 +1431,39 @@ impl V<'_> {
             }
         }
         out
+    }
+
+    /// Bond pitches kiln-phys resolves for vertical channels (its `vertical_bond`): a declared vertical link's (keyed
+    /// by bond kind, at the link's source node), else the package layer's of each endpoint die (at the package);
+    /// and the nodes of declared vertical links that set `signals`.
+    fn bond_fields(&self) -> (Vec<PricedField>, Vec<usize>) {
+        let (mut out, mut signals) = (vec![], vec![]);
+        let port_link = |n: usize| match self.m.nodes[n].ix {
+            NodeIx::Port(p) => self.m.ports[p].spec.link.as_ref(),
+            _ => None,
+        };
+        let bond_name = |b: super::net::BondKind| serde_json::to_value(b).ok().and_then(|v| v.as_str().map(str::to_owned));
+        for c in self.m.channels.iter().filter(|c| c.kind == ChannelKind::Vertical) {
+            let (s, d) = (self.m.node_of(c.src), self.m.node_of(c.dst));
+            let declared = c.link.as_deref().or_else(|| c.network.map(|n| &self.m.networks[n].spec.link)).or_else(|| [s, d].into_iter().find_map(port_link));
+            if let Some(LinkPhys::Vertical(v)) = declared.map(|l| &l.phys) {
+                out.push(PricedField { node: s, field: "bond.pitch_um", key: bond_name(v.bond), value: v.pitch_um.0 });
+                if v.signals.is_some() {
+                    signals.push(s);
+                }
+                continue;
+            }
+            for n in [s, d] {
+                let Some(NodeIx::Container(dc)) = self.die_of(n).map(|x| self.m.nodes[x].ix) else { continue };
+                let Some(layer) = self.m.tree[dc].die.as_ref().and_then(|x| x.layer.clone()) else { continue };
+                let Some(pn) = self.package_of(n) else { continue };
+                let NodeIx::Container(pc) = self.m.nodes[pn].ix else { continue };
+                if let Some(l) = self.m.tree[pc].package.as_ref().and_then(|p| p.layers.iter().find(|l| l.id.as_str() == layer.as_str())) {
+                    out.push(PricedField { node: pn, field: "bond.pitch_um", key: bond_name(l.bond), value: l.pitch_um.0 });
+                }
+            }
+        }
+        (out, signals)
     }
 
     /// 00 decision 3: a bandwidth override at or below the derived value is a cost-neutral de-rate; above it, or

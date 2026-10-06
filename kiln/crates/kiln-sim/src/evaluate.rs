@@ -334,9 +334,10 @@ pub fn evaluate_prepared(p: &Prepared, members: &[SuiteMember], opts: &SimOption
     res
 }
 
-/// Power of a phase at the reported cap level: (central, low corner, high corner, chip W central, T_j C, thermal
-/// runaway, smallest cap margin central, smallest cap margin at the worse corner).
-type PhasePower = (f64, f64, f64, f64, f64, bool, f64, f64);
+/// Power of a phase at the reported cap level: (central, low corner, high corner, densest die's W/mm^2 central
+/// and at the worse corner, hottest package T_j C, thermal runaway, smallest cap margin central, smallest cap margin
+/// at the worse corner).
+type PhasePower = (f64, f64, f64, (f64, f64), f64, bool, f64, f64);
 
 fn cap_power(p: &Prepared, run: &PhaseRun) -> PhasePower {
     let ph = &p.view.phys;
@@ -351,7 +352,20 @@ fn cap_power(p: &Prepared, run: &PhaseRun) -> PhasePower {
     let hi = run.high.as_ref().map_or(c, one);
     let caps = ph.caps();
     let margin = |f: fn(&(f64, f64, f64)) -> f64| caps.iter().zip(&run.caps_w).map(|(c, w)| c.cap_w - f(w)).fold(f64::INFINITY, f64::min);
-    (c.at(level), lo.at(level).min(hi.at(level)), lo.at(level).max(hi.at(level)), c.chip_w, c.t_j_c, c.runaway || lo.runaway || hi.runaway, margin(|w| w.0), margin(|w| w.1.max(w.2).max(w.0)))
+    // Each package's junction and each die's density on its own power (04 §9); pooled without zones.
+    let (q, tj, runaway) = match run.heat.first() {
+        Some(h0) => (
+            (h0.q_w_mm2, run.heat.iter().map(|h| h.q_small_w_mm2).fold(0.0, f64::max)),
+            h0.t_j_c,
+            run.heat.iter().any(|h| h.runaway),
+        ),
+        None => {
+            let dies = ph.report().map_or((0.0, 0.0), |r| (r.dies.iter().map(|d| d.area_mm2).sum::<f64>(), r.dies.iter().map(|d| d.area_low_mm2).sum::<f64>()));
+            let per = |w: f64, a: f64| if a > 0.0 { w / a } else { 0.0 };
+            ((per(c.chip_w, dies.0), per(lo.chip_w.max(hi.chip_w).max(c.chip_w), dies.1)), c.t_j_c, c.runaway || lo.runaway || hi.runaway)
+        }
+    };
+    (c.at(level), lo.at(level).min(hi.at(level)), lo.at(level).max(hi.at(level)), q, tj, runaway, margin(|w| w.0), margin(|w| w.1.max(w.2).max(w.0)))
 }
 
 /// 04 §10 envelope summary of the design (areas with their corner band, package, power at the phases, density,
@@ -360,12 +374,10 @@ fn cap_power(p: &Prepared, run: &PhaseRun) -> PhasePower {
 fn physical(p: &Prepared, phases: &[PhasePower], bands: bool) -> (Option<PhysicalSummary>, Vec<Diagnostic>, Option<Diagnostic>) {
     let Some(rep) = p.view.phys.report() else { return (None, vec![], None) };
     let mut findings = rep.problems.clone();
-    let die_total: f64 = rep.dies.iter().map(|d| d.area_mm2).sum();
     let peak = phases.iter().fold((0.0f64, 0.0f64, 0.0f64), |a, x| (a.0.max(x.0), a.1.max(x.1), a.2.max(x.2)));
-    let chip = phases.iter().map(|x| x.3).fold(0.0, f64::max);
     let tj = phases.iter().map(|x| x.4).fold(f64::NEG_INFINITY, f64::max);
-    let q = if die_total > 0.0 { chip / die_total } else { 0.0 };
-    let q_hi = if die_total > 0.0 { chip * peak.2 / peak.0.max(1e-9) / rep.dies.iter().map(|d| d.area_low_mm2).sum::<f64>().max(1e-9) } else { 0.0 };
+    let q = phases.iter().map(|x| x.3.0).fold(0.0, f64::max);
+    let q_hi = phases.iter().map(|x| x.3.1).fold(q, f64::max);
     if q > rep.q_avg_max_w_mm2 {
         findings.push(
             Diagnostic::error("E-PHYS-POWER-DENSITY", format!("average power density {q:.2} W/mm^2 exceeds {:.2} W/mm^2", rep.q_avg_max_w_mm2))

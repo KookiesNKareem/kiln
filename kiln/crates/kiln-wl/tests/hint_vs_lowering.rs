@@ -219,7 +219,7 @@ proptest! {
             softmax_after_topk: sm, group_limited: None, bias_correction: bias, routed_scaling: scale.then_some(2.5),
         };
         check(Op::MoeRoute(route), vec![t(&[tk, eu], F32, A)], vec![t(&[tk, ku], I32, A), t(&[tk, ku], F32, A)], &ONE, None)?;
-        let c = 6u64;
+        let c = (tk * ku).div_ceil(eu).max(6);
         let disp = MoeDispatchAttrs { n_experts: e, top_k: k, capacity_factor: None, drop_policy: DropPolicy::NoDrop, layout: DispatchLayout::CapacityPadded };
         check(Op::MoeDispatch(disp), vec![t(&[tk, d], BF, A), t(&[tk, ku], I32, A)], vec![t(&[eu, c, d], BF, A)], &ONE, None)?;
         let rows = Some(MoeRows { rows: loads[..e as usize].to_vec(), drop_overflow: true });

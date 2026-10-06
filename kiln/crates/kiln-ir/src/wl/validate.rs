@@ -355,6 +355,29 @@ fn validate_graph(
             );
         }
     }
+    for (id, t) in &g.tensors {
+        let mut seen = vec![id];
+        let mut next = t.alias_of.as_ref();
+        while let Some(b) = next {
+            if b == id {
+                if seen.iter().all(|s| id <= *s) {
+                    out.push(
+                        Diagnostic::error(
+                            "E-WL-ALIAS-001",
+                            format!("alias cycle through {:?}", id.as_str()),
+                        )
+                        .at(format!("{gp}.tensors.{id}")),
+                    );
+                }
+                break;
+            }
+            if seen.contains(&b) {
+                break;
+            }
+            seen.push(b);
+            next = decl(b).and_then(|x| x.alias_of.as_ref());
+        }
+    }
     if let Some(cycle) = find_cycle(g) {
         out.push(
             Diagnostic::error("E-WL-DAG-001", format!("cycle: {}", cycle.join(" -> "))).at(gp),
@@ -403,6 +426,17 @@ mod tests {
 
     fn dag_errors(m: &Model) -> Vec<String> {
         validate_model(m).into_iter().filter(|d| d.code == "E-WL-DAG-001").map(|d| d.message).collect()
+    }
+
+    #[test]
+    fn alias_cycles_are_rejected() {
+        let kv = |a: &str| serde_json::json!({ "shape": [1], "dtype": "bf16", "class": "kv_cache", "alias_of": a });
+        let alias_errors = |tensors: serde_json::Value| {
+            let m = model(serde_json::json!({ "g": { "params": ["x"], "results": ["x"], "tensors": tensors, "nodes": [] } }));
+            validate_model(&m).into_iter().filter(|d| d.code == "E-WL-ALIAS-001").map(|d| d.message).collect::<Vec<_>>()
+        };
+        assert_eq!(alias_errors(serde_json::json!({ "x": kv("x") })), vec!["alias cycle through \"x\"".to_string()]);
+        assert_eq!(alias_errors(serde_json::json!({ "x": kv("y"), "y": kv("x") })), vec!["alias cycle through \"x\"".to_string()]);
     }
 
     #[test]

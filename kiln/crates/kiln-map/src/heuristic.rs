@@ -249,7 +249,8 @@ pub fn mac_precisions(prog: &Program, op: &POp) -> (kiln_ir::precision::Precisio
 /// operands (03 §2.7: never silently upcast; kiln-wl inserts explicit converts otherwise).
 fn supports(view: &HwView, u: usize, a: kiln_ir::precision::Precision, b: kiln_ir::precision::Precision) -> bool {
     use kiln_wl::convert::accepts;
-    view.hw.units[view.units[u].unit].spec.precisions.iter().any(|m| {
+    crate::cost::require_matmul(&view.hw, view.units[u].unit).is_ok()
+        && view.hw.units[view.units[u].unit].spec.precisions.iter().any(|m| {
         matches!(m, kiln_ir::hw::compute::PrecisionMode::Mac { a: x, b: y, .. } if accepts(x.precision, a) && accepts(y.precision, b))
     })
 }
@@ -434,7 +435,7 @@ pub fn heuristic_lowered(
             } else {
                 // Vector work runs in a mode holding every operand precision (01 §6); units without one cannot take it.
                 let dts = crate::cost::vector_dtypes(prog, op);
-                let ok = balanced_prefix(view, all_vec.iter().copied().filter(|&u| crate::cost::vector_mode(&view.hw, view.units[u].unit, &dts).is_ok()).collect());
+                let ok = balanced_prefix(view, all_vec.iter().copied().filter(|&u| crate::cost::vector_unit_mode(&view.hw, view.units[u].unit, prog, op).is_ok()).collect());
                 let names: Vec<&str> = dts.iter().map(|p| p.name()).collect();
                 (if ok == vec { "vector".into() } else { format!("vector.{}", names.join("+")) }, ok)
             };

@@ -55,7 +55,7 @@ fn unit(rows: u32, cols: u32, buf: u64, rf: u64, dram_bw: f64) -> UnitTemplate {
             OperandChain { role: OperandRole::B, levels: vec![0, 1, 2] },
             OperandChain { role: OperandRole::O, levels: vec![1, 2] },
         ],
-        pipeline: PipelineCycles { fill: u64::from(rows + cols - 1), drain: 0, issue_overhead: 0 },
+        pipeline: PipelineCycles { fill: u64::from(rows + cols - 1), drain: 0, issue_overhead: 0.0 },
         psum_precision: None,
         fused_down_conversion: false,
         e_mac_idle_ratio: 0.1,

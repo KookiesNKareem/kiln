@@ -260,7 +260,16 @@ impl Cx {
                 _ => {}
             }
         }
-        let flush_elems = root.get("flush_bytes").and_then(Value::as_u64);
+        let flush_bytes = root
+            .get("flush_bytes")
+            .and_then(Value::as_u64)
+            .map(|x| {
+                x.checked_mul(4).ok_or_else(|| {
+                    Diagnostic::error(codes::FIELD, format!("flush_bytes {x} float32 elements overflow a byte count"))
+                        .at("flush_bytes")
+                })
+            })
+            .transpose()?;
         self.note(
             "flush_bytes in the file is FLUSH.numel() of a float32 tensor; converted to bytes (x4)",
         );
@@ -270,7 +279,7 @@ impl Cx {
             warmup: root.get("warmup").and_then(Value::as_u64).map(|x| x as u32),
             iters: root.get("iters").and_then(Value::as_u64).map(|x| x as u32),
             rotate_bytes: Some(ROTATE_BYTES),
-            flush_bytes: flush_elems.map(|x| x * 4),
+            flush_bytes,
             started: opt_str(root, "started"),
             finished: opt_str(root, "finished"),
             settings: BTreeMap::from([(
