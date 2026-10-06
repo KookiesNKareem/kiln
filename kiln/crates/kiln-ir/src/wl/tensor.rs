@@ -140,8 +140,13 @@ impl TypeInfo {
         }
     }
 
+    pub fn checked_numel(&self) -> Option<u128> {
+        self.shape.iter().try_fold(1u128, |n, &d| n.checked_mul(u128::from(d)))
+    }
+
+    /// Saturates at `u128::MAX`; bound types are rejected before lowering when `checked_footprint` overflows.
     pub fn numel(&self) -> u128 {
-        self.shape.iter().map(|&d| u128::from(d)).product()
+        self.checked_numel().unwrap_or(u128::MAX)
     }
 
     /// Storage bytes of `elems` elements of this tensor.
@@ -149,7 +154,30 @@ impl TypeInfo {
         self.dtype.bytes(elems, &self.shape)
     }
 
+    pub fn checked_footprint(&self) -> Option<u128> {
+        self.dtype.checked_bytes(self.checked_numel()?, &self.shape)
+    }
+
     pub fn footprint(&self) -> u128 {
-        self.bytes(self.numel())
+        self.checked_footprint().unwrap_or(u128::MAX)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn element_count_overflow_is_detected_not_wrapped() {
+        let t = TypeInfo::new(vec![1 << 43, 1 << 43, 1 << 42], ElemType::BF16, TensorClass::Weight);
+        assert_eq!(t.checked_numel(), None);
+        assert_eq!(t.checked_footprint(), None);
+        assert_eq!(t.numel(), u128::MAX);
+        assert_eq!(t.footprint(), u128::MAX);
+        let big = TypeInfo::new(vec![1 << 63, 1 << 63], ElemType::BF16, TensorClass::Weight);
+        assert_eq!(big.checked_numel(), Some(1 << 126));
+        assert_eq!(big.checked_footprint(), None);
+        let ok = TypeInfo::new(vec![4, 8], ElemType::BF16, TensorClass::Weight);
+        assert_eq!((ok.checked_numel(), ok.checked_footprint()), (Some(32), Some(64)));
     }
 }

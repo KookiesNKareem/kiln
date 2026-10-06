@@ -191,7 +191,8 @@ pub(crate) fn spatial_candidates(unit: &UnitTemplate, nest: &OpNest, k: usize) -
     out.into_iter().map(|c| c.2).collect()
 }
 
-/// Tile classes of a spatial mapping: ragged dims bound on one axis split into full + remainder (03 §2.3).
+/// Tile classes of a spatial mapping: ragged parallel dims bound on one axis split into full + remainder (03 §2.3).
+/// A ragged reduction dim is padded: its classes would accumulate into the same outputs, each finalizing them.
 pub(crate) fn classes(nest: &OpNest, sp: &SpatialMapping, policy: RaggedPolicy) -> Vec<(Vec<u64>, SpatialMapping)> {
     let nd = nest.dims.len();
     let sizes: Vec<u64> = nest.dims.iter().map(|d| d.size).collect();
@@ -207,7 +208,7 @@ pub(crate) fn classes(nest: &OpNest, sp: &SpatialMapping, policy: RaggedPolicy) 
         }
     }
     let ragged: Vec<usize> = (0..nd)
-        .filter(|&d| nbind[d] == 1 && sizes[d] > unroll[d] && !sizes[d].is_multiple_of(unroll[d]))
+        .filter(|&d| nest.dims[d].kind == LoopKind::Parallel && nbind[d] == 1 && sizes[d] > unroll[d] && !sizes[d].is_multiple_of(unroll[d]))
         .take(MAX_RAGGED)
         .collect();
     let mut out = vec![];

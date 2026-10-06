@@ -187,3 +187,17 @@ def test_resume_refuses_a_changed_stack_recipe(make_cfg, tmp_path):
     cfg["budget"]["max_generations"] = 1
     with pytest.raises(CampaignError, match="scoring basis changed"):
         Campaign(cfg, resume=True, log=_quiet)
+
+
+def test_failures_shown_do_not_depend_on_record_order(make_cfg):
+    camp = Campaign(make_cfg("fail-order", budget={"max_evals": 0}), log=lambda *_a: None)
+    camp.cfg["selection"]["failures_shown"] = 1
+    err = [{"code": "E-X", "message": "m"}]
+    recs = {"g0001-i0-c01": {"id": "g0001-i0-c01", "gen": 1, "island": 0, "status": "invalid", "errors": err},
+            "g0001-i0-c00": {"id": "g0001-i0-c00", "gen": 1, "island": 0, "status": "llm_error", "errors": err},
+            "g0000-i0-c05": {"id": "g0000-i0-c05", "gen": 0, "island": 0, "status": "invalid", "errors": err}}
+    picks = set()
+    for order in (list(recs), sorted(recs), sorted(recs, reverse=True)):
+        camp.archive.records = {k: recs[k] for k in order}
+        picks.add(tuple(r["id"] for r in camp._failures(0)))
+    assert picks == {("g0001-i0-c01",)}

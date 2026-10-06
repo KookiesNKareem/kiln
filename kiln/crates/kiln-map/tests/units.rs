@@ -41,6 +41,7 @@ fn cost(v: &HwView, prog: &Program, oi: usize, u: usize, gang: u32) -> NestCost 
         residency: &[],
         gang,
         quick: true,
+        partial: false,
     };
     RooflineCost.cost(&q).expect("cost")
 }

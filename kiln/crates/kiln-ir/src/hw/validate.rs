@@ -794,9 +794,9 @@ impl V<'_> {
             }
             let (key, at) = (n.entity.clone(), n.path.clone());
             let s = net.spec.clone();
-            let clock = self.m.clock_hz(net.clock);
             for l in s.link_specs() {
-                self.link_checks(l, clock, &key, &at);
+                let clock = l.clock.as_ref().map_or(net.clock, |r| self.m.link_clock(r, &at));
+                self.link_checks(l, self.m.clock_hz(clock), &key, &at);
             }
             let dor = matches!(s.routing, Routing::Default | Routing::DimensionOrder { .. });
             if matches!(s.topology, Topology::Torus { .. } | Topology::Ring { .. }) && dor && s.router.vcs == Some(1) && !net.direct {
@@ -833,7 +833,8 @@ impl V<'_> {
         for p in &self.m.ports {
             let n = &self.m.nodes[p.node];
             if let Some(l) = &p.spec.link {
-                let clock = self.m.tree[p.container].clock;
+                let cont = &self.m.tree[p.container];
+                let clock = l.clock.as_ref().map_or(cont.clock, |r| self.m.link_clock(r, &self.m.nodes[cont.node].path));
                 self.link_checks(l, self.m.clock_hz(clock), &n.entity.clone(), &n.path.clone());
             }
             if let Some(phy) = &p.spec.phy {
@@ -872,10 +873,16 @@ impl V<'_> {
             .chain(self.m.tree.iter().filter(|c| c.kind == ContainerKind::Host).map(|c| c.node))
             .collect();
         let fill = self.m.reachable_mems(&sources);
-        // A near unit reads and writes its bound memory in place: it stages through it both ways.
+        // A near unit reads and writes its bound memory in place: it stages through it both ways. A local buffer
+        // stages its operand through the memory it refills from.
+        let mems = &self.m.memories;
         let staged = |u: &UnitInst| -> Vec<(OperandRole, usize, bool)> {
             let near = u.near.iter().flat_map(|n| [(OperandRole::In, n.mem, true), (OperandRole::Out, n.mem, true)]);
-            u.feeds.iter().map(|(r, f)| (*r, f.mem, false)).chain(near).collect()
+            let refills = u.local.iter().flat_map(|&li| match &mems[li].spec {
+                MemSpec::Local { buffer, .. } => mems[li].backing.iter().map(|&m| (buffer.holds, m, false)).collect(),
+                _ => vec![],
+            });
+            u.feeds.iter().map(|(r, f)| (*r, f.mem, false)).chain(near).chain(refills).collect()
         };
         let readers: Vec<(usize, usize)> = (0..self.m.units.len())
             .flat_map(|ui| staged(&self.m.units[ui]).into_iter().filter(|(r, ..)| r.is_input()).map(move |(_, m, _)| (ui, m)))

@@ -2,13 +2,16 @@
 //! the Tier A junction estimate (§9) and the phase power that 03 §4.5's clock solve bisects on.
 
 use kiln_ir::common::Diagnostic;
-use kiln_ir::hw::model::{ClockIx, ContainerKind, HwModel, NodeIx};
+use std::collections::BTreeMap;
+
+use kiln_ir::hw::model::{ClockIx, ContainerKind, HwModel, NodeIx, ResIx};
 use kiln_ir::hw::phys::{CapLevel, ClockDomain, CoolingClass, PowerPolicy};
 use serde::Serialize;
 
 use crate::characterize::Characterized;
 use crate::params::Params;
 use crate::tables::{TechNode, Tables};
+use crate::wire::LinkCost;
 
 /// Junction temperature beyond which the Tier A fixed point counts as diverged.
 const T_RUNAWAY_C: f64 = 1000.0;
@@ -176,6 +179,8 @@ pub struct DomainPower {
     pub leak: Vec<Leak>,
     /// Clock-tree capacitance (kappa_clk included), F.
     pub c_clk_f: f64,
+    /// Clock load of pipelined links' flops ([`Pipe`]), F.
+    pub c_pipe_f: f64,
     /// Switched control-logic capacitance per cycle while running (alpha_ctrl included), F.
     pub c_ctrl_f: f64,
 }
@@ -214,6 +219,34 @@ pub struct CapDomain {
     pub nodes: Vec<bool>,
     /// The members' own power terms (leakage, clock tree, control, DRAM background, board, die area).
     pub power: PowerModel,
+}
+
+/// The pipeline flops of one physical on-die link (a shared resource's widest channel): the node driving it, its
+/// clock and the clock energy of its flops per cycle at its technology's V_nom (width x stages x idle flop energy).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub struct Pipe {
+    pub node: usize,
+    pub clock: Option<ClockIx>,
+    pub e_cycle_j: f64,
+}
+
+/// The pipelined links of `hw` between enabled endpoints, one per physical link resource.
+pub fn pipes(hw: &HwModel, links: &[LinkCost]) -> Vec<Pipe> {
+    let mut by_res: BTreeMap<ResIx, Pipe> = BTreeMap::new();
+    for (c, l) in hw.channels.iter().zip(links).filter(|(_, l)| l.e_j_per_cycle_idle > 0.0) {
+        let (s, d) = (hw.node_of(c.src), hw.node_of(c.dst));
+        if !hw.nodes[s].enabled || !hw.nodes[d].enabled {
+            continue;
+        }
+        let f = c.clock.and_then(|k| hw.clocks.get(k)).map_or(1e9, |k| k.spec.freq.0);
+        let width = c.width_bits.map_or(c.bandwidth.map_or(0.0, |b| b.0) * 8.0 / f, f64::from).max(1.0);
+        let p = Pipe { node: s, clock: c.clock, e_cycle_j: width * l.e_j_per_cycle_idle };
+        let x = by_res.entry(c.resource).or_insert(p);
+        if p.e_cycle_j > x.e_cycle_j {
+            *x = p;
+        }
+    }
+    by_res.into_values().collect()
 }
 
 /// Clock domain of every node (its own, else the nearest ancestor's) and the MAC units' clock.
@@ -284,7 +317,7 @@ impl Thermal {
 impl CapDomain {
     /// The enforced caps of `hw` (an assumed cap never throttles, 04 §8.1). `dies` holds every die's node and
     /// envelope area, mm^2.
-    pub fn build_all(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64]) -> Vec<CapDomain> {
+    pub fn build_all(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], pipes: &[Pipe]) -> Vec<CapDomain> {
         let (dom, main) = node_clocks(hw);
         hw.power_domains
             .iter()
@@ -302,7 +335,7 @@ impl CapDomain {
                     cs.dedup();
                     cs
                 };
-                let power = PowerModel::scoped(hw, ch, params, dies, clocked_um2, Some((&nodes, p.idle.map(|w| w.0))));
+                let power = PowerModel::scoped(hw, ch, params, dies, clocked_um2, pipes, Some((&nodes, p.idle.map(|w| w.0))));
                 CapDomain { path: p.path.clone(), cap_w: p.cap.0, level: p.level.unwrap_or(CapLevel::Board), clocks, nodes, power }
             })
             .collect()
@@ -358,13 +391,14 @@ impl PowerBreakdown {
 
 impl PowerModel {
     /// The whole design's power terms; `dies` holds every die's node and envelope area, mm^2.
-    pub fn build(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64]) -> PowerModel {
-        Self::scoped(hw, ch, params, dies, clocked_um2, None)
+    pub fn build(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], pipes: &[Pipe]) -> PowerModel {
+        Self::scoped(hw, ch, params, dies, clocked_um2, pipes, None)
     }
 
     /// The power terms of the whole design, or of the nodes in `scope.0` with board power `scope.1` (a cap's
     /// declared idle power, else the board overhead of its packages).
-    pub fn scoped(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], scope: Option<(&[bool], Option<f64>)>) -> PowerModel {
+    #[allow(clippy::too_many_arguments)]
+    pub fn scoped(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], pipes: &[Pipe], scope: Option<(&[bool], Option<f64>)>) -> PowerModel {
         let t = Tables::get();
         let nc = hw.clocks.len();
         let (dom, main) = node_clocks(hw);
@@ -383,6 +417,7 @@ impl PowerModel {
                     leak_w: 0.0,
                     leak: vec![],
                     c_clk_f: 0.0,
+                    c_pipe_f: 0.0,
                     c_ctrl_f: 0.0,
                 }
             })
@@ -414,6 +449,20 @@ impl PowerModel {
                 dp.c_ctrl_f += actl * np.ctrl_ge * n.c_ge_ff * 1e-15;
                 dp.c_clk_f += kclk * (n.c_clk_flop_ff * 1e-15 * np.flops + n.c_clk_area_pf_mm2 * 1e-12 * clocked_um2[i] * 1e-6);
             }
+        }
+        // Summed in value order: arena and resource order (P4) cannot move the total.
+        let mut pipe_c: Vec<(usize, f64)> = pipes
+            .iter()
+            .filter(|p| inside(p.node))
+            .filter_map(|p| {
+                let d = p.clock.or(dom[p.node]).or(main).filter(|&d| d < nc)?;
+                let n = t.node(&ch.tech[p.node]).or_else(|| t.node("tsmc_n7")).expect("N7");
+                Some((d, p.e_cycle_j / (n.vdd_nom * n.vdd_nom)))
+            })
+            .collect();
+        pipe_c.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
+        for (d, c) in pipe_c {
+            domains[d].c_pipe_f += c;
         }
         let dram_bg: f64 = ch.mems.iter().zip(&hw.memories).filter(|(_, m)| inside(m.node)).map(|(e, _)| e.background_w).sum();
         let caps: Vec<_> = hw.power_domains.iter().collect();
@@ -492,7 +541,7 @@ impl PowerModel {
             .map(|(d, dp)| {
                 let f = hz.get(d).copied().unwrap_or(dp.vf.boost_hz);
                 let v = dp.vf.voltage(f);
-                dp.c_clk_f * v * v * f * g
+                (dp.c_clk_f + dp.c_pipe_f) * v * v * f * g
             })
             .sum()
     }
@@ -509,8 +558,20 @@ impl PowerModel {
             .sum()
     }
 
-    /// Phase power at the junction temperature fixed point (04 §9 Tier A estimate); `runaway` when the iteration
-    /// diverges or ends where the loop gain is >= 1.
+    /// d[`Self::p_static`]/dT at `t_j`, W/K.
+    fn p_static_dt(&self, hz: &[f64], t_j: f64) -> f64 {
+        let mut p = 0.0;
+        for (d, dp) in self.domains.iter().enumerate() {
+            let v = dp.vf.voltage(hz.get(d).copied().unwrap_or(dp.vf.boost_hz));
+            for l in &dp.leak {
+                p += l.w * (v / l.v_nom) * (l.k_v * (v - l.v_nom)).exp() * l.k_t * (l.k_t * (t_j - 85.0)).exp();
+            }
+        }
+        p
+    }
+
+    /// Phase power at the lowest junction-temperature equilibrium above the inlet (04 §9 Tier A estimate);
+    /// `runaway` when none exists (the leakage-temperature loop gain reaches 1 before the junction balances).
     pub fn power(&self, e: &PhaseEnergy, hz: &[f64]) -> PowerBreakdown {
         let tw = e.makespan_s.max(1e-30);
         let dyn_core = e.core_dyn_j / tw;
@@ -518,42 +579,45 @@ impl PowerModel {
         let dram = e.dram_j / tw + self.dram_background_w;
         let clock = self.p_clock(hz, e.activity);
         let ctrl = self.p_ctrl(hz, e.busy);
-        let mut t_j = 85.0;
-        let mut out = PowerBreakdown::default();
-        let mut converged = false;
-        for _ in 0..64 {
-            let st = self.p_static(hz, t_j);
-            let chip = dyn_core + indep + st + clock + ctrl;
-            let vr = (1.0 / self.eta_vr - 1.0) * (dyn_core + st + clock + ctrl);
-            let pkg = chip + dram;
-            let board = pkg + vr + self.board_w;
-            out = PowerBreakdown {
-                dyn_core_w: dyn_core,
-                indep_w: indep,
-                static_w: st,
-                clock_w: clock,
-                ctrl_w: ctrl,
-                dram_w: dram,
-                board_fixed_w: self.board_w,
-                vr_loss_w: vr,
-                chip_w: chip,
-                package_w: pkg,
-                board_w: board,
-                t_j_c: t_j,
-                runaway: false,
-            };
-            let next = self.t_inlet_c + pkg * self.r_ja_k_mm2_w / self.die_mm2.max(1.0);
-            if (next - t_j).abs() <= 1e-3 {
-                converged = true;
+        let r = self.r_ja_k_mm2_w / self.die_mm2.max(1.0);
+        let other = dyn_core + indep + clock + ctrl + dram;
+        // h(T) = T_inlet + R P(T) - T is convex (leakage grows exponentially in T) with h(T_inlet) >= 0, so Newton
+        // from the inlet climbs monotonically onto the lowest root; a nonnegative slope while h > 0 means none.
+        let mut t_j = self.t_inlet_c;
+        let mut found = false;
+        for _ in 0..200 {
+            let h = self.t_inlet_c + r * (other + self.p_static(hz, t_j)) - t_j;
+            let slope = r * self.p_static_dt(hz, t_j) - 1.0;
+            if !h.is_finite() || slope >= 0.0 || t_j >= T_RUNAWAY_C {
                 break;
             }
-            if !next.is_finite() || next >= T_RUNAWAY_C {
+            let step = -h / slope;
+            t_j += step;
+            if step <= 1e-6 {
+                found = true;
                 break;
             }
-            t_j = next;
         }
-        out.runaway = !converged || self.runaway(hz, out.t_j_c).is_some();
-        out
+        let st = self.p_static(hz, t_j);
+        let chip = dyn_core + indep + st + clock + ctrl;
+        let vr = (1.0 / self.eta_vr - 1.0) * (dyn_core + st + clock + ctrl);
+        let pkg = chip + dram;
+        let board = pkg + vr + self.board_w;
+        PowerBreakdown {
+            dyn_core_w: dyn_core,
+            indep_w: indep,
+            static_w: st,
+            clock_w: clock,
+            ctrl_w: ctrl,
+            dram_w: dram,
+            board_fixed_w: self.board_w,
+            vr_loss_w: vr,
+            chip_w: chip,
+            package_w: pkg,
+            board_w: board,
+            t_j_c: t_j,
+            runaway: !found || self.runaway(hz, t_j).is_some(),
+        }
     }
 
     /// `E-PHYS-THERMAL-RUNAWAY` when the leakage-temperature loop gain reaches 1 (04 §8).
@@ -580,7 +644,7 @@ mod tests {
         let n = Tables::get().node("tsmc_n7").unwrap();
         let c = ClockDomain { id: kiln_ir::common::Id::new("c").unwrap(), freq: Hz(1e9), base: None, voltage: Some(Volts(n.vdd_nom)), vf: vec![VfPoint { freq: Hz(1e9), voltage: Volts(n.vdd_nom) }], crossing_latency: None };
         let leak = Leak { tech: n.id.clone(), v_nom: n.vdd_nom, k_v: 3.0, k_t: 0.02, w: 40.0 };
-        let d = DomainPower { vf: VfTable::build(&c, n, 0.3, 1.3), v_nom: n.vdd_nom, v_noms: vec![(n.id.clone(), n.vdd_nom)], leak_w: 40.0, leak: vec![leak], c_clk_f: 0.0, c_ctrl_f: 0.0 };
+        let d = DomainPower { vf: VfTable::build(&c, n, 0.3, 1.3), v_nom: n.vdd_nom, v_noms: vec![(n.id.clone(), n.vdd_nom)], leak_w: 40.0, leak: vec![leak], c_clk_f: 0.0, c_pipe_f: 0.0, c_ctrl_f: 0.0 };
         let pm = |r: f64| PowerModel {
             domains: vec![d.clone()],
             indep_leak_w: 0.0,
@@ -602,6 +666,37 @@ mod tests {
         assert!(hot.runaway, "{hot:?}");
         let cool = pm(9.0).power(&e, &[1e9]);
         assert!(!cool.runaway && (cool.t_j_c - (30.0 + cool.package_w * 0.09)).abs() < 0.01, "{cool:?}");
+    }
+
+    /// 04 §9: the junction settles at the lowest equilibrium above the inlet. `T = 30 + 55.1 exp(0.02 (T - 85))` has
+    /// a stable root near 76.3 C (loop gain 0.93) although the iteration from 85 C would climb away from it.
+    #[test]
+    fn the_lowest_stable_junction_temperature_is_found() {
+        let n = Tables::get().node("tsmc_n7").unwrap();
+        let c = ClockDomain { id: kiln_ir::common::Id::new("c").unwrap(), freq: Hz(1e9), base: None, voltage: Some(Volts(n.vdd_nom)), vf: vec![VfPoint { freq: Hz(1e9), voltage: Volts(n.vdd_nom) }], crossing_latency: None };
+        let leak = |w: f64| Leak { tech: n.id.clone(), v_nom: n.vdd_nom, k_v: 3.0, k_t: 0.02, w };
+        let pm = |w: f64| PowerModel {
+            domains: vec![DomainPower { vf: VfTable::build(&c, n, 0.3, 1.3), v_nom: n.vdd_nom, v_noms: vec![(n.id.clone(), n.vdd_nom)], leak_w: w, leak: vec![leak(w)], c_clk_f: 0.0, c_pipe_f: 0.0, c_ctrl_f: 0.0 }],
+            indep_leak_w: 0.0,
+            dram_background_w: 0.0,
+            board_w: 0.0,
+            eta_vr: 1.0,
+            clk_ungated: 0.0,
+            cap_w: None,
+            assumed_cap_w: None,
+            cap_level: CapLevel::Package,
+            die_mm2: 100.0,
+            t_inlet_c: 30.0,
+            r_ja_k_mm2_w: 100.0,
+            tj_max_c: 105.0,
+            q_avg_max: 1.0,
+        };
+        let e = PhaseEnergy { makespan_s: 1.0, ..Default::default() };
+        let b = pm(55.1).power(&e, &[1e9]);
+        assert!(!b.runaway && (b.t_j_c - 76.305).abs() < 0.01, "{b:?}");
+        assert!((b.t_j_c - (30.0 + b.package_w)).abs() < 1e-3, "{b:?}");
+        // No equilibrium at all: 70 W at 85 C with the same loop.
+        assert!(pm(70.0).power(&e, &[1e9]).runaway);
     }
 
     #[test]

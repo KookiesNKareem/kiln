@@ -269,3 +269,111 @@ fn declared_theta_ja_is_used() {
         assert!((b.t_j_c - (pm.t_inlet_c + b.package_w * 1.0)).abs() < 0.01, "{b:?}");
     }
 }
+
+fn big_compute(outline: Value) -> Value {
+    let mut v = mesh(json!("128b"), clk(1e9));
+    let die = &mut v["system"]["package"]["dies"][0];
+    die["floorplan"] = json!({ "outline": outline });
+    die["clusters"][0]["layout"] = json!({ "grid": [4, 4] });
+    die["clusters"][0]["units"][0]["geometry"] = json!({ "systolic": { "rows": 128, "cols": 128 } });
+    die["clusters"][0]["units"][0]["local"][0]["capacity"] = json!(32768);
+    die["networks"][0]["topology"]["dims"] = json!([4, 4]);
+    v
+}
+
+/// 04 §6.2: a `max_area` outline bounds the finished die, compute area included, not the arrangement before the
+/// compute units stretch it.
+#[test]
+fn max_area_bounds_the_die_with_its_compute() {
+    let auto = Phys::new(&model(&big_compute(json!({ "type": "auto" }))));
+    let d = &auto.m3().unwrap().fp.dies[0];
+    let full = d.outline.area();
+    let arranged: f64 = d.macros.iter().map(|m| m.area_um2).sum();
+    assert!(full > 2.0 * arranged, "compute-dominated: {full} vs arranged {arranged}");
+    let limit_mm2 = 0.7 * full / 1e6;
+    let capped = Phys::new(&model(&big_compute(json!({ "type": "max_area", "area": format!("{limit_mm2}mm2") }))));
+    let d = &capped.m3().unwrap().fp.dies[0];
+    assert!(
+        codes(&capped).contains(&"E-PHYS-AREA-OVERFLOW".to_string()) || d.outline.area() <= limit_mm2 * 1e6 * 1.05,
+        "{:.1} mm^2 die under a {limit_mm2:.1} mm^2 limit: {:?}",
+        d.outline.area() / 1e6,
+        codes(&capped)
+    );
+}
+
+/// Two auto-placed dies, the first with its HBM PHY on the east edge (facing the second).
+fn east_hbm() -> Value {
+    let mut v = two_dies(json!({ "mode": "auto" }));
+    let dies = &mut v["system"]["package"]["dies"];
+    dies[0]["placement"] = json!({ "mode": "auto" });
+    dies[0]["floorplan"] = json!({ "shoreline": [ { "id": "hbm_e", "edge": "e", "kind": "hbm" } ] });
+    v
+}
+
+fn same_layer_overlaps(ph: &Phys) -> Vec<(String, String)> {
+    let m = ph.m3().unwrap();
+    let fp = &m.fp;
+    let mut parts: Vec<(String, kiln_phys::place::Rect)> = fp.dies.iter().filter(|d| d.layer == 0).map(|d| (d.path.clone(), fp.rect[d.node].unwrap())).collect();
+    parts.extend(fp.packages.iter().flat_map(|p| p.stacks.iter().map(|&(mi, r)| (format!("stack{mi}"), r))));
+    let mut out = vec![];
+    for (i, a) in parts.iter().enumerate() {
+        for b in &parts[i + 1..] {
+            let (w, h) = (a.1.x1.min(b.1.x1) - a.1.x0.max(b.1.x0), a.1.y1.min(b.1.y1) - a.1.y0.max(b.1.y0));
+            if w > 1e-3 && h > 1e-3 {
+                out.push((a.0.clone(), b.0.clone()));
+            }
+        }
+    }
+    out
+}
+
+/// 04 §6.3: automatic placement leaves room for the memory stacks on a die's edges; whatever still overlaps on one
+/// package layer is reported.
+#[test]
+fn auto_placed_dies_and_stacks_do_not_overlap() {
+    let ph = Phys::new(&model(&east_hbm()));
+    let east = ph.m3().unwrap().fp.dies[0].macros.iter().filter_map(|m| m.phy).any(|p| p.0 == kiln_ir::hw::phys::Edge::E);
+    assert!(east, "the first die's HBM PHY sits on its east edge");
+    let o = same_layer_overlaps(&ph);
+    assert!(o.is_empty() || codes(&ph).contains(&"E-PHYS-PACKAGE-OVERLAP".to_string()), "{o:?} unreported: {:?}", codes(&ph));
+    assert!(o.is_empty(), "automatic placement overlaps {o:?}");
+}
+
+/// 01 §12: a declared substrate outline bounds the package.
+#[test]
+fn substrate_outline_is_enforced() {
+    let with = |outline: Value| {
+        let mut v = mesh(json!("128b"), clk(1e9));
+        v["system"]["package"]["substrate"] = json!({ "kind": "organic", "outline": outline });
+        codes(&Phys::new(&model(&v))).contains(&"E-PHYS-PACKAGE-OVERFLOW".to_string())
+    };
+    assert!(with(json!({ "type": "fixed", "w": "1mm", "h": "1mm" })));
+    assert!(with(json!({ "type": "max_area", "area": "1mm2" })));
+    assert!(!with(json!({ "type": "fixed", "w": "200mm", "h": "200mm" })));
+    assert!(!with(json!({ "type": "auto" })));
+}
+
+/// 04 §7.1: a pipelined on-die link clocks its flops every cycle; that clock load (width x stages, at the domain's
+/// V and f, gated like the clock tree) is in the power model.
+#[test]
+fn pipelined_links_clock_their_flops() {
+    let f = 6e9;
+    let hw = model(&mesh(json!("512b"), clk(f)));
+    let ph = Phys::new(&hw);
+    let m = ph.m3().unwrap();
+    let staged: Vec<usize> = (0..hw.channels.len()).filter(|&i| m.links[i].pipeline_stages > 0).collect();
+    assert!(!staged.is_empty(), "6 GHz pipelines the mesh hops");
+    let pipes = kiln_phys::power::pipes(&hw, &m.links);
+    let vnom = kiln_phys::tables::Tables::get().node("tsmc_n7").unwrap().vdd_nom;
+    let want: f64 = pipes.iter().map(|p| p.e_cycle_j).sum::<f64>() / (vnom * vnom);
+    let dp = &m.power.domains[0];
+    assert!(want > 0.0 && (dp.c_pipe_f - want).abs() <= 1e-12 * want, "{} vs {want}", dp.c_pipe_f);
+    let v = dp.vf.voltage(f);
+    for a in [0.0, 1.0] {
+        let g = m.power.clk_ungated + (1.0 - m.power.clk_ungated) * a;
+        let p = m.power.p_clock(&[f], a);
+        assert!((p - (dp.c_clk_f + want) * v * v * f * g).abs() <= 1e-9 * p, "activity {a}: {p} W");
+    }
+    let widest = staged.iter().map(|&i| hw.channels[i].width_bits.unwrap_or(0) as f64 * m.links[i].e_j_per_cycle_idle).fold(0.0, f64::max);
+    assert!(pipes.iter().any(|p| (p.e_cycle_j - widest).abs() <= 1e-9 * widest), "width x stages x idle flop energy");
+}

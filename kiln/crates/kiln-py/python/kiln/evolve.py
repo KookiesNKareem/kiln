@@ -6,10 +6,11 @@ open-file/memory rlimits (RSS polling on macOS, where RLIMIT_AS is not enforced)
 stderr capture, and OS isolation that denies network access, writes outside the scratch dir, escaping descendants,
 and every file read except the Python runtime (prefixes, stdlib, site-packages, the kiln package), system libraries,
 a few devices and the scratch dir (so nothing under $HOME, no keys, no .env files), plus the caller's `deny_read` dirs:
-`bwrap` or `unshare` user, mount, net and pid namespaces over a root holding only those binds on Linux, a
-`sandbox-exec` profile on macOS (which also denies fork, exec and Mach lookups). The isolation is probed once per
-process; without it no program runs (E-SANDBOX-UNAVAILABLE). Program-controlled text that becomes LLM feedback is
-redacted (`redact`) and capped. kiln itself only ever receives the design as JSON data.
+`bwrap` or `unshare` user, mount, net and pid namespaces over a root holding only those binds plus a seccomp
+filter that denies process creation on Linux (so RLIMIT_AS bounds the whole program), a `sandbox-exec` profile on
+macOS (which also denies fork, exec and Mach lookups). The isolation is probed once per process; without it no
+program runs (E-SANDBOX-UNAVAILABLE). Program-controlled text that becomes LLM feedback is redacted (`redact`) and
+capped. kiln itself only ever receives the design as JSON data.
 """
 
 from __future__ import annotations
@@ -208,8 +209,8 @@ def _wrap_unshare(tmp: str, deny_read: list[str]) -> list[str]:
 
 
 _PROBE = r"""
-import json, os, socket, sys
-scratch, outside, secret, platform, port, home = sys.argv[1:7]
+import importlib.util, json, os, socket, sys, threading
+scratch, outside, secret, platform, port, home, runner = sys.argv[1:8]
 res = {}
 def attempt(key, f):
     try:
@@ -235,14 +236,25 @@ if platform != "darwin":
     uid = int(st["Uid"].split()[1])
     res["unprivileged"] = (cap("CapEff") == cap("CapPrm") == cap("CapAmb") == 0 and st["NoNewPrivs"].strip() == "1"
                            and (uid != 0 or cap("CapBnd") == 0))
+def fork():
+    if os.fork() == 0:
+        os._exit(0)
 if platform == "darwin":
-    def fork():
-        if os.fork() == 0:
-            os._exit(0)
     attempt("fork", fork)
     res["contained"] = not res["fork"]
 else:
-    res["contained"] = os.readlink("/proc/self/ns/pid") != os.environ.get("HOST_PIDNS")
+    spec = importlib.util.spec_from_file_location("runner", runner)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.deny_processes()
+    attempt("fork", fork)
+    def thread():
+        t = threading.Thread(target=lambda: None)
+        t.start()
+        t.join()
+    attempt("thread", thread)
+    res["contained"] = (os.readlink("/proc/self/ns/pid") != os.environ.get("HOST_PIDNS") and not res["fork"]
+                        and res["thread"])
 with open(os.path.join(scratch, "probe.json"), "w") as f:
     json.dump(res, f)
 """
@@ -265,7 +277,7 @@ def _probe(wrap) -> bool:
             with socket.create_server(("127.0.0.1", 0)) as listener:
                 port = str(listener.getsockname()[1])
                 cmd = [*wrap(scratch, [hidden]), sys.executable, "-I", "-c", _PROBE, scratch, outside, secret,
-                       sys.platform, port, _home() or ""]
+                       sys.platform, port, _home() or "", str(RUNNER)]
                 subprocess.run(cmd, cwd=scratch, env=env, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
             res = json.loads(Path(scratch, "probe.json").read_text())
         except (OSError, ValueError, subprocess.SubprocessError):

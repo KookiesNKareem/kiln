@@ -2,8 +2,11 @@
 //! endpoints: repeated on-die wires (+ router pipeline and crossbar energy into a router), package traces between
 //! die PHYs, SerDes/host PHYs, and vertical bonds.
 
+use std::collections::BTreeMap;
+
+use kiln_ir::common::Diagnostic;
 use kiln_ir::hw::model::{ChannelKind, ContainerKind, HwModel, NodeIx};
-use kiln_ir::hw::net::LinkPhys;
+use kiln_ir::hw::net::{BondKind, LinkPhys};
 
 use crate::characterize::{Characterized, PhyUse};
 use crate::floorplan::Floorplan;
@@ -157,6 +160,77 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
                 }
             }
             lc
+        })
+        .collect()
+}
+
+/// 04 §6.3: the vertical links between two footprints need one signal pad per wire (each direction its own), and
+/// the bond supplies `overlap / pitch^2 * bond_signal_frac` of them at the coarser of the declared and the table
+/// pitch. A vertically attached memory stack sits on its die (its footprint is the overlap).
+pub fn bond_problems(hw: &HwModel, fp: &Floorplan) -> Vec<Diagnostic> {
+    let t = Tables::get();
+    let table = |b: BondKind| {
+        t.phy.get(match b {
+            BondKind::Hybrid => "hybrid_bond",
+            BondKind::Microbump => "microbump",
+            BondKind::Tsv => "tsv",
+        })
+    };
+    let die_at = |n: usize| fp.die_of[n].and_then(|c| fp.dies.iter().position(|d| d.container == c));
+    let stack_at = |n: usize| matches!(hw.nodes[n].ix, NodeIx::Mem(m) if hw.memories[m].is_stack()).then_some(n);
+    let layer_bond = |d: usize| {
+        let c = fp.dies[d].container;
+        let lid = hw.tree[c].die.as_ref()?.layer.as_ref()?;
+        let pkg = std::iter::successors(hw.nodes[hw.tree[c].node].parent, |&x| hw.nodes[x].parent).find_map(|x| match hw.nodes[x].ix {
+            NodeIx::Container(p) => hw.tree[p].package.clone(),
+            _ => None,
+        })?;
+        pkg.layers.iter().find(|l| l.id.as_str() == lid.as_str()).map(|l| (l.bond, l.pitch_um.0))
+    };
+    // (footprint a, footprint b) -> (signals, overlap um^2, pitch um, signal fraction); a footprint is a die index or
+    // a stack's arena node (offset past the dies).
+    let mut pairs: BTreeMap<(usize, usize), (f64, f64, f64, f64)> = BTreeMap::new();
+    for c in hw.channels.iter().filter(|c| c.kind == ChannelKind::Vertical) {
+        let (s, d) = (hw.node_of(c.src), hw.node_of(c.dst));
+        let at = |n: usize| stack_at(n).map(|x| fp.dies.len() + x).or_else(|| die_at(n));
+        let (Some(a), Some(b)) = (at(s), at(d)) else { continue };
+        let declared = c.network.map(|n| &hw.networks[n].spec.link).or_else(|| [s, d].into_iter().find_map(|x| match hw.nodes[x].ix {
+            NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
+            _ => None,
+        }));
+        let upper = [a, b].into_iter().filter(|&x| x < fp.dies.len()).max_by_key(|&x| fp.dies[x].layer);
+        let (bond, pitch) = match declared.map(|l| &l.phys) {
+            Some(LinkPhys::Vertical(v)) => (v.bond, v.pitch_um.0),
+            _ => upper.and_then(layer_bond).unwrap_or((BondKind::Hybrid, 0.0)),
+        };
+        let Some(pt) = table(bond) else { continue };
+        let pitch = pitch.max(pt.pitch_um.unwrap_or(0.0)).max(1e-3);
+        let frac = pt.signal_frac.unwrap_or(0.5);
+        let rect = |x: usize| if x < fp.dies.len() { fp.rect[fp.dies[x].node] } else { fp.rect[x - fp.dies.len()] };
+        let overlap = match (rect(a), rect(b)) {
+            (Some(ra), Some(rb)) if a >= fp.dies.len() || b >= fp.dies.len() => ra.area().min(rb.area()),
+            (Some(ra), Some(rb)) => crate::place::Rect::new(ra.x0.max(rb.x0), ra.y0.max(rb.y0), ra.x1.min(rb.x1), ra.y1.min(rb.y1)).area(),
+            _ => 0.0,
+        };
+        let f = c.clock.and_then(|k| hw.clocks.get(k)).map_or(1e9, |k| k.spec.freq.0);
+        let signals = f64::from(c.width_bits.unwrap_or(0)).max(c.bandwidth.map_or(0.0, |b| b.0) * 8.0 / f);
+        let e = pairs.entry((a.min(b), a.max(b))).or_insert((0.0, overlap, pitch, frac));
+        e.0 += signals;
+        (e.2, e.3) = (e.2.max(pitch), e.3.min(frac));
+    }
+    let name = |x: usize| if x < fp.dies.len() { fp.dies[x].path.clone() } else { hw.nodes[x - fp.dies.len()].path.clone() };
+    pairs
+        .into_iter()
+        .filter_map(|((a, b), (signals, overlap, pitch, frac))| {
+            let pads = overlap / (pitch * pitch) * frac;
+            (signals > pads * (1.0 + 1e-9)).then(|| {
+                Diagnostic::error(
+                    "E-PHYS-BOND-CAPACITY",
+                    format!("{} <-> {}: vertical links need {signals:.0} signals; the {:.2} mm^2 overlap at {pitch} um pitch carries {pads:.0} ({frac} of the pads)", name(a), name(b), overlap / 1e6),
+                )
+                .at(name(a))
+                .hint("narrow the vertical links, enlarge the overlap of the two footprints, or use a finer-pitch bond")
+            })
         })
         .collect()
 }

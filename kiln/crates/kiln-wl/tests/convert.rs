@@ -16,9 +16,10 @@ fn modes(m: &[(Precision, Precision, f64)], dequantize: bool) -> MacModes {
 
 #[test]
 fn widenings_are_lossless() {
-    for p in [Fp8E4m3, Fp8E5m2, Fp6E2m3, Fp4E2m1, Int8, Uint8, Int4, Mxfp4, Mxfp8E4m3, Mxint8, Nvfp4, Fp8E4m3Pt, Int8Pc, Int4G128] {
+    for p in [Fp8E4m3, Fp8E5m2, Fp6E2m3, Fp4E2m1, Int8, Uint8, Int4, Mxfp4, Mxfp8E4m3, Mxint8, Nvfp4, Fp8E4m3Pt, Int8Pc] {
         assert!(widens(Bf16, &t(p)) && widens(Fp32, &t(p)), "{p:?} into bf16/fp32");
     }
+    assert!(!widens(Bf16, &t(Int4G128)) && widens(Fp32, &t(Int4G128)), "(q - z) x bf16 scale needs 12 significant bits");
     assert!(widens(Fp16, &t(Fp8E4m3)) && widens(Fp16, &t(Fp8E5m2)) && widens(Fp16, &t(Int8)));
     // MX and scaled values exceed fp16's range; bf16 does not fit fp16's or fp8's significand.
     for (to, from) in [(Fp16, Mxfp4), (Fp16, Fp8E4m3Pt), (Fp16, Bf16), (Fp8E4m3, Bf16), (Fp8E5m2, Fp8E4m3), (Int8, Fp8E4m3), (Fp8E4m3, Fp8E4m3Pt)] {
@@ -119,8 +120,8 @@ fn scaled_widenings_hold_the_element_and_in_reduction_scales() {
     assert!(!widens(Tf32, &pt(Fp32, Fp32)) && widens(Fp32, &pt(Fp32, Fp32)));
     assert!(!widens(Bf16, &pt(Fp16, Fp32)) && widens(Bf16, &pt(Fp8E4m3, Fp32)), "per-tensor scales apply to the accumulator");
     let blk = |scalar, scale| ElemType { scalar, scaling: Scaling::Block { axis: -1, block: 128, scale, zero_point: None, tensor_scale: None } };
-    assert!(widens(Bf16, &blk(Int4, Bf16)) && widens(Bf16, &blk(Int4, E8m0)));
-    assert!(!widens(Bf16, &blk(Int4, Fp32)) && widens(Fp32, &blk(Int4, Fp32)), "a block scale is applied inside the reduction");
+    assert!(!widens(Bf16, &blk(Int4, Bf16)) && widens(Fp32, &blk(Int4, Bf16)) && widens(Bf16, &blk(Int4, E8m0)));
+    assert!(!widens(Bf16, &blk(Int4, Fp32)) && !widens(Fp32, &blk(Int4, Fp32)), "a block scale is applied inside the reduction");
     let none = modes(&[(Bf16, Bf16, 1.0)], false);
     assert_eq!(choose(&none, &t(Bf16), &pt(Fp32, Fp32)), None);
 }
@@ -162,10 +163,12 @@ fn unregistered_scaling_is_converted_not_dropped() {
     let fp8_only = modes(&[(Fp8E4m3, Fp8E4m3, 4.0)], false);
     assert_eq!(choose(&fp8_only, &t(Fp8E4m3), &raw), None);
     let with_bf16 = modes(&[(Fp8E4m3, Fp8E4m3, 4.0), (Bf16, Bf16, 1.0)], false);
-    assert_eq!(choose(&with_bf16, &t(Bf16), &raw), Some((None, Some(Bf16))));
+    assert_eq!(choose(&with_bf16, &t(Bf16), &raw), None, "fp8 x bf16 scale products need 12 significant bits");
+    let with_fp32 = modes(&[(Fp8E4m3, Fp8E4m3, 4.0), (Bf16, Bf16, 1.0), (Fp32, Fp32, 0.25)], false);
+    assert_eq!(choose(&with_fp32, &t(Bf16), &raw), Some((Some(Fp32), Some(Fp32))));
     // Even at the scalar's own width the convert applies the scales.
     let raw_bf16 = ElemType { scalar: Bf16, ..raw };
-    assert_eq!(choose(&with_bf16, &t(Bf16), &raw_bf16), Some((None, Some(Bf16))));
+    assert_eq!(choose(&with_fp32, &t(Fp32), &raw_bf16), Some((None, Some(Fp32))));
 }
 
 #[test]

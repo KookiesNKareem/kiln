@@ -365,6 +365,20 @@ impl HwModel {
         c.map(|c| self.clocks[c].spec.freq)
     }
 
+    /// A link's own clock (01 §10.3): the innermost die clock named `r` enclosing the node path `scope`, else a
+    /// global one.
+    pub fn link_clock(&self, r: &str, scope: &str) -> Option<ClockIx> {
+        let scope = format!("{scope}.");
+        self.clocks
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| {
+                c.path == r || c.path.strip_suffix(r).and_then(|p| p.strip_suffix('.')).is_some_and(|p| scope.starts_with(&format!("{p}.")))
+            })
+            .max_by_key(|(_, c)| c.path.len())
+            .map(|(i, _)| i)
+    }
+
     pub fn level(&self, mem: MemIx) -> u8 {
         self.levels[mem]
     }

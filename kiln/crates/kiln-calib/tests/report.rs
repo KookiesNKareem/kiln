@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use kiln_calib::report::{DeviceReport, OpRow, Role, StepRow, slope, stats, verdicts};
+use kiln_calib::report::{DeviceReport, OpRow, Role, StepRow, phase_sums, slope, stats, verdicts};
 
 fn op(i: usize, ratio: f64) -> OpRow {
     let bytes = 1e6 * (i + 1) as f64;
@@ -28,7 +28,7 @@ fn device(ops: Vec<OpRow>, steps: Vec<StepRow>, expected_steps: usize, errors: V
         op_uncal: stats(&ratios),
         class_uncal: class_cal.clone(),
         class_cal,
-        phase_sum: BTreeMap::new(),
+        phase_sum: phase_sums(&ops),
         slopes: vec![],
         noise: vec![],
         coverage,
@@ -77,4 +77,19 @@ fn exact_nonzero_slope_is_significant() {
     let flat = slope("x", &[0.0, 1.0, 2.0, 3.0], &[0.1; 4]);
     assert_eq!(flat.t, 0.0);
     assert!(!flat.significant);
+}
+
+#[test]
+fn phase_sum_error_fails_acceptance() {
+    // Per-op median/p90 0, class geomean 1, but 1000 counts of the 2x op: phase sum 1.962x.
+    let ratios = [2.0, 0.5].into_iter().chain([1.0; 38]);
+    let ops: Vec<OpRow> = ratios.enumerate().map(|(i, r)| OpRow { count: if i == 0 { 1000 } else { 1 }, bytes: 1e6, flops: 2e6, ..op(i, r) }).collect();
+    for role in [Role::Fit, Role::HeldOut] {
+        let d = DeviceReport { role, ..device(ops.clone(), vec![step(1.0)], 1, vec![]) };
+        let (pred, meas) = d.phase_sum["decode_b1"];
+        assert!((pred / meas - 1.96198).abs() < 1e-5);
+        let v = verdicts(&d);
+        assert!(v.iter().filter(|v| !v.metric.contains("phase-sum")).all(|v| v.pass), "{v:?}");
+        assert!(v.iter().any(|v| v.metric.contains("phase-sum") && !v.pass), "{v:?}");
+    }
 }

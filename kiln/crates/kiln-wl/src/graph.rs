@@ -142,7 +142,14 @@ pub fn bind_type(decl: &TensorDecl, b: &Binding, what: &str) -> Result<TypeInfo,
         .iter()
         .map(|e| eval_dim(e, b, what))
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(TypeInfo::new(shape, decl.dtype, decl.class))
+    let ti = TypeInfo::new(shape, decl.dtype, decl.class);
+    if ti.checked_footprint().is_none() {
+        return Err(Diagnostic::error(
+            "E-WL-DIM-001",
+            format!("{what}: shape {:?} overflows the element or byte count", ti.shape),
+        ));
+    }
+    Ok(ti)
 }
 
 /// Where a tensor visible in some scope ultimately lives.
@@ -282,6 +289,21 @@ impl Walker<'_> {
                 scope.vars.insert(id.clone(), (ti, o));
                 continue;
             }
+            if g.params.contains(id)
+                && let Some((bound, _)) = scope.vars.get(id)
+            {
+                if (&bound.shape, bound.dtype) != (&ti.shape, ti.dtype) {
+                    return Err(Diagnostic::error(
+                        "E-WL-SHAPE-001",
+                        format!(
+                            "param {id} is declared {:?} {:?}, the caller passes {:?} {:?}",
+                            ti.dtype, ti.shape, bound.dtype, bound.shape
+                        ),
+                    )
+                    .at(format!("{prefix}tensors.{id}")));
+                }
+                continue;
+            }
             let origin = match t.alias_of.as_ref().and_then(|a| scope.vars.get(a)) {
                 Some((_, o)) => Origin { upcast_ok: o.upcast_ok && t.upcast_ok, ..o.clone() },
                 None => Origin {
@@ -336,6 +358,37 @@ impl Walker<'_> {
                     for (outer, param) in &r.broadcast {
                         inner.insert(param.clone(), scope.get(outer, &path)?.clone());
                     }
+                    let mut results = IndexMap::new();
+                    for c in &r.carry {
+                        let out = scope.get(&c.out, &path)?;
+                        let same = |what: &str, t: &TypeInfo| -> Result<(), Diagnostic> {
+                            if (&t.shape, t.dtype) == (&out.0.shape, out.0.dtype) {
+                                return Ok(());
+                            }
+                            Err(Diagnostic::error(
+                                "E-WL-SHAPE-001",
+                                format!(
+                                    "carry {what} is {:?} {:?}, its out {} is {:?} {:?}",
+                                    t.dtype, t.shape, c.out, out.0.dtype, out.0.shape
+                                ),
+                            )
+                            .at(path.clone()))
+                        };
+                        same("init", &scope.get(&c.init, &path)?.0)?;
+                        match inner.get(&c.yield_) {
+                            Some((y, _)) if body.params.contains(&c.yield_) => same("yield", y)?,
+                            _ if body.tensors.contains_key(&c.yield_) => {
+                                results.insert(c.yield_.clone(), out.clone());
+                            }
+                            _ => {
+                                return Err(Diagnostic::error(
+                                    "E-WL-REF-001",
+                                    format!("carry yield {} is not a tensor of body {}", c.yield_, r.body),
+                                )
+                                .at(path.clone()));
+                            }
+                        }
+                    }
                     let mult = mult.checked_mul(count).ok_or_else(|| {
                         Diagnostic::error(
                             "E-WL-DIM-001",
@@ -345,7 +398,7 @@ impl Walker<'_> {
                     })?;
                     self.walk(
                         body,
-                        Scope { vars: inner, ..Scope::default() },
+                        Scope { vars: inner, results },
                         &format!("{path}."),
                         mult,
                     )?;

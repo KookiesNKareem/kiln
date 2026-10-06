@@ -148,6 +148,13 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
             .at(format!("{p}.energy")),
         );
     }
+    for (k, x) in &r.bottleneck.time_by_binding {
+        quantity(
+            &mut out,
+            &format!("{p}.bottleneck.time_by_binding[{k:?}]"),
+            *x,
+        );
+    }
     let attributed = r.bottleneck.attributed_s();
     if !close(attributed, r.makespan_s) {
         out.push(
@@ -187,10 +194,7 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
                 .at(&op),
             );
         }
-        let window = o
-            .group
-            .and_then(|g| r.groups.iter().find(|x| x.group == g))
-            .map_or(o.time_s(), |g| (g.end_s - g.start_s).max(o.time_s()));
+        let window = o.time_s();
         for (k, f) in o.floors.iter().enumerate() {
             let path = format!("{op}.floors[{k}]");
             quantity(&mut out, &path, f.seconds);
@@ -289,6 +293,13 @@ pub fn check_trace(t: &crate::trace::Trace) -> Vec<Diagnostic> {
     let nres = t.resources.len() as u32;
     let nops = t.ops.len() as u32;
     let bad = |code: &str, msg: String| Diagnostic::error(code, msg);
+    if !(t.tick_s().is_finite() && t.tick_s() > 0.0) {
+        out.push(bad(
+            "E-TRACE-NUMBER",
+            format!("tick_s {} is not a positive finite time unit", t.tick_s()),
+        ));
+        return out;
+    }
     for w in t.resources.windows(2) {
         if w[0].path >= w[1].path {
             out.push(bad(
@@ -491,6 +502,15 @@ pub fn check_trace(t: &crate::trace::Trace) -> Vec<Diagnostic> {
             ));
             continue;
         }
+        if !(0.0..=1.0).contains(&l.share) {
+            out.push(bad(
+                "E-TRACE-ATTRIBUTION",
+                format!(
+                    "limiter share {} of op {} outside [0, 1]",
+                    l.share, t.ops[l.op as usize].path
+                ),
+            ));
+        }
         share[l.op as usize] += l.share;
         has[l.op as usize] = true;
     }
@@ -638,6 +658,9 @@ pub fn check_result(r: &EvalResult) -> Vec<Diagnostic> {
                 .hint("scores come from whole steps (03 §4.9)"),
             );
         }
+        for (k, f) in ph.floors.iter().enumerate() {
+            quantity(&mut out, &format!("{p}.floors[{k}]"), f.seconds);
+        }
         if let Some(f) = ph
             .floors
             .iter()
@@ -654,22 +677,33 @@ pub fn check_result(r: &EvalResult) -> Vec<Diagnostic> {
                 .at(format!("{p}.floors")),
             );
         }
-        if let Some(c) = r
-            .sim
-            .iter()
-            .find(|c| c.phase == ph.phase && c.corner == Corner::Central)
-        {
-            for (name, summary, central) in [
-                ("time_s", ph.time_s.central, c.makespan_s),
-                ("energy_j", ph.energy_j.central, c.energy.total_j),
-                ("avg_power_w", ph.avg_power_w.central, c.power.avg_w),
+        for c in r.sim.iter().filter(|c| c.phase == ph.phase) {
+            for (name, i, x) in [
+                ("time_s", &ph.time_s, c.makespan_s),
+                ("energy_j", &ph.energy_j, c.energy.total_j),
+                ("avg_power_w", &ph.avg_power_w, c.power.avg_w),
             ] {
-                if !close(summary, central) {
+                let inside = x >= i.low - SUM_REL_TOL * i.low.abs()
+                    && x <= i.high + SUM_REL_TOL * i.high.abs();
+                if c.corner != Corner::Central && !inside {
                     out.push(
                         Diagnostic::error(
                             "E-TRACE-PHASE",
                             format!(
-                                "phase {name} central {summary} != its central simulation's {central}"
+                                "phase {name} interval [{}, {}] excludes its {:?} simulation's {x}",
+                                i.low, i.high, c.corner
+                            ),
+                        )
+                        .at(format!("{p}.{name}")),
+                    );
+                }
+                if c.corner == Corner::Central && !close(i.central, x) {
+                    out.push(
+                        Diagnostic::error(
+                            "E-TRACE-PHASE",
+                            format!(
+                                "phase {name} central {} != its central simulation's {x}",
+                                i.central
                             ),
                         )
                         .at(format!("{p}.{name}")),
@@ -1276,13 +1310,12 @@ pub(crate) mod tests {
             bubble_s: 0.0,
             exposed_overhead_s: 0.0,
         });
-        assert!(check_sim(&s).is_empty(), "{:?}", check_sim(&s));
-        s.groups[0].kind = GroupKind::Single;
+        // The op's own span bounds its floors; a wider group around it does not.
+        assert!(codes(&check_sim(&s)).contains(&"E-FLOOR-I15"));
+        s.ops[0].end_s = 0.5;
         assert!(check_sim(&s).is_empty(), "{:?}", check_sim(&s));
         s.groups[0].end_s = 2.0;
         assert!(codes(&check_sim(&s)).contains(&"E-TRACE-SPAN"));
-        s.groups[0].end_s = 0.25;
-        assert!(codes(&check_sim(&s)).contains(&"E-FLOOR-I15"));
     }
 
     #[test]
@@ -1328,5 +1361,72 @@ pub(crate) mod tests {
         assert!(codes(&check_result(&r)).contains(&"E-TRACE-ATTRIBUTION"));
         r.phases[0].bound_breakdown = BTreeMap::from([("compute".into(), f64::NAN)]);
         assert!(codes(&check_result(&r)).contains(&"E-TRACE-ATTRIBUTION"));
+    }
+
+    #[test]
+    fn phase_intervals_cover_every_corner_simulation() {
+        let mut r = result();
+        r.sim.push(sim(Corner::Low, 0.020));
+        assert!(
+            codes(&check_result(&r)).contains(&"E-TRACE-PHASE"),
+            "{:?}",
+            check_result(&r)
+        );
+        let mut r = result();
+        r.sim.push(sim(Corner::High, 0.0121));
+        r.phases[0].avg_power_w.high = 5.0 / 0.0121;
+        assert!(check_result(&r).is_empty(), "{:?}", check_result(&r));
+    }
+
+    #[test]
+    fn attribution_components_are_nonnegative() {
+        let mut s = sim(Corner::Central, 1.0);
+        s.bottleneck.time_by_binding =
+            BTreeMap::from([(BindingClass::Compute, -1.0), (BindingClass::Dram, 2.0)]);
+        assert!(
+            codes(&check_sim(&s)).contains(&"E-TRACE-NEGATIVE"),
+            "{:?}",
+            check_sim(&s)
+        );
+        let mut t = span_trace(10, &[]);
+        let lim = |share| crate::trace::LimiterRow {
+            op: 0,
+            group: 0,
+            binding: 0,
+            resource: None,
+            time_s: 0.0,
+            attained_frac: 1.0,
+            rank: 0,
+            share,
+        };
+        t.limiters = vec![lim(0.25), lim(0.75)];
+        assert!(check_trace(&t).is_empty(), "{:?}", check_trace(&t));
+        t.limiters = vec![lim(-1.0), lim(2.0)];
+        assert!(
+            codes(&check_trace(&t)).contains(&"E-TRACE-ATTRIBUTION"),
+            "{:?}",
+            check_trace(&t)
+        );
+    }
+
+    #[test]
+    fn phase_floors_are_validated() {
+        for x in [-1.0, f64::NAN] {
+            let mut r = result();
+            r.phases[0].floors[0].seconds = x;
+            assert!(!check_result(&r).is_empty(), "{x}");
+        }
+    }
+
+    #[test]
+    fn trace_tick_must_be_positive_and_finite() {
+        for tick in [0.0, -1.0, f64::INFINITY, f64::NAN] {
+            let mut t = span_trace(10, &[(0, 4)]);
+            t.manifest.tick_s = tick;
+            assert!(
+                codes(&check_trace(&t)).contains(&"E-TRACE-NUMBER"),
+                "{tick}"
+            );
+        }
     }
 }

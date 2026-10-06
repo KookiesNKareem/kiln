@@ -97,3 +97,22 @@ fn empty_dynamic_quantization_is_zero_work() {
     assert_eq!(lg.nodes[0].cost, CostHint::default());
     assert_eq!(st.compulsory_bytes(), 0);
 }
+
+#[test]
+fn element_count_overflow_is_diagnosed() {
+    let m = model(json!({
+        "symbols": {},
+        "entry": {"forward": "main"},
+        "tensors": {"w": {"shape": [8796093022208u64, 8796093022208u64, 4398046511104u64], "dtype": "bf16", "class": "weight"}},
+        "graphs": {
+            "main": {"params": ["x"], "results": ["y"], "tensors": {
+                "x": {"shape": [4], "dtype": "bf16", "class": "input"},
+                "y": {"shape": [4], "dtype": "bf16", "class": "output"},
+            }, "nodes": [
+                {"id": "s", "op": "act", "fn": "relu", "inputs": ["x"], "outputs": ["y"]},
+            ]},
+        },
+    }));
+    let e = evaluate_snapshot(&m, &decode()).unwrap_err();
+    assert_eq!(e[0].code, "E-WL-DIM-001", "{e:?}");
+}

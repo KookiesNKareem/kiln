@@ -152,15 +152,19 @@ impl ElemType {
     /// (02 §3.1/§3.2). Partial reads touch `ceil(elems / covered)` scales, where `covered` is the number of
     /// elements one scale serves; per-tensor scales are counted once when any element is touched.
     pub fn bytes(&self, elems: u128, shape: &[u64]) -> u128 {
+        self.checked_bytes(elems, shape).unwrap_or(u128::MAX)
+    }
+
+    /// `bytes`, or `None` when the element count or the byte count overflows `u128`.
+    pub fn checked_bytes(&self, elems: u128, shape: &[u64]) -> Option<u128> {
         if elems == 0 {
-            return 0;
+            return Some(0);
         }
-        let numel: u128 = shape
+        let numel = shape
             .iter()
-            .map(|&d| u128::from(d))
-            .product::<u128>()
+            .try_fold(1u128, |n, &d| n.checked_mul(u128::from(d)))?
             .max(1);
-        let data = (elems * u128::from(self.elem_bits())).div_ceil(8);
+        let data = elems.checked_mul(u128::from(self.elem_bits()))?.div_ceil(8);
         let axis_len = |axis: i32| {
             let r = shape.len() as i32;
             let a = if axis < 0 { axis + r } else { axis };
@@ -174,7 +178,10 @@ impl ElemType {
             Scaling::PerTensor { scale } => u128::from(scale.element_bits()).div_ceil(8),
             Scaling::PerAxis { axis, scale } => {
                 let covered = (numel / axis_len(axis)).max(1);
-                (elems.div_ceil(covered) * u128::from(scale.element_bits())).div_ceil(8)
+                elems
+                    .div_ceil(covered)
+                    .checked_mul(u128::from(scale.element_bits()))?
+                    .div_ceil(8)
             }
             Scaling::Block {
                 block,
@@ -185,11 +192,11 @@ impl ElemType {
             } => {
                 let per =
                     u128::from(scale.element_bits() + zero_point.map_or(0, |z| z.element_bits()));
-                (elems.div_ceil(u128::from(block)) * per).div_ceil(8)
+                elems.div_ceil(u128::from(block)).checked_mul(per)?.div_ceil(8)
                     + tensor_scale.map_or(0, |t| u128::from(t.element_bits()).div_ceil(8))
             }
         };
-        data + scales
+        data.checked_add(scales)
     }
 }
 

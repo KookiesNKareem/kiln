@@ -268,3 +268,71 @@ fn store_is_append_only() {
     );
     assert_eq!(store.load(&hash).unwrap(), s);
 }
+
+#[test]
+fn canonical_mode_is_trusted_and_not_diagnostic() {
+    let s = import("tpuv5e_2026-10-04.json", false).session;
+    for mode in ["pipelined_rot", "pipelined", "best"] {
+        let m = &s.timing_modes[mode];
+        assert!(m.diagnostic || !m.trusted, "{mode}");
+        let mut bad = s.clone();
+        bad.canonical_mode = mode.into();
+        let bad = bad.seal();
+        assert!(
+            bad.validate().iter().any(|d| d.code == codes::SCHEMA),
+            "{mode}: {:?}",
+            bad.validate()
+        );
+    }
+}
+
+#[test]
+fn unrepresentable_descriptors_fail_validation() {
+    let mut s = import("a100_2026-10-04.json", true).session;
+    let r = s
+        .records
+        .iter_mut()
+        .find(|r| r.op.kind.is_contraction())
+        .unwrap();
+    r.op.dims.insert("m".into(), 1 << 43);
+    r.op.dims.insert("n".into(), 1 << 43);
+    r.op.dims.insert("k".into(), 1 << 43);
+    r.bench_key = r.op.key();
+    let s = s.seal();
+    assert!(
+        s.validate().iter().any(|d| d.code == codes::FIELD),
+        "{:?}",
+        s.validate()
+    );
+}
+
+#[test]
+fn rotation_footprints_do_not_wrap() {
+    let reimport = |name: &str, edit: &dyn Fn(&mut serde_json::Value)| {
+        let mut v: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(calibration().join("measurements").join(name)).unwrap(),
+        )
+        .unwrap();
+        edit(&mut v["ops"][0]);
+        let s = import_legacy(&serde_json::to_vec(&v).unwrap(), name, None)
+            .unwrap()
+            .session;
+        s.records
+            .iter()
+            .find(|r| r.legacy_name.as_deref() == v["ops"][0]["name"].as_str())
+            .unwrap()
+            .quality
+            .reasons
+            .clone()
+    };
+    let a100 = reimport("a100_2026-10-04.json", &|r| {
+        r["graph_cold"]["copies"] = 64.into();
+        r["min_bytes"] = 288230376151711745u64.into();
+    });
+    assert!(!a100.iter().any(|q| q.contains("< 512 MiB")), "{a100:?}");
+    let tpu = reimport("tpuv5e_2026-10-04.json", &|r| {
+        r["loop_info"]["R"] = 64.into();
+        r["bytes"] = 288230376151711745u64.into();
+    });
+    assert!(!tpu.iter().any(|q| q.contains("< 512 MiB")), "{tpu:?}");
+}

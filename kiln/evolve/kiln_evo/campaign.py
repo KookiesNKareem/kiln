@@ -207,9 +207,10 @@ class Campaign:
 
     def _failures(self, island: int) -> list[dict]:
         n = self.cfg["selection"]["failures_shown"]
-        recent = [r for r in reversed(list(self.archive.records.values()))
+        failed = [r for r in self.archive.records.values()
                   if r["island"] == island and r["status"] in FAILED + ("floor_violation",) and r.get("errors")]
-        return list(reversed(recent[:n]))
+        # Insertion order differs between a live run and a resumed one (the journal is sorted by id).
+        return sorted(failed, key=lambda r: (r["gen"], r["id"]))[-n:] if n > 0 else []
 
     def _summary(self) -> dict:
         b = self.archive.best()

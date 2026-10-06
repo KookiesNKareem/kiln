@@ -428,11 +428,19 @@ impl MeasSession {
             ),
             _ => {}
         }
-        if !self.timing_modes.contains_key(&self.canonical_mode) {
-            out.push(Diagnostic::error(
+        match self.timing_modes.get(&self.canonical_mode) {
+            None => out.push(Diagnostic::error(
                 codes::SCHEMA,
                 format!("canonical mode {:?} undefined", self.canonical_mode),
-            ));
+            )),
+            Some(m) if m.diagnostic || !m.trusted => out.push(Diagnostic::error(
+                codes::SCHEMA,
+                format!(
+                    "canonical mode {:?} is diagnostic or untrusted",
+                    self.canonical_mode
+                ),
+            )),
+            Some(_) => {}
         }
         for (name, m) in &self.timing_modes {
             for d in m
@@ -451,6 +459,16 @@ impl MeasSession {
             let p = format!("records[{}]", r.id);
             if !ids.insert(r.id.as_str()) {
                 out.push(Diagnostic::error(codes::SCHEMA, "duplicate record id").at(&p));
+            }
+            if r.op.kind.is_contraction() && (r.op.flops().is_none() || r.op.min_bytes().is_none())
+            {
+                out.push(
+                    Diagnostic::error(
+                        codes::FIELD,
+                        "descriptor has no representable FLOP or byte count",
+                    )
+                    .at(&p),
+                );
             }
             if r.bench_key != r.op.key() {
                 out.push(

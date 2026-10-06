@@ -172,13 +172,31 @@ pub fn read_manifest(bytes: &[u8]) -> Result<Manifest, Diagnostic> {
     let trailer = Header::decode(&bytes[bytes.len().saturating_sub(BLOCK)..]).map_err(|_| {
         Diagnostic::error("E-TRACE-CONTAINER", "missing trailer").hint("run `kiln trace recover`")
     })?;
+    let at = |h: &Header| (h.manifest_offset, h.manifest_len);
+    if at(&header) != at(&trailer) {
+        return Err(Diagnostic::error(
+            "E-TRACE-CONTAINER",
+            format!(
+                "header manifest range {:?} != trailer {:?}",
+                at(&header),
+                at(&trailer)
+            ),
+        )
+        .hint("run `kiln trace recover`"));
+    }
     let (off, len) = (
         trailer.manifest_offset as usize,
         trailer.manifest_len as usize,
     );
     let slice = bytes
         .get(off..off.saturating_add(len))
-        .ok_or_else(|| Diagnostic::error("E-TRACE-CONTAINER", "manifest range outside file"))?;
+        .filter(|_| off >= BLOCK && off.saturating_add(len) <= bytes.len() - BLOCK)
+        .ok_or_else(|| {
+            Diagnostic::error(
+                "E-TRACE-CONTAINER",
+                "manifest range outside the space between header and trailer",
+            )
+        })?;
     let m: Manifest = serde_json::from_slice(slice).map_err(|e| {
         Diagnostic::error(
             "E-TRACE-CONTAINER",
@@ -588,6 +606,23 @@ mod tests {
             read_manifest(&bytes[..BLOCK]).unwrap_err().code,
             "E-TRACE-CONTAINER"
         );
+    }
+
+    #[test]
+    fn header_and_trailer_must_agree() {
+        let bytes = write_manifest_only(&Manifest::new(TraceLevel::Summary, provenance()));
+        let mut zeroed = bytes.clone();
+        zeroed[16..32].fill(0);
+        assert_eq!(
+            read_manifest(&zeroed).unwrap_err().code,
+            "E-TRACE-CONTAINER"
+        );
+        let n = bytes.len();
+        let mut overlapping = bytes.clone();
+        for at in [16, n - BLOCK + 16] {
+            overlapping[at..at + 8].fill(0);
+        }
+        assert!(read_manifest(&overlapping).is_err());
     }
 
     #[test]

@@ -224,3 +224,22 @@ fn throttling_stretches_clocked_latency() {
     assert!(g.tasks.iter().all(|t| clocked(t) <= t.lat_s * (1.0 + 1e-12)));
     assert!(g.tasks.iter().any(|t| t.kind == TaskKind::Compute && clocked(t) > 0.0 && t.lat_s - clocked(t) >= 400e-9 * (1.0 - 1e-9)));
 }
+
+/// 03 §10: an op's reported envelope covers its own work: no op floor (compute, off-chip traffic) exceeds the op's
+/// time, even when the op's tasks overlap other ops' traffic on the same resources.
+#[test]
+fn op_envelopes_cover_their_floors() {
+    let p = reference("a100_sxm4_40gb.json5");
+    let opts = kiln_sim::SimOptions { interval: kiln_trace::IntervalMethod::None, shadow_prices: false, layer_scope_fallback: true, trace: kiln_trace::TraceLevel::Ops, ..Default::default() };
+    for ph in ["decode_b1", "decode_b32"] {
+        let m = kiln_wl::zoo::workload(&format!("llama3_8b:{ph}")).unwrap();
+        let (run, _) = kiln_sim::simulate_member(&p, &m, &opts).unwrap();
+        let r = &run.central;
+        assert!(!r.ops.is_empty());
+        for o in &r.ops {
+            for f in &o.floors {
+                assert!(f.seconds <= o.time_s() * (1.0 + 1e-9), "{ph} {}: {:?} floor {} s above op time {} s", o.op, f.kind, f.seconds, o.time_s());
+            }
+        }
+    }
+}

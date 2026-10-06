@@ -377,7 +377,7 @@ impl OpNest {
                     .map(|i| &node.inputs[i])
                     .or_else(|| n.outputs.iter().position(|t| *t == o.tensor).map(|i| &node.outputs[i]))
                     .or_else(|| node.lowered.temps.iter().find(|t| t.0 == o.tensor).map(|t| &t.1));
-                ti.map(|t| PrecisionSpec::new(t.dtype.scalar)).ok_or_else(|| {
+                ti.map(|t| kiln_wl::convert::operand_spec(&t.dtype)).ok_or_else(|| {
                     Diagnostic::error("E-COST-NEST", format!("kernel {} operand {} has no bound type", k.id, o.tensor))
                         .at(node.path.clone())
                 })

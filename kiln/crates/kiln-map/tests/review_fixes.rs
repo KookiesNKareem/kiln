@@ -28,7 +28,7 @@ fn infeasible_tiles_are_errors_not_roofline_estimates() {
     let u = &v.units[v.pool(Pool::Mac)[0]];
     let caps = vec![1u64; u.private.max(1)];
     let mems: Vec<usize> = u.chain[..caps.len()].iter().map(|&g| v.groups[g].mems[0]).collect();
-    let q = NestQuery { prog: &prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
+    let q = NestQuery { prog: &prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true, partial: false };
     let kc = KilnCost::new();
     let e = kc.cost(&q).expect_err("one byte holds no tile");
     assert_eq!(e.code, "E-COST-INFEASIBLE", "{e:?}");
@@ -49,7 +49,7 @@ fn variant(name: &str, from: &str, to: &str) -> HwView {
 
 fn whole_query<'a>(v: &'a HwView, prog: &'a Program, op: &'a kiln_map::program::POp, s: &'a kiln_map::geom::Slice) -> NestQuery<'a> {
     let u = &v.units[v.pool(Pool::Mac)[0]];
-    NestQuery { prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true }
+    NestQuery { prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true, partial: false }
 }
 
 #[test]
@@ -382,7 +382,7 @@ fn map_cost(v: &HwView, prog: &Program, oi: usize) -> Result<kiln_map::NestCost,
     let op = &prog.ops[oi];
     let s = Lowerer::slices(op, &placement(op, 0, vec![], 1)).swap_remove(0);
     let u = &v.units[v.pool(Pool::Vector)[0]];
-    let q = NestQuery { prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
+    let q = NestQuery { prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true, partial: false };
     kiln_map::RooflineCost.cost(&q)
 }
 
@@ -651,10 +651,9 @@ fn vector_work_moves_its_bytes_through_the_vector_feed() {
     let bytes = |kind: kiln_map::lower::TaskKind| -> f64 {
         l.g.tasks.iter().filter(|t| t.kind == kind).flat_map(|t| l.g.demands_of(t)).map(|a| if let kiln_map::lower::Amount::Res(r, x) = *a { if feeds.contains(&r) { x } else { 0.0 } } else { 0.0 }).sum()
     };
-    // The combine reads two fp32 partials and writes one per output element.
-    assert!(bytes(kiln_map::lower::TaskKind::Reduce) >= 64.0 * 64.0 * 4.0 * 3.0, "{}", bytes(kiln_map::lower::TaskKind::Reduce));
-    // The down-conversion and any scale passes read accumulators and write results on the vector unit.
-    assert!(bytes(kiln_map::lower::TaskKind::Compute) >= 64.0 * 64.0 * (4.0 + 2.0), "{}", bytes(kiln_map::lower::TaskKind::Compute));
+    // The combine reads two fp32 partials and writes one per output element, then down-converts the sum (reads
+    // the fp32 accumulator, writes the bf16 result) on the vector unit.
+    assert!(bytes(kiln_map::lower::TaskKind::Reduce) >= 64.0 * 64.0 * (4.0 * 3.0 + 4.0 + 2.0), "{}", bytes(kiln_map::lower::TaskKind::Reduce));
 }
 
 #[test]
@@ -664,4 +663,113 @@ fn vector_units_sharing_a_feed_still_gang_per_sm() {
     let pool = v.pool(Pool::Vector);
     assert_eq!(pool.len(), 108);
     assert_eq!(v.units[pool[0]].members.len(), 8);
+}
+
+/// Records the private-level capacity shares each queried unit gets.
+struct CapsSeen(std::sync::Mutex<Vec<(usize, Vec<u64>)>>);
+
+impl UnitCostModel for CapsSeen {
+    fn name(&self) -> &str {
+        "caps-seen"
+    }
+
+    fn cost(&self, q: &NestQuery) -> Result<kiln_map::NestCost, kiln_ir::common::Diagnostic> {
+        self.0.lock().unwrap().push((q.unit, q.level_caps.to_vec()));
+        kiln_map::RooflineCost.cost(q)
+    }
+}
+
+#[test]
+fn capacity_shares_follow_each_units_own_memory_group() {
+    // TPU v4 with one MXU left in tc1: it owns tc1's vreg, while tc0's four MXUs share theirs.
+    let p = format!("{}/../../designs/reference/tpu_v4.json5", env!("CARGO_MANIFEST_DIR"));
+    let mut hw = check_file(p, Profile::Reference).model.expect("expands");
+    for u in &hw.units {
+        let path = &hw.nodes[u.node].path;
+        if path.contains("tc1.mxu") && !path.ends_with("tc1.mxu0") {
+            hw.nodes[u.node].enabled = false;
+        }
+    }
+    let v = HwView::new(Arc::new(hw)).expect("view");
+    let mut units = v.pool(Pool::Mac);
+    assert_eq!(units.len(), 5);
+    units.sort_by_key(|&u| !v.units[u].path.contains("tc1"));
+    let prog = Program::bench_op(&kiln_ir::bench::BenchOp::gemm(640, 128, 128, true)).unwrap();
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    let op = &prog.ops[0];
+    let seen = CapsSeen(Default::default());
+    let mut l = Lowerer::new(&prog, &v, &m, &seen).unwrap();
+    l.begin_group(String::new(), &single_group(&op.id), None);
+    let split = vec![kiln_map::mapping::SplitAxis { dim: "m".into(), parts: vec![128; 5] }];
+    l.lower_op(0, &placement(op, 0, split, units.len()), &units, true).unwrap();
+    let mut feed_caps: Vec<u64> = seen.0.into_inner().unwrap().iter().map(|x| x.1[0]).collect();
+    feed_caps.sort_unstable();
+    feed_caps.dedup();
+    let vreg = v.groups[v.units[units[0]].chain[0]].capacity;
+    assert_eq!(feed_caps, [vreg / 4, vreg], "tc0's MXUs reused tc1's whole-vreg share");
+}
+
+/// Each window iteration's carry param is the tensor the previous iteration yielded, also when the yield takes
+/// its carry out's origin (a host output), and only the last iteration's yield is that output.
+#[test]
+fn whole_step_carries_chain_through_the_window() {
+    use kiln_ir::wl::TensorClass;
+    let chained = |prog: &Program, param_of: &dyn Fn(&kiln_map::program::PNode) -> usize| {
+        let w = prog.window.expect("a window").0;
+        for i in 1..w {
+            let node = prog.nodes.iter().find(|n| n.iteration == Some(i)).expect("an iteration node");
+            let t = param_of(node);
+            assert!(prog.nodes.iter().any(|n| n.iteration == Some(i - 1) && n.outputs.contains(&t)), "iteration {i} reads {}", prog.tensors[t].id);
+        }
+    };
+    let m = kiln_wl::zoo::workload("llama3_8b:decode_b1").unwrap();
+    let (_, lg, _) = kiln_wl::evaluate_snapshot(m.model(), m.scenario()).unwrap();
+    let prog = Program::whole_step(m.model(), &lg, 3).unwrap();
+    chained(&prog, &|n| n.inputs[0]);
+
+    let model: kiln_ir::wl::Model = serde_json::from_value(serde_json::json!({
+        "symbols": {},
+        "entry": {"forward": "main"},
+        "tensors": {},
+        "graphs": {
+            "main": {"params": ["x"], "results": ["y"], "tensors": {
+                "x": {"shape": [4], "dtype": "bf16", "class": "input"},
+                "y": {"shape": [4], "dtype": "bf16", "class": "output"},
+            }, "nodes": [{"id": "rep", "op": "repeat", "body": "b", "count": 4, "stacked": [],
+                          "carry": [{"init": "x", "param": "a", "yield": "r", "out": "y"}], "inputs": ["x"], "outputs": ["y"]}]},
+            "b": {"params": ["a"], "results": ["r"], "tensors": {"r": {"shape": [4], "dtype": "bf16", "class": "activation"}}, "nodes": [
+                {"id": "s", "op": "act", "fn": "relu", "inputs": ["a"], "outputs": ["r"]},
+            ]},
+        },
+    }))
+    .unwrap();
+    let sc = kiln_wl::zoo::whole_step(kiln_ir::wl::PhaseKind::Decode, kiln_ir::wl::SeqBatch::uniform(1, 1, 1));
+    let (_, lg, _) = kiln_wl::evaluate_snapshot(&model, &sc).unwrap();
+    let prog = Program::whole_step(&model, &lg, 3).unwrap();
+    chained(&prog, &|n| n.inputs[0]);
+    let classes: Vec<(&str, TensorClass)> = prog.nodes.iter().map(|n| (prog.tensors[n.outputs[0]].id.as_str(), prog.tensors[n.outputs[0]].class)).collect();
+    assert_eq!(classes, [("r.i0", TensorClass::Activation), ("r.i1", TensorClass::Activation), ("r.i2", TensorClass::Output)]);
+}
+
+#[test]
+fn split_reductions_convert_each_output_once_after_the_combine() {
+    use kiln_map::mapping::SplitAxis;
+    let v = view("a100_sxm4_40gb.json5");
+    let prog = Program::bench_op(&kiln_ir::bench::BenchOp::gemm(16, 16, 64, true)).unwrap();
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    let op = &prog.ops[0];
+    let units = v.pool(Pool::Mac);
+    let kc = KilnCost::new();
+    let lowered = |split: Vec<SplitAxis>| {
+        let mut l = Lowerer::new(&prog, &v, &m, &kc).unwrap();
+        l.begin_group(String::new(), &single_group(&op.id), None);
+        l.lower_op(0, &placement(op, 0, split, units.len()), &units, true).unwrap();
+        l.end_group();
+        l.finish().ops[0].clone()
+    };
+    let whole = lowered(vec![]);
+    assert_eq!(whole.vec_ops, 16 * 16, "one fp32 -> bf16 conversion per output");
+    let split = lowered(vec![SplitAxis { dim: "k".into(), parts: vec![32, 32] }]);
+    // Two fp32 partial results, one add each output, then one conversion of the completed sum.
+    assert_eq!(split.vec_ops, 16 * 16 + 16 * 16, "{}", split.vec_ops);
 }

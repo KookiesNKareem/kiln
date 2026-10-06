@@ -260,7 +260,7 @@ impl Program {
         let mut b = Builder::new(ProgramKind::WholeStep);
         let Some((rid, rep)) = repeat else {
             for n in &lg.nodes {
-                b.node(n, None, &|_, o| o.root.as_str().to_string())?;
+                b.node(n, None, &|_, o| (o.root.as_str().to_string(), o.class))?;
             }
             return Ok(Program { seqs: lg.seqs, ..b.finish(None) });
         };
@@ -270,24 +270,28 @@ impl Program {
         let w = u64::from(w).min(count).max(1) as u32;
         let first_body = lg.nodes.iter().position(|n| n.path.starts_with(&prefix)).unwrap_or(lg.nodes.len());
         let carry_out: Vec<(Id, Id)> = rep.carry.iter().map(|c| (c.out.clone(), c.yield_.clone())).collect();
-        let outer = |local: &Id, o: &kiln_wl::graph::Origin| -> String {
+        let outer = |local: &Id, o: &kiln_wl::graph::Origin| -> (String, TensorClass) {
             match carry_out.iter().find(|(out, _)| out == local) {
-                Some((_, y)) => format!("{y}.i{}", w - 1),
-                None => o.root.as_str().to_string(),
+                Some((_, y)) => (format!("{y}.i{}", w - 1), o.class),
+                None => (o.root.as_str().to_string(), o.class),
             }
         };
         for n in &lg.nodes[..first_body] {
             b.node(n, None, &outer)?;
         }
         for i in 0..w {
-            let name = |local: &Id, o: &kiln_wl::graph::Origin| -> String {
+            let name = |local: &Id, o: &kiln_wl::graph::Origin| -> (String, TensorClass) {
                 if let Some(c) = rep.carry.iter().find(|c| &c.param == local) {
-                    return if i == 0 { c.init.as_str().to_string() } else { format!("{}.i{}", c.yield_, i - 1) };
+                    return (if i == 0 { c.init.as_str().to_string() } else { format!("{}.i{}", c.yield_, i - 1) }, o.class);
+                }
+                // A yield takes its carry's out origin (kiln-wl): only the last iteration's is that out.
+                if let Some(c) = rep.carry.iter().find(|c| &c.yield_ == local || o.root == c.out) {
+                    return (format!("{}.i{i}", c.yield_), if i + 1 == w { o.class } else { TensorClass::Activation });
                 }
                 if o.stacked || (!o.class.is_model_level() && o.class != TensorClass::Input) {
-                    format!("{}.i{i}", o.root)
+                    (format!("{}.i{i}", o.root), o.class)
                 } else {
-                    o.root.as_str().to_string()
+                    (o.root.as_str().to_string(), o.class)
                 }
             };
             for n in &body {
@@ -304,7 +308,7 @@ impl Program {
     pub fn isolated(lg: &LoweredGraph) -> Result<Program, MapError> {
         let mut b = Builder::new(ProgramKind::Isolated);
         for n in &lg.nodes {
-            b.node(n, None, &|_, o| o.root.as_str().to_string())?;
+            b.node(n, None, &|_, o| (o.root.as_str().to_string(), o.class))?;
         }
         Ok(Program { seqs: lg.seqs, ..b.finish(None) })
     }
@@ -370,7 +374,7 @@ impl Program {
     }
 }
 
-type Namer<'a> = &'a dyn Fn(&Id, &kiln_wl::graph::Origin) -> String;
+type Namer<'a> = &'a dyn Fn(&Id, &kiln_wl::graph::Origin) -> (String, TensorClass);
 
 struct Builder {
     kind: ProgramKind,
@@ -400,11 +404,7 @@ impl Builder {
         let ids = n.node.inputs.iter().zip(&n.inputs).chain(n.node.outputs.iter().zip(&n.outputs));
         for (local, ti) in ids {
             let origin = n.origins.iter().find(|(l, _)| l == local).map(|(_, o)| o);
-            let pid = match origin {
-                Some(o) => name(local, o),
-                None => local.as_str().to_string(),
-            };
-            let class = origin.map_or(ti.class, |o| o.class);
+            let (pid, class) = origin.map_or_else(|| (local.as_str().to_string(), ti.class), |o| name(local, o));
             let t = self.tensor(&pid, ti.shape.clone(), ti.dtype, class, false);
             res.insert(local.as_str().to_string(), t);
         }

@@ -550,3 +550,41 @@ fn synthesized_routers_are_charged_to_the_expansion_budget() {
     assert!(err.iter().any(|d| d.code == "E-IR-0210"), "{err:?}");
     assert!(expand("[2, 2]", 1000).is_ok());
 }
+
+#[test]
+fn local_buffer_refills_need_a_staging_path() {
+    let src = mutate("units: [", "units: [ { id: \"lv\", kind: \"vector\", lanes: 16, precisions: [\"fp32\"], local: [ { id: \"buf\", holds: \"any\", capacity: \"1KiB\", refill_from: \"iso\" } ] },")
+        .replacen("memories: [ {", "memories: [ { id: \"iso\", kind: \"scratchpad\", capacity: \"4KiB\", ports: [ { dir: \"rw\", width_bits: 64 } ] }, {", 1);
+    let c = codes_with(&src, Profile::Search);
+    assert!(c.iter().any(|x| x == "E-IR-0720"), "{c:?}");
+    let fed = src.replacen("refill_from: \"iso\"", "refill_from: \"sram\"", 1);
+    assert!(!codes_with(&fed, Profile::Search).iter().any(|c| c.starts_with("E-")), "{:?}", codes_with(&fed, Profile::Search));
+}
+
+#[test]
+fn network_links_are_checked_at_their_own_clock() {
+    let src = mutate("clocks: [ { id: \"clk\", freq: \"1GHz\" } ]", "clocks: [ { id: \"clk\", freq: \"1GHz\" }, { id: \"fast\", freq: \"2GHz\" } ]")
+        .replacen("link: \"256b\"", "link: { width_bits: 64, clock: \"fast\", bandwidth: \"16GB/s\" }", 1);
+    assert!(!codes(&src).contains(&"E-IR-0712".into()), "{:?}", codes(&src));
+    expect(&src.replacen("\"16GB/s\"", "\"17GB/s\"", 1), "E-IR-0712");
+}
+
+#[test]
+fn port_links_resolve_die_local_clocks() {
+    let src = mutate("id: \"die\", default_clock: \"clk\",", "id: \"die\", default_clock: \"clk\", clocks: [ { id: \"dclk\", freq: \"1GHz\" } ], ports: [ { id: \"p\", kind: \"d2d\", internal: \"tile[0].sram\", link: { width_bits: 64, clock: \"dclk\" } } ],");
+    let r = check_str(&MemLoader::default(), None, &src, Profile::Full);
+    assert!(!r.diagnostics.iter().any(|d| d.code == "E-IR-0901"), "{:?}", r.diagnostics);
+    let m = r.model.expect("expands");
+    let bw: Vec<_> = m.channels.iter().filter(|c| matches!(c.src, kiln_ir::hw::NodeIx::Port(_))).map(|c| c.bandwidth.map(|b| b.0)).collect();
+    assert_eq!(bw, [Some(8e9)]);
+}
+
+#[test]
+fn replicated_package_links_apply_vary() {
+    let src = mutate("dies: [ {\n      id: \"die\",", "links: [ { id: \"wire\", count: 2, vary: [ { select: \"wire[1]\", set: { \"link.width_bits\": 64 } } ], a: \"die.tile[0].sram\", b: \"die.tile[1].sram\", link: { width_bits: 128, clock: \"clk\" } } ],\n    dies: [ {\n      id: \"die\",");
+    let r = check_str(&MemLoader::default(), None, &src, Profile::Full);
+    let m = r.model.unwrap_or_else(|| panic!("{:?}", r.diagnostics));
+    let mut bw: Vec<_> = m.channels.iter().filter(|c| c.kind == kiln_ir::hw::model::ChannelKind::NocHop && c.network.is_none()).filter_map(|c| c.bandwidth.map(|b| b.0)).collect();
+    bw.dedup();
+    assert_eq!(bw, [16e9, 8e9]);
+}

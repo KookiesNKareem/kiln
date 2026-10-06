@@ -36,11 +36,13 @@ class Child:
 
 
 def _agg(values: list[float], weights: list[float], how: str) -> float:
-    """Aggregates over the workloads with positive weight (config validation rejects negative weights)."""
+    """Aggregates over the workloads with positive weight (config validation rejects negative weights), scaled by
+    the largest so that finite weights cannot overflow."""
     pairs = [(v, wi) for v, wi in zip(values, weights) if wi > 0]
     if not pairs:
         return 0.0
-    values, weights = [v for v, _ in pairs], [wi for _, wi in pairs]
+    top = max(wi for _, wi in pairs)
+    values, weights = [v for v, _ in pairs], [wi / top for _, wi in pairs]
     if how == "min":
         return min(values)
     if any(v <= 0 for v in values):
@@ -63,6 +65,7 @@ class Evaluator:
         self.screen = [w for w in cfg["workloads"]["screen"] if w in self.train]
         weights = cfg["fitness"].get("weights") or {}
         self.weights = {w: float(weights.get(w, 1.0)) for w in self.train + list(cfg["workloads"]["heldout"])}
+        self.screen_weighted = any(self.weights[w] > 0 for w in self.screen)
         self.opts = C.kiln_options(cfg)
         self.workers = cfg["batch"]["workers"]
         self._tier_b: str | None = None
@@ -123,6 +126,12 @@ class Evaluator:
         central = _agg([d["score"] for d in ds], ws, how)
         low = _agg([d["score_interval"]["low"] for d in ds], ws, how)
         high = _agg([d["score_interval"]["high"] for d in ds], ws, how)
+        if not all(map(math.isfinite, (central, low, high))):
+            agg.update(status="internal_error", fitness=0.0, fitness_low=0.0, fitness_high=0.0, realistic=None,
+                       features=(ds[0].get("features") or {}),
+                       errors=[{"code": "E-EVO-FITNESS", "message": f"aggregate fitness [{low}, {central}, {high}] "
+                                "is not finite", "hint": "kiln returned a non-finite score; report this as a bug"}])
+            return agg
         real = [d.get("score_realistic") for d in ds]
         realistic = None
         if all(real):
@@ -212,7 +221,8 @@ class Evaluator:
                 continue
             cell = archive.cell(agg["features"])
             elite = archive.elite_fitness(cell) if cell else None
-            if (prune and self.cfg["mode"] == "evolve" and elite is not None and agg["fitness"] < prune * elite):
+            if (prune and self.cfg["mode"] == "evolve" and self.screen_weighted and elite is not None
+                    and agg["fitness"] < prune * elite):
                 rec.update(self._final(agg))
                 rec.update(stage="screen", status="pruned", cell=list(cell), pruned_against=elite,
                            errors=[{"code": "E-EVO-PRUNED", "message": f"screen score {agg['fitness']:.3f} on "

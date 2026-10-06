@@ -8,7 +8,7 @@ import pytest
 
 from kiln_evo import config as C
 from kiln_evo.campaign import Campaign, CampaignError
-from kiln_evo.evaluate import _agg
+from kiln_evo.evaluate import Child, Evaluator, _agg
 from kiln_evo.llm import BudgetExceeded, LLMError, MockBackend, Spend
 
 
@@ -21,6 +21,66 @@ def test_zero_weight_workloads_are_excluded_from_every_aggregation():
     assert _agg([2.0, 0.0], [1.0, 0.0], "geomean") == pytest.approx(2.0)
     assert _agg([2.0, 0.5], [1.0, 0.0], "weighted_harmonic") == pytest.approx(2.0)
     assert _agg([2.0, 0.5], [1.0, 1.0], "geomean") == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("how", ["geomean", "weighted_harmonic", "min"])
+def test_huge_finite_weights_do_not_overflow_the_aggregate(how):
+    assert _agg([2.0, 2.0], [1e308, 1e308], how) == pytest.approx(2.0)
+    assert _agg([2.0, 8.0], [1e308, 0.0], how) == pytest.approx(2.0)
+
+
+class _Result:
+    def __init__(self, d):
+        self.d = d
+
+    def to_dict(self):
+        return dict(self.d)
+
+    def explain(self, max_chars=None):
+        return ""
+
+
+class _Session:
+    def __init__(self, score):
+        self.score = score
+
+    def validate(self, design, profile):
+        return []
+
+    def evaluate_batch(self, items, opts, max_workers=None):
+        s = self.score
+        return [_Result({"status": "ok", "score": s, "score_interval": {"low": s, "high": s}, "phases": [{}],
+                         "features": {}}) for _ in items]
+
+
+class _Archive:
+    def cell(self, features):
+        return (0, 0, 0)
+
+    def elite_fitness(self, cell):
+        return 1.0
+
+    def normalized(self, features):
+        return {}
+
+
+def _evaluate_one(make_cfg, tmp_path, score, **over):
+    ev = Evaluator(make_cfg("w", **over), _Session(score), tmp_path / "ev")
+    child = Child("g0001-i0-c00", 1, 0, [], "llm_diff", "", "def build():\n    return {'x': 1}\n")
+    return ev.evaluate([child], _Archive(), {})[0]
+
+
+def test_a_zero_weight_screen_does_not_prune(make_cfg, tmp_path):
+    rec = _evaluate_one(make_cfg, tmp_path, 2.0,
+                        fitness={"weights": {"llama3_8b:decode_b1": 1.0, "llama3_8b:decode_b8": 0.0}})
+    assert rec["status"] == "ok", rec.get("errors")
+    assert rec["fitness"] == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize("score", [float("inf"), float("nan")])
+def test_a_nonfinite_aggregate_is_not_an_ok_score(make_cfg, tmp_path, score):
+    rec = _evaluate_one(make_cfg, tmp_path, score, workloads={"screen": []})
+    assert rec["status"] != "ok" and rec["fitness"] == 0.0 and not rec["eligible"]
 
 
 @pytest.mark.parametrize("weights", [{"llama3_8b:decode_b1": -1.0}, {"llama3_8b:decode_b1": float("nan")},

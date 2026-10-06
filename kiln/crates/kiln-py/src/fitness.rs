@@ -22,6 +22,7 @@ pub const RETICLE_MM2: f64 = 858.0;
 pub const BASELINE_CODE: &str = "E-FIT-0001";
 pub const NO_PHASES_CODE: &str = "E-FIT-0002";
 pub const PHASE_CODE: &str = "E-FIT-0003";
+pub const SCORE_CODE: &str = "E-FIT-0004";
 pub const UNCHECKED_CODE: &str = "W-ENV-0001";
 pub const ASYM_CODE: &str = "E-CAL-ASYM";
 pub const CLAIM_CODE: &str = "E-AUDIT-CLAIM";
@@ -271,11 +272,14 @@ pub fn invalid_score(r: &EvalResult, mode: InvalidScore) -> f64 {
     }
 }
 
+/// Weights are scaled by the largest, so finite weights cannot overflow.
 fn aggregate(ratios: &[(f64, f64)], agg: Aggregation) -> f64 {
-    let wsum: f64 = ratios.iter().map(|(_, w)| w).sum();
-    if ratios.is_empty() || wsum == 0.0 {
+    let top = ratios.iter().map(|(_, w)| *w).fold(0.0, f64::max);
+    if top <= 0.0 {
         return 0.0;
     }
+    let ratios: Vec<(f64, f64)> = ratios.iter().map(|&(r, w)| (r, w / top)).collect();
+    let wsum: f64 = ratios.iter().map(|(_, w)| w).sum();
     match agg {
         Aggregation::Geomean => (ratios
             .iter()
@@ -438,6 +442,15 @@ pub fn apply(r: &mut EvalResult, baseline: Option<(&str, &EvalResult)>, opts: &O
         aggregate(&v, agg)
     };
     let si = Interval::from_corners(at(|i| i.central), at(|i| i.low), at(|i| i.high));
+    if ![si.low, si.central, si.high].iter().all(|x| x.is_finite()) {
+        let err = Diagnostic::error(
+            SCORE_CODE,
+            format!("score interval [{}, {}, {}] is not finite", si.low, si.central, si.high),
+        )
+        .at("score")
+        .hint("a phase ratio or its aggregate overflowed; this is a simulator bug, not a better design");
+        return fail(r, Status::InternalError, err.into(), opts);
+    }
     r.score = match opts.fitness.interval_basis {
         IntervalBasis::Central => si.central,
         IntervalBasis::Low => si.low,
@@ -870,6 +883,27 @@ mod tests {
         let o = opts(json!({"fitness": {"phase_weights": {"b": 0.0}}}));
         apply(&mut cand, Some(("x", &base)), &o);
         assert!((cand.score - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn huge_finite_weights_do_not_overflow_the_score() {
+        let base = result_with(&[("a", 100.0), ("b", 100.0)], 800.0, 400.0);
+        for agg in ["geomean", "weighted_harmonic", "min"] {
+            let mut cand = result_with(&[("a", 200.0), ("b", 200.0)], 800.0, 400.0);
+            let o = opts(json!({"fitness": {"aggregation": agg, "phase_weights": {"a": 1e308, "b": 1e308}}}));
+            apply(&mut cand, Some(("x", &base)), &o);
+            assert_eq!(cand.status, Status::Ok, "{agg}");
+            assert!((cand.score - 2.0).abs() < 1e-12, "{agg}: {}", cand.score);
+        }
+    }
+
+    #[test]
+    fn a_non_finite_score_is_not_ok() {
+        let base = result_with(&[("a", 1e-300), ("b", 100.0)], 800.0, 400.0);
+        let mut cand = result_with(&[("a", 1e300), ("b", 100.0)], 800.0, 400.0);
+        apply(&mut cand, Some(("x", &base)), &opts(json!({})));
+        assert_ne!(cand.status, Status::Ok);
+        assert!(cand.score <= 0.0);
     }
 
     #[test]

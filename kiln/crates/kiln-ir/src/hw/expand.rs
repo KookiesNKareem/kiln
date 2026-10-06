@@ -237,23 +237,7 @@ impl B<'_> {
             return vec![];
         }
         let ids = instance_ids(id, rep);
-        let base = Arc::new(spec.clone());
-        let mut specs = vec![base; ids.len()];
-        for v in &rep.vary {
-            let hits = self.select_own(id, &ids, &v.select, &key);
-            for k in hits {
-                let mut val = serde_json::to_value(&*specs[k]).expect("entity serializes");
-                for (field, value) in &v.set {
-                    if let Err(e) = apply_field(&mut val, field, value.clone(), &mut Vec::new()) {
-                        self.d.push(e.at(key.as_str()));
-                    }
-                }
-                match from_value::<T>(val, &key) {
-                    Ok(t) => specs[k] = Arc::new(t),
-                    Err(e) => self.d.push(e),
-                }
-            }
-        }
+        let specs = self.vary(id, &ids, rep, spec, &key);
         for s in &rep.disabled {
             self.disabled.push((cx.scope, s.clone(), key.clone()));
         }
@@ -262,6 +246,35 @@ impl B<'_> {
             .enumerate()
             .map(|(k, ((inst, coord), spec))| (Inst { id: inst, index: k as u32, count: n as u32, coord }, spec))
             .collect()
+    }
+
+    /// One spec per instance in `ids`, with the `vary` patches applied.
+    fn vary<T: Clone + Serialize + DeserializeOwned>(
+        &mut self,
+        id: &str,
+        ids: &[(String, Vec<u32>)],
+        rep: &Replication,
+        spec: &T,
+        key: &str,
+    ) -> Vec<Arc<T>> {
+        let base = Arc::new(spec.clone());
+        let mut specs = vec![base; ids.len()];
+        for v in &rep.vary {
+            let hits = self.select_own(id, ids, &v.select, key);
+            for k in hits {
+                let mut val = serde_json::to_value(&*specs[k]).expect("entity serializes");
+                for (field, value) in &v.set {
+                    if let Err(e) = apply_field(&mut val, field, value.clone(), &mut Vec::new()) {
+                        self.d.push(e.at(key));
+                    }
+                }
+                match from_value::<T>(val, key) {
+                    Ok(t) => specs[k] = Arc::new(t),
+                    Err(e) => self.d.push(e),
+                }
+            }
+        }
+        specs
     }
 
     /// `vary` selectors name instances of the entity itself.
@@ -943,19 +956,24 @@ impl B<'_> {
         self.m.channels.len() - 1
     }
 
-    /// A link's own clock (01 §10.3): the innermost die clock of that name enclosing the network, else a global one.
-    fn link_clock(&mut self, r: &str, net: Option<NetIx>) -> Option<ClockIx> {
-        let scope = net.map(|ni| self.m.nodes[self.m.networks[ni].node].path.clone()).unwrap_or_default();
-        let found = self
-            .m
-            .clocks
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| {
-                c.path == r || c.path.strip_suffix(r).and_then(|p| p.strip_suffix('.')).is_some_and(|p| scope.starts_with(&format!("{p}.")))
-            })
-            .max_by_key(|(_, c)| c.path.len())
-            .map(|(i, _)| i);
+    /// A link's own clock, resolved from its network, else from the innermost node enclosing both endpoints.
+    fn link_clock(&mut self, r: &str, a: NodeIx, b: NodeIx, net: Option<NetIx>) -> Option<ClockIx> {
+        let scope = match net {
+            Some(ni) => self.m.nodes[self.m.networks[ni].node].path.clone(),
+            None => {
+                let up = |mut n: usize| {
+                    let mut v = vec![n];
+                    while let Some(p) = self.m.nodes[n].parent {
+                        v.push(p);
+                        n = p;
+                    }
+                    v
+                };
+                let (ua, ub) = (up(self.m.node_of(a)), up(self.m.node_of(b)));
+                ua.into_iter().find(|n| ub.contains(n)).map(|n| self.m.nodes[n].path.clone()).unwrap_or_default()
+            }
+        };
+        let found = self.m.link_clock(r, &scope);
         if found.is_none() {
             self.d.push(Diagnostic::error("E-IR-0901", format!("unknown link clock '{r}'")).at(scope));
         }
@@ -999,7 +1017,7 @@ impl B<'_> {
             LinkPhys::Optical(_) => ChannelKind::Optical,
         };
         let clock = match &l.clock {
-            Some(r) => self.link_clock(r, net),
+            Some(r) => self.link_clock(r, a, b, net),
             None => clock,
         };
         let bw = l.effective_bandwidth(self.m.clock_hz(clock));
@@ -1505,7 +1523,8 @@ impl B<'_> {
             let key = join(&self.m.nodes[pkg].entity, l.id.as_str());
             let n = l.rep.instances();
             let base = self.vars(pkg);
-            for i in 0..n as u32 {
+            let specs = self.vary(l.id.as_str(), &instance_ids(l.id.as_str(), &l.rep), &l.rep, &*l, &key);
+            for (i, l) in (0..n as u32).zip(specs) {
                 let vars = Vars {
                     own: InstVars { i, n: n as u32, coord: vec![] },
                     up: [InstVars { i: self.m.nodes[pkg].index, n: self.m.nodes[pkg].count, coord: self.m.nodes[pkg].coord.clone() }]

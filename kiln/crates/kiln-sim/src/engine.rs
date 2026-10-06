@@ -53,6 +53,8 @@ pub struct RunOut {
     pub wbytes: [Vec<f64>; 3],
     pub task_start: Vec<f64>,
     pub task_end: Vec<f64>,
+    /// Per program op: its own busiest resource's time at estimate efficiencies (the least time its work takes).
+    pub op_busy: Vec<f64>,
     pub mid_iteration: Option<u32>,
 }
 
@@ -190,6 +192,7 @@ impl Engine<'_> {
             wbytes: [vec![0.0; nres], vec![0.0; nres], vec![0.0; nres]],
             task_start: vec![0.0; self.g.tasks.len()],
             task_end: vec![0.0; self.g.tasks.len()],
+            op_busy: vec![0.0; self.g.op_node.len()],
             mid_iteration,
             ..Default::default()
         };
@@ -445,6 +448,29 @@ impl Engine<'_> {
             out.task_start[ti] += start;
             out.task_end[ti] = start + fin_e[ti - t0];
         }
+        // Each op's own demand per resource (its tasks' share of the segment's busy time).
+        let mut by_op: Vec<usize> = (t0..t1).collect();
+        by_op.sort_by_key(|&ti| g.tasks[ti].op);
+        for run in by_op.chunk_by(|&a, &b| g.tasks[a].op == g.tasks[b].op) {
+            for &ti in run {
+                for a in g.demands_of(&g.tasks[ti]) {
+                    let mut add = |r: u32, x: f64| {
+                        if task_e[r as usize] == 0.0 {
+                            ttouched.push(r);
+                        }
+                        task_e[r as usize] += x * inv_e[r as usize];
+                    };
+                    match *a {
+                        Amount::Res(r, x) => add(r, x),
+                        Amount::Prof(p, x) => g.profiles[p as usize].entries.iter().for_each(|&(r, f)| add(r, x * f)),
+                    }
+                }
+            }
+            let own = ttouched.iter().map(|&r| std::mem::take(&mut task_e[r as usize])).fold(0.0, f64::max);
+            ttouched.clear();
+            let op = g.tasks[run[0]].op as usize;
+            out.op_busy[op] = out.op_busy[op].max(own);
+        }
         let p = self.params;
         let launch = g.groups[g0].launch;
         let barrier = g.groups[g1 - 1].barrier_after;
@@ -477,6 +503,7 @@ impl Engine<'_> {
             for &(r, s) in sh {
                 out.busy[class][r] += k.bytes * s * inv_e[r] * if raw > 0.0 { me / raw } else { 1.0 };
                 out.bytes[class][r] += k.bytes * s;
+                out.wbytes[class][r] += k.wbytes * s;
             }
             if onchip {
                 stack_onchip += me;

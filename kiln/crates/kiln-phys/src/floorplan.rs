@@ -528,6 +528,8 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         }
         let mut shoreline_limited = false;
         let need = |i: usize| if edge_need[i] > 0.0 { edge_need[i] + 2.0 * keep } else { 0.0 };
+        // Unit area stretches the arranged die uniformly (an auto outline; a fixed one already holds it).
+        let stretch = if fixed { 1.0 } else { (env_of(geo[dnode]) / env).max(1.0).sqrt() };
         if !fixed {
             let need_w = need(0).max(need(2));
             let need_h = need(1).max(need(3));
@@ -539,10 +541,11 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
                 h = need_h;
                 shoreline_limited = true;
             }
+            let full = (w * h * stretch * stretch + dead_um2).max(env_full);
             if let Some(Outline::MaxArea { area, .. }) = die_spec.as_ref().map(|d| &d.floorplan.outline)
-                && w * h + dead_um2 > area.0 * 1e6 * (1.0 + tol)
+                && full > area.0 * 1e6 * (1.0 + tol)
             {
-                problems.push(overflow(&hw.nodes[dnode].path, w * h + dead_um2, area.0 * 1e6, &consumers));
+                problems.push(overflow(&hw.nodes[dnode].path, full, area.0 * 1e6, &consumers));
             }
         } else {
             if env_full > w * h * (1.0 + tol) {
@@ -561,8 +564,8 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         }
         let reticle = params.get("reticle_mm2", None) * 1e6;
         let stitched = die_spec.as_ref().is_some_and(|d| d.stitched);
-        // Reticle on the full die: dead area grows an auto outline in proportion.
-        let grow = if fixed { 1.0 } else { ((w * h + dead_um2) / (w * h).max(1.0)).sqrt() };
+        // Reticle on the full die: unit area and dead area grow an auto outline in proportion.
+        let grow = if fixed { 1.0 } else { ((w * h * stretch * stretch + dead_um2) / (w * h).max(1.0)).sqrt() };
         let (lo, hi) = (w.min(h) * grow, w.max(h) * grow);
         if !stitched && (lo > 26_000.0 * (1.0 + 1e-9) || hi > 33_000.0 * (1.0 + 1e-9) || env_full > reticle) {
             problems.push(
@@ -673,8 +676,6 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         for (a, &i) in core_ix.iter().enumerate() {
             rects[i] = rb[a];
         }
-        // Unit area stretches the arranged die uniformly (an auto outline; a fixed one already holds it).
-        let stretch = if fixed { 1.0 } else { (env_of(geo[dnode]) / env).max(1.0).sqrt() };
         let (outline, w, h) = if stretch > 1.0 {
             for r in rects.iter_mut() {
                 *r = Rect::new(r.x0 * stretch, r.y0 * stretch, r.x1 * stretch, r.y1 * stretch);
@@ -712,7 +713,8 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
             legalized_um2: legal,
         });
     }
-    // Package frame: pinned dies at their offsets, others in a row; upper-layer dies over their base.
+    // Package frame: pinned dies at their offsets, others in a row with room for the stacks on their edges;
+    // upper-layer dies over their base.
     let mut packages = vec![];
     let mut die_origin: BTreeMap<usize, (f64, f64)> = BTreeMap::new();
     for pci in 0..hw.tree.len() {
@@ -724,7 +726,7 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         let table = pkg.as_ref().map_or("organic", |p| package_table(p.substrate.kind)).to_owned();
         let pt = t.package.get(&table).expect("package table");
         let gap = pt.die_gap_mm * 1000.0;
-        let mut x = 0.0f64;
+        let hbm_gap = pt.hbm_gap_mm * 1000.0;
         let mut layer_of: BTreeMap<String, i32> = BTreeMap::new();
         if let Some(p) = &pkg {
             for l in &p.layers {
@@ -736,61 +738,13 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
         for &d in &mine {
             let spec = hw.tree[dies[d].container].die.as_ref();
             dies[d].layer = spec.and_then(|s| s.layer.as_ref()).and_then(|l| layer_of.get(l.as_str()).copied()).unwrap_or(0);
-            // The row of unpinned base dies starts beside the pinned ones.
-            if let Some(Placement::Pinned { x: px, .. }) = spec.map(|s| &s.placement)
-                && dies[d].layer == 0
-            {
-                x = x.max(px.0 + dies[d].outline.w() + gap);
-            }
-        }
-        for &d in &mine {
-            let spec = hw.tree[dies[d].container].die.clone();
-            let o = match spec.as_ref().map(|s| &s.placement) {
-                _ if dies[d].layer > 0 => (f64::NAN, f64::NAN),
-                Some(Placement::Pinned { x: px, y: py, .. }) => (px.0, py.0),
-                _ => {
-                    let o = (x, 0.0);
-                    x += dies[d].outline.w() + gap;
-                    o
-                }
-            };
-            die_origin.insert(d, o);
-        }
-        // Upper-layer dies sit over a base die of the same instance index (else the first base die): centred, or at
-        // their pinned offset from it (01 `over`: placement is relative to the die below).
-        for &d in &mine {
-            if die_origin[&d].0.is_nan() {
-                let idx = hw.nodes[dies[d].node].index as usize;
-                let bases: Vec<usize> = mine.iter().copied().filter(|&b| dies[b].layer == 0).collect();
-                let b = bases.get(idx % bases.len().max(1)).copied().unwrap_or(d);
-                let (bx, by) = die_origin.get(&b).copied().unwrap_or((0.0, 0.0));
-                let (bw, bh) = (dies[b].outline.w(), dies[b].outline.h());
-                let o = match hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement) {
-                    Some(Placement::Pinned { x: px, y: py, .. }) => (bx + px.0, by + py.0),
-                    _ => (bx + 0.5 * (bw - dies[d].outline.w()), by + 0.5 * (bh - dies[d].outline.h())),
-                };
-                die_origin.insert(d, o);
-            }
-        }
-        let mut bbox: Option<Rect> = None;
-        let grow = |r: Rect, b: &mut Option<Rect>| {
-            *b = Some(match *b {
-                None => r,
-                Some(o) => Rect::new(o.x0.min(r.x0), o.y0.min(r.y0), o.x1.max(r.x1), o.y1.max(r.y1)),
-            });
-        };
-        for &d in &mine {
-            let (ox, oy) = die_origin[&d];
-            grow(dies[d].outline.shift(ox, oy), &mut bbox);
         }
         // HBM/DRAM stacks: footprint outside the edge of the PHY they attach to, else to the right of the dies.
-        let mut stacks = vec![];
         let mut used_phy: Vec<(usize, usize)> = vec![];
-        let mut edge_cursor: BTreeMap<(usize, usize), f64> = BTreeMap::new();
         let mut mems: Vec<usize> = (0..hw.memories.len()).collect();
         mems.sort_by_key(|&m| arank[hw.memories[m].node]);
         // Pass 1: each stack's footprint and the PHY site it attaches to (channel-bound first, then harvested
-        // stacks take free HBM sites); pass 2 places them edge by edge in PHY order.
+        // stacks take free HBM sites); pass 2 places them edge by edge in PHY order, in their die's frame.
         let mut entries: Vec<StackSite> = vec![];
         for &mi in &mems {
             let m = &hw.memories[mi];
@@ -841,36 +795,106 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
             let (a, b) = (along(x), along(y));
             a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.total_cmp(&b.2)).then(arank[hw.memories[x.0].node].cmp(&arank[hw.memories[y.0].node]))
         });
-        for (mi, fw, fh, place_at) in entries {
+        // Bound stacks in their die's frame; each die's extent with its stacks reserves its place in the row.
+        let mut edge_cursor: BTreeMap<(usize, usize), f64> = BTreeMap::new();
+        let mut local: Vec<Option<(usize, Rect)>> = vec![None; entries.len()];
+        let mut extent: BTreeMap<usize, Rect> = mine.iter().map(|&d| (d, dies[d].outline)).collect();
+        for (k, &(mi, fw, fh, place_at)) in entries.iter().enumerate() {
+            let Some((di, mi2)) = place_at else { continue };
+            let pr = dies[di].rects[mi2];
+            let o = dies[di].outline;
+            let e = dies[di].macros[mi2].phy.map_or(Edge::E, |p| p.0);
+            let ei = edge_ix(e);
+            let cur = edge_cursor.entry((di, ei)).or_insert(f64::NEG_INFINITY);
+            // Stacks on one edge stack side by side (width along the edge = footprint w).
+            let r = match e {
+                Edge::W => Rect::new(o.x0 - hbm_gap - fh, (pr.cy() - 0.5 * fw).max(*cur), o.x0 - hbm_gap, (pr.cy() - 0.5 * fw).max(*cur) + fw),
+                Edge::E => Rect::new(o.x1 + hbm_gap, (pr.cy() - 0.5 * fw).max(*cur), o.x1 + hbm_gap + fh, (pr.cy() - 0.5 * fw).max(*cur) + fw),
+                Edge::S => Rect::new((pr.cx() - 0.5 * fw).max(*cur), o.y0 - hbm_gap - fh, (pr.cx() - 0.5 * fw).max(*cur) + fw, o.y0 - hbm_gap),
+                Edge::N => Rect::new((pr.cx() - 0.5 * fw).max(*cur), o.y1 + hbm_gap, (pr.cx() - 0.5 * fw).max(*cur) + fw, o.y1 + hbm_gap + fh),
+            };
+            *cur = if ei.is_multiple_of(2) { r.x1 + 0.1 * hbm_gap } else { r.y1 + 0.1 * hbm_gap };
+            // 04 §6.3: stacks on one side may overhang the die corners by at most overhang_max.
+            let span = if ei.is_multiple_of(2) { (r.x0, r.x1, o.x0, o.x1) } else { (r.y0, r.y1, o.y0, o.y1) };
+            let over = pt.overhang_max_mm * 1000.0;
+            if span.1 > span.3 + over + 1e-6 || span.0 < span.2 - over - 1e-6 {
+                let path = &hw.nodes[hw.memories[mi].node].path;
+                problems.push(
+                    Diagnostic::error("E-PHYS-SHORELINE", format!("{path}: memory stacks along edge {e:?} of {} reach {:.1} mm along a {:.1} mm edge (overhang limit {:.1} mm per corner)", dies[di].path, (span.1 - span.2) / 1000.0, (span.3 - span.2) / 1000.0, over / 1000.0))
+                        .at(path)
+                        .hint("spread stacks over more edges or use fewer, higher-capacity stacks"),
+                );
+            }
+            local[k] = Some((di, r));
+            if let Some(x) = extent.get_mut(&di) {
+                *x = Rect::new(x.x0.min(r.x0), x.y0.min(r.y0), x.x1.max(r.x1), x.y1.max(r.y1));
+            }
+        }
+        // A die's west stacks keep the HBM gap from what precedes them, its east stacks from what follows.
+        let lead = |d: usize| if extent[&d].x0 < 0.0 { hbm_gap.max(gap) } else { gap };
+        let trail = |d: usize| if extent[&d].x1 > dies[d].outline.x1 { hbm_gap.max(gap) } else { gap };
+        let pinned = |d: usize| matches!(hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement), Some(Placement::Pinned { .. }));
+        // The row of unpinned base dies starts beside the pinned ones.
+        let mut x = 0.0f64;
+        let mut x_gap = 0.0f64;
+        for &d in &mine {
+            if let Some(Placement::Pinned { x: px, .. }) = hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement)
+                && dies[d].layer == 0
+            {
+                x = x.max(px.0 + extent[&d].x1);
+                x_gap = x_gap.max(trail(d));
+            }
+        }
+        let mut first = x == 0.0 && x_gap == 0.0;
+        for &d in &mine {
+            let o = match hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement) {
+                _ if dies[d].layer > 0 => (f64::NAN, f64::NAN),
+                Some(Placement::Pinned { x: px, y: py, .. }) => (px.0, py.0),
+                _ => {
+                    let start = if first { x } else { x + x_gap.max(lead(d)) };
+                    first = false;
+                    let o = (start - extent[&d].x0, 0.0);
+                    x = o.0 + extent[&d].x1;
+                    x_gap = trail(d);
+                    o
+                }
+            };
+            die_origin.insert(d, o);
+        }
+        // Upper-layer dies sit over a base die of the same instance index (else the first base die): centred, or at
+        // their pinned offset from it (01 `over`: placement is relative to the die below).
+        for &d in &mine {
+            if die_origin[&d].0.is_nan() {
+                let idx = hw.nodes[dies[d].node].index as usize;
+                let bases: Vec<usize> = mine.iter().copied().filter(|&b| dies[b].layer == 0).collect();
+                let b = bases.iter().copied().find(|&b| hw.nodes[dies[b].node].index as usize == idx).or_else(|| bases.first().copied()).unwrap_or(d);
+                let (bx, by) = die_origin.get(&b).copied().unwrap_or((0.0, 0.0));
+                let (bw, bh) = (dies[b].outline.w(), dies[b].outline.h());
+                let o = match hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement) {
+                    Some(Placement::Pinned { x: px, y: py, .. }) => (bx + px.0, by + py.0),
+                    _ => (bx + 0.5 * (bw - dies[d].outline.w()), by + 0.5 * (bh - dies[d].outline.h())),
+                };
+                die_origin.insert(d, o);
+            }
+        }
+        let mut bbox: Option<Rect> = None;
+        let grow = |r: Rect, b: &mut Option<Rect>| {
+            *b = Some(match *b {
+                None => r,
+                Some(o) => Rect::new(o.x0.min(r.x0), o.y0.min(r.y0), o.x1.max(r.x1), o.y1.max(r.y1)),
+            });
+        };
+        for &d in &mine {
+            let (ox, oy) = die_origin[&d];
+            grow(dies[d].outline.shift(ox, oy), &mut bbox);
+        }
+        let mut stacks = vec![];
+        for (k, &(mi, fw, fh, _)) in entries.iter().enumerate() {
             let m = &hw.memories[mi];
-            let hbm_gap = pt.hbm_gap_mm * 1000.0;
-            let r = match place_at {
-                Some((di, mi2)) => {
+            let r = match local[k] {
+                Some((di, r)) => {
                     let (ox, oy) = die_origin.get(&di).copied().unwrap_or((0.0, 0.0));
-                    let pr = dies[di].rects[mi2].shift(ox, oy);
-                    let o = dies[di].outline.shift(ox, oy);
-                    let e = dies[di].macros[mi2].phy.map_or(Edge::E, |p| p.0);
-                    let ei = edge_ix(e);
-                    let cur = edge_cursor.entry((di, ei)).or_insert(f64::NEG_INFINITY);
-                    // Stacks on one edge stack side by side (width along the edge = footprint w).
-                    let r = match e {
-                        Edge::W => Rect::new(o.x0 - hbm_gap - fh, (pr.cy() - 0.5 * fw).max(*cur), o.x0 - hbm_gap, (pr.cy() - 0.5 * fw).max(*cur) + fw),
-                        Edge::E => Rect::new(o.x1 + hbm_gap, (pr.cy() - 0.5 * fw).max(*cur), o.x1 + hbm_gap + fh, (pr.cy() - 0.5 * fw).max(*cur) + fw),
-                        Edge::S => Rect::new((pr.cx() - 0.5 * fw).max(*cur), o.y0 - hbm_gap - fh, (pr.cx() - 0.5 * fw).max(*cur) + fw, o.y0 - hbm_gap),
-                        Edge::N => Rect::new((pr.cx() - 0.5 * fw).max(*cur), o.y1 + hbm_gap, (pr.cx() - 0.5 * fw).max(*cur) + fw, o.y1 + hbm_gap + fh),
-                    };
-                    *cur = if ei.is_multiple_of(2) { r.x1 + 0.1 * hbm_gap } else { r.y1 + 0.1 * hbm_gap };
-                    // 04 §6.3: stacks on one side may overhang the die corners by at most overhang_max.
-                    let span = if ei.is_multiple_of(2) { (r.x0, r.x1, o.x0, o.x1) } else { (r.y0, r.y1, o.y0, o.y1) };
-                    let over = pt.overhang_max_mm * 1000.0;
-                    if span.1 > span.3 + over + 1e-6 || span.0 < span.2 - over - 1e-6 {
-                        problems.push(
-                            Diagnostic::error("E-PHYS-SHORELINE", format!("{}: memory stacks along edge {e:?} of {} reach {:.1} mm along a {:.1} mm edge (overhang limit {:.1} mm per corner)", hw.nodes[m.node].path, dies[di].path, (span.1 - span.2) / 1000.0, (span.3 - span.2) / 1000.0, over / 1000.0))
-                                .at(&hw.nodes[m.node].path)
-                                .hint("spread stacks over more edges or use fewer, higher-capacity stacks"),
-                        );
-                    }
-                    r
+                    r.shift(ox, oy)
                 }
                 None => {
                     let b = bbox.unwrap_or_default();
@@ -881,33 +905,51 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
             grow(r, &mut bbox);
             stacks.push((mi, r));
         }
-        // Components of one package layer may not share area (memory stacks sit on the base layer). Pinned dies are
-        // the design's; the row placer's own stack collisions are not reported against it.
-        let pinned = |d: usize| matches!(hw.tree[dies[d].container].die.as_ref().map(|s| &s.placement), Some(Placement::Pinned { .. }));
-        // (layer, footprint, path, die, pinned)
-        let parts: Vec<(i32, Rect, &str, bool, bool)> = mine
+        // Components of one package layer may not share area (memory stacks sit on the base layer).
+        let parts: Vec<(i32, Rect, &str, bool)> = mine
             .iter()
-            .map(|&d| (dies[d].layer, dies[d].outline.shift(die_origin[&d].0, die_origin[&d].1), dies[d].path.as_str(), true, pinned(d)))
-            .chain(stacks.iter().map(|&(mi, r)| (0, r, hw.nodes[hw.memories[mi].node].path.as_str(), false, false)))
+            .map(|&d| (dies[d].layer, dies[d].outline.shift(die_origin[&d].0, die_origin[&d].1), dies[d].path.as_str(), pinned(d)))
+            .chain(stacks.iter().map(|&(mi, r)| (0, r, hw.nodes[hw.memories[mi].node].path.as_str(), false)))
             .collect();
         for (i, a) in parts.iter().enumerate() {
             for b in &parts[i + 1..] {
                 let o = Rect::new(a.1.x0.max(b.1.x0), a.1.y0.max(b.1.y0), a.1.x1.min(b.1.x1), a.1.y1.min(b.1.y1)).area();
-                if a.0 == b.0 && (a.4 || b.4 || (a.3 && b.3)) && o > 1e-6 * a.1.area().min(b.1.area()) {
+                if a.0 == b.0 && o > 1e-6 * a.1.area().min(b.1.area()) {
                     problems.push(
                         Diagnostic::error("E-PHYS-PACKAGE-OVERLAP", format!("{} and {} overlap by {:.2} mm^2 on package layer {}", a.2, b.2, o / 1e6, a.0))
                             .at(&hw.nodes[pnode].path)
-                            .hint("move the pinned dies apart (at least the package die gap) or onto different layers"),
+                            .hint(if a.3 || b.3 { "move the pinned dies apart (at least the package die gap) or onto different layers" } else { "spread the memory stacks over more edges or pin the dies apart" }),
                     );
                 }
             }
         }
-        let outline = bbox.unwrap_or_default();
+        let mut outline = bbox.unwrap_or_default();
         if outline.area() > pt.max_mm2 * 1e6 * (1.0 + 1e-9) {
             problems.push(
                 Diagnostic::error("E-PHYS-PACKAGE-OVERFLOW", format!("{}: package outline {:.0} mm^2 exceeds the {} limit {:.0} mm^2", hw.nodes[pnode].path, outline.area() / 1e6, table, pt.max_mm2))
                     .at(&hw.nodes[pnode].path)
                     .hint("use fewer dies/stacks or a larger package technology (CoWoS-L, organic)"),
+            );
+        }
+        // A declared substrate outline bounds the package, and a fixed one is the package.
+        let declared = pkg.as_ref().map(|p| &p.substrate.outline);
+        let (bw, bh) = (outline.w(), outline.h());
+        let over = match declared {
+            Some(Outline::Fixed { w, h }) => {
+                let (fw, fh) = (w.0.max(h.0), w.0.min(h.0));
+                let fits = bw.max(bh) <= fw * (1.0 + 1e-9) && bw.min(bh) <= fh * (1.0 + 1e-9);
+                let (ow, oh) = if bw >= bh { (fw, fh) } else { (fh, fw) };
+                outline = Rect::new(outline.x0, outline.y0, outline.x0 + ow.max(bw), outline.y0 + oh.max(bh));
+                (!fits).then(|| format!("{:.1} x {:.1} mm fixed substrate", w.0 / 1000.0, h.0 / 1000.0))
+            }
+            Some(Outline::MaxArea { area, .. }) => (bw * bh > area.0 * 1e6 * (1.0 + 1e-9)).then(|| format!("{:.0} mm^2 substrate limit", area.0)),
+            _ => None,
+        };
+        if let Some(lim) = over {
+            problems.push(
+                Diagnostic::error("E-PHYS-PACKAGE-OVERFLOW", format!("{}: dies and stacks span {:.1} x {:.1} mm, beyond the declared {lim}", hw.nodes[pnode].path, bw / 1000.0, bh / 1000.0))
+                    .at(&hw.nodes[pnode].path)
+                    .hint("enlarge the substrate outline or use fewer dies/stacks"),
             );
         }
         packages.push(PackageFp { container: pci, path: hw.nodes[pnode].path.clone(), table, outline, stacks, max_mm2: pt.max_mm2 });

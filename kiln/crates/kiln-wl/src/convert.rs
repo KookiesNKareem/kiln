@@ -113,11 +113,47 @@ fn int_holds(to: Precision, from: Precision) -> bool {
     }
 }
 
+fn int_range(p: Precision) -> Option<(i64, i64)> {
+    let n = p.element_bits();
+    match p {
+        Precision::Uint4 | Precision::Uint8 => Some((0, (1 << n) - 1)),
+        Precision::Int4 | Precision::Int8 | Precision::Int16 | Precision::Int32 => Some((-(1 << (n - 1)), (1 << (n - 1)) - 1)),
+        _ => None,
+    }
+}
+
+/// Most significant bits of any integer in `[lo, hi]`.
+fn int_sig_bits(lo: i64, hi: i64) -> u32 {
+    63 - (lo.unsigned_abs().max(hi.unsigned_abs()) + 1).leading_zeros()
+}
+
+/// Most significant bits of any value of `p` (a power-of-two scale has one).
+fn sig_bits(p: Precision) -> Option<u32> {
+    match p {
+        Precision::E8m0 => Some(1),
+        p => int_range(p).map(|(lo, hi)| int_sig_bits(lo, hi)).or_else(|| format(p).map(|f| f.1)),
+    }
+}
+
+/// Most significant bits of an element once its zero point is subtracted and its scale applied (`None`: a float
+/// zero point, not bounded here).
+fn scaled_sig_bits(elem: Precision, scale: Precision, zero_point: Option<Precision>) -> Option<u32> {
+    let e = match zero_point {
+        None => sig_bits(elem)?,
+        Some(z) => {
+            let ((lq, hq), (lz, hz)) = (int_range(elem)?, int_range(z)?);
+            int_sig_bits(lq - hz, hq - lz)
+        }
+    };
+    let s = sig_bits(scale)?;
+    Some(if e == 1 || s == 1 { e.max(s) } else { e + s })
+}
+
 /// `to` represents every value of `from` exactly (a lossless widening, so converting is not a silent change of
-/// numerics). Block-scaled sources widen into 8-bit-exponent floats that hold their elements and their
-/// E8M0/bf16/fp8 scales (applied inside the reduction), or into an MX type of the same block whose element type
-/// holds theirs; per-tensor and per-axis scaled sources into those floats when they hold the elements (the scale
-/// applies to the accumulator).
+/// numerics). Block-scaled sources widen into 8-bit-exponent floats that hold their elements, their
+/// E8M0/bf16/fp8 scales (applied inside the reduction) and the significand of every product of the two, or into
+/// an MX type of the same block whose element type holds theirs; per-tensor and per-axis
+/// scaled sources into those floats when they hold the elements (the scale applies to the accumulator).
 pub fn widens(to: Precision, from: &ElemType) -> bool {
     let src = operand_spec(from).precision;
     if to == src && !unregistered_scaling(from) {
@@ -137,7 +173,10 @@ pub fn widens(to: Precision, from: &ElemType) -> bool {
         }
         Scaling::PerTensor { .. } | Scaling::PerAxis { .. } => wide && holds(to, from.scalar),
         Scaling::Block { scale, zero_point, .. } => {
-            wide && holds(to, from.scalar) && (scale == Precision::E8m0 || holds(to, scale)) && zero_point.is_none_or(|z| holds(to, z))
+            wide && holds(to, from.scalar)
+                && (scale == Precision::E8m0 || holds(to, scale))
+                && zero_point.is_none_or(|z| holds(to, z))
+                && scaled_sig_bits(from.scalar, scale, zero_point).is_some_and(|b| format(to).is_some_and(|t| b <= t.1))
         }
     }
 }
@@ -315,7 +354,13 @@ pub fn insert_converts(lg: &mut LoweredGraph, modes: &MacModes) -> Result<usize,
             let mut add = vec![];
             for (oi, t, to) in [(a, &ta, ca), (b, &tb, cb)] {
                 let Some(to) = to else { continue };
-                let name = Id::new(format!("cvt{}_{}", ki, k.operands[oi].tensor.as_str().replace('.', "_")))?;
+                let taken = |s: &str| {
+                    let node = n.node.inputs.iter().chain(&n.node.outputs).chain(n.lowered.temps.iter().map(|t| &t.0));
+                    node.chain(add.iter().map(|x: &(usize, Id, TypeInfo, Kernel)| &x.1)).any(|x| x.as_str() == s)
+                };
+                let stem = format!("cvt{ki}_{oi}_{}", k.operands[oi].tensor.as_str().replace('.', "_"));
+                let name = (0..).map(|i| if i == 0 { stem.clone() } else { format!("{stem}_{i}") }).find(|s| !taken(s)).expect("a free name");
+                let name = Id::new(name)?;
                 let kernel = convert_kernel(k, oi, &t.dtype, name.clone(), format!("{}cvt{oi}", k.id));
                 add.push((oi, name, TypeInfo::new(t.shape.clone(), ElemType::from(to), TensorClass::Activation), kernel));
             }

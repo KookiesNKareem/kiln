@@ -211,24 +211,41 @@ fn gate(state: Option<&ChipState>, header: &Value, flops: f64, bytes: f64) -> Op
 }
 
 fn read_json(file: &str) -> Result<Value, Diagnostic> {
-    let p = measurements_dir().join(file);
+    read_json_in(&measurements_dir(), file)
+}
+
+fn read_json_in(dir: &Path, file: &str) -> Result<Value, Diagnostic> {
+    let p = dir.join(file);
     let raw = std::fs::read(&p).map_err(|e| Diagnostic::error(MEAS_CODE, format!("cannot read {}: {e}", p.display())))?;
     serde_json::from_slice(&raw).map_err(|e| Diagnostic::error(MEAS_CODE, format!("{file}: {e}")))
 }
 
+/// A present value of `v` that must be a positive finite number (seconds, MHz).
+fn positive(v: &Value, what: impl Fn() -> String) -> Result<Option<f64>, Diagnostic> {
+    match v {
+        Value::Null => Ok(None),
+        x => match x.as_f64() {
+            Some(t) if t.is_finite() && t > 0.0 => Ok(Some(t)),
+            _ => Err(Diagnostic::error(MEAS_CODE, format!("{} {x} is not a positive finite number", what()))),
+        },
+    }
+}
+
 /// Canonical value: minimum median over `modes` present, with that mode's clock (MHz -> Hz).
-fn canonical(r: &Value, modes: &[&str]) -> Option<(f64, String, Option<f64>)> {
+fn canonical(r: &Value, modes: &[&str]) -> Result<Option<(f64, String, Option<f64>)>, Diagnostic> {
     let mut best: Option<(f64, String, Option<f64>)> = None;
     for (k, m) in r["modes"].as_object().into_iter().flatten() {
         if !modes.contains(&k.as_str()) {
             continue;
         }
-        let Some(t) = m["median_s"].as_f64() else { continue };
+        let what = |f: &'static str| move || format!("record {} mode {k} {f}", r["name"]);
+        let Some(t) = positive(&m["median_s"], what("median_s"))? else { continue };
+        let clock = positive(&m["clock"]["sm_mhz"], what("clock.sm_mhz"))?;
         if best.as_ref().is_none_or(|b| t < b.0) {
-            best = Some((t, k.clone(), m["clock"]["sm_mhz"].as_f64().map(|x| x * 1e6)));
+            best = Some((t, k.clone(), clock.map(|x| x * 1e6)));
         }
     }
-    best
+    Ok(best)
 }
 
 fn stream_op(kind: &str, op: Option<&str>) -> Option<StreamOp> {
@@ -245,7 +262,11 @@ fn stream_op(kind: &str, op: Option<&str>) -> Option<StreamOp> {
 
 /// calib-micro records of one session: fit candidates (splits assigned later by [`crate::split`]).
 pub fn micro(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
-    let v = read_json(file)?;
+    micro_in(dev, &measurements_dir(), file)
+}
+
+fn micro_in(dev: &Device, dir: &Path, file: &str) -> Result<Vec<Record>, Diagnostic> {
+    let v = read_json_in(dir, file)?;
     let gpu = dev.id.starts_with("a100");
     let state = session_state(dev, file)?;
     let mut out = vec![];
@@ -293,10 +314,15 @@ pub fn micro(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
             (Kind::OnChip, false) => &["loop_r1"],
             _ => dev.op_modes,
         };
-        let (meas_s, mode, clock_hz) = match (&kind, canonical(r, modes)) {
-            (Kind::PowerStep, _) => (0.0, "steady".into(), r["steady"]["sm_mhz"].as_f64().map(|x| x * 1e6)),
-            (_, Some(c)) => c,
-            (_, None) => continue,
+        let (meas_s, mode, clock_hz) = match &kind {
+            Kind::PowerStep => {
+                let clock = positive(&r["steady"]["sm_mhz"], || format!("record {} steady.sm_mhz", r["name"]))?;
+                (0.0, "steady".into(), clock.map(|x| x * 1e6))
+            }
+            _ => match canonical(r, modes)? {
+                Some(c) => c,
+                None => continue,
+            },
         };
         let (flops, bytes) = (r["flops"].as_f64().unwrap_or(0.0), r["bytes"].as_f64().unwrap_or(0.0));
         out.push(Record {
@@ -331,7 +357,7 @@ pub fn suite(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
     let mut out = vec![];
     for r in runner::op_records(&raw, file)? {
         let Some(src) = extra.get(&r.name) else { continue };
-        let Some((meas_s, mode, clock_hz)) = canonical(src, dev.op_modes) else { continue };
+        let Some((meas_s, mode, clock_hz)) = canonical(src, dev.op_modes)? else { continue };
         let (flops, bytes) = (r.op.flops().unwrap_or(0) as f64, r.op.min_bytes().unwrap_or(0) as f64);
         out.push(Record {
             device: dev.id.into(),
@@ -432,9 +458,9 @@ pub fn session_noise(dev: &Device, a: &str, b: &str) -> Option<(f64, usize)> {
             let name = r["name"].as_str()?.to_string();
             let modes: Vec<&str> = if r["kind"] == "sequence" { dev.step_modes.to_vec() } else { dev.op_modes.to_vec() };
             let t = if modes.is_empty() {
-                r["modes"].as_object()?.values().filter_map(|m| m["median_s"].as_f64()).reduce(f64::min)
+                r["modes"].as_object()?.values().filter_map(|m| m["median_s"].as_f64()).filter(|t| t.is_finite() && *t > 0.0).reduce(f64::min)
             } else {
-                canonical(r, &modes).map(|c| c.0)
+                canonical(r, &modes).ok().flatten().map(|c| c.0)
             };
             if let Some(t) = t {
                 m.insert(name, t);
@@ -486,6 +512,26 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(best.len(), 1);
         assert_eq!((best[0].name.as_str(), best[0].meas_s, best[0].quality_ok), ("ok", 0.010, true));
+    }
+
+    #[test]
+    fn micro_timings_and_clocks_must_be_positive() {
+        let dev = Device { id: "a100_test", op_modes: &["graph_cold"], ..DEV };
+        let copy = |median_s: Value, sm_mhz: Value| {
+            json!({"name": "copy/1", "group": "copy", "kind": "copy", "quality": "ok", "dims": {"bytes": 1 << 20},
+                   "modes": {"graph_cold": {"median_s": median_s, "clock": {"sm_mhz": sm_mhz}}}})
+        };
+        let load = |tag: &str, r: Value| {
+            let dir = seq_dir(tag, json!([]));
+            std::fs::write(dir.join("micro.json"), json!({ "records": [r] }).to_string()).unwrap();
+            let out = micro_in(&dev, &dir, "micro.json");
+            std::fs::remove_dir_all(&dir).unwrap();
+            out
+        };
+        assert_eq!(load("ok", copy(json!(1e-3), json!(1410.0))).unwrap()[0].clock_hz, Some(1.41e9));
+        for (tag, t, c) in [("neg", json!(-1.0), json!(1410.0)), ("zero", json!(0.0), json!(1410.0)), ("clk", json!(1e-3), json!(0.0))] {
+            assert_eq!(load(tag, copy(t, c)).unwrap_err().code, MEAS_CODE, "{tag}");
+        }
     }
 
     #[test]

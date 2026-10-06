@@ -148,7 +148,7 @@ pub struct Timeouts {
 
 impl Default for Timeouts {
     fn default() -> Self {
-        Self { a: 5.0, b: 300.0 }
+        Self { a: 60.0, b: 300.0 }
     }
 }
 

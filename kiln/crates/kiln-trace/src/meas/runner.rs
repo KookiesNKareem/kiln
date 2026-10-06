@@ -188,6 +188,15 @@ pub fn op_records(raw: &[u8], file: &str) -> Result<Vec<OpRecord>, Diagnostic> {
             }
             _ => continue,
         };
+        if op.flops().is_none() || op.min_bytes().is_none() {
+            return Err(Diagnostic::error(
+                "E-TRACE-MEAS-001",
+                format!(
+                    "{file}: record {} dims {d} overflow its FLOP or byte count",
+                    r["name"]
+                ),
+            ));
+        }
         out.push(OpRecord {
             name: r["name"].as_str().unwrap_or_default().to_string(),
             op,
@@ -292,6 +301,12 @@ mod tests {
             op_records(raw("0.5").as_bytes(), "f").unwrap()[0].median_s["loop"],
             0.5
         );
+    }
+
+    #[test]
+    fn unrepresentable_descriptors_are_rejected() {
+        let raw = br#"{"records": [{"kind": "gemm", "dims": {"m": 8796093022208, "n": 8796093022208, "k": 8796093022208}, "modes": {"loop": {"median_s": 0.5}}}]}"#;
+        assert_eq!(op_records(raw, "f").unwrap_err().code, "E-TRACE-MEAS-001");
     }
 
     #[test]

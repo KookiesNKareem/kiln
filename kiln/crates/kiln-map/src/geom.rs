@@ -131,6 +131,10 @@ impl TBox {
         Some(r)
     }
 
+    pub fn is_dense(&self) -> bool {
+        (0..self.rank()).all(|d| self.count[d] as i64 >= self.hi[d] - self.lo[d])
+    }
+
     pub fn covers(&self, o: &TBox) -> bool {
         self.n == o.n && (0..self.rank()).all(|d| self.lo[d] <= o.lo[d] && o.hi[d] <= self.hi[d])
     }
@@ -231,11 +235,13 @@ pub fn union_elems(boxes: &[TBox]) -> u128 {
     total
 }
 
-/// The parts of `b` no box of `by` covers, as disjoint boxes (boxes of another rank cover nothing).
+/// The parts of `b` no box of `by` covers, as disjoint boxes (boxes of another rank cover nothing). A sparse box
+/// (fewer distinct coordinates than its range) keeps no record of which coordinates it holds, so it covers only
+/// an identical footprint.
 pub fn uncovered<'b>(b: &TBox, by: impl IntoIterator<Item = &'b TBox>) -> Vec<TBox> {
     let mut rest = vec![*b];
     for o in by {
-        rest = rest.into_iter().flat_map(|p| subtract(&p, o)).collect();
+        rest = rest.into_iter().flat_map(|p| if o.is_dense() { subtract(&p, o) } else if p == *o { vec![] } else { vec![p] }).collect();
     }
     rest
 }
@@ -353,6 +359,15 @@ mod tests {
         assert_eq!(union_elems(&[b(&[0, 0], &[4, 4]), b(&[4, 0], &[8, 4])]), 32);
         assert_eq!(union_elems(&[b(&[0, 0], &[4, 4]), b(&[2, 2], &[6, 6])]), 28);
         assert_eq!(union_elems(&[b(&[0, 0], &[8, 8]), b(&[2, 2], &[6, 6])]), 64);
+    }
+
+    #[test]
+    fn strided_writes_cover_only_their_own_footprint() {
+        let even = TBox::new(&[0], &[7], &[4]);
+        let all = b(&[0], &[7]);
+        assert!(!uncovered(&all, [&even]).is_empty(), "t[2i] leaves t[1], t[3], t[5] unwritten");
+        assert!(uncovered(&even, [&even]).is_empty());
+        assert!(uncovered(&even, [&all]).is_empty());
     }
 
     proptest! {

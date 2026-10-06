@@ -130,6 +130,10 @@ pub struct Share {
     id: u32,
 }
 
+/// What a unit's [`Share`] depends on for a fixed unit set: its private-level capacity shares and the shared
+/// on-chip groups above them.
+type ShareKey = (Vec<u64>, Vec<GroupIx>);
+
 /// Producers `(slice, unit, task)` of each `(operand, output box)`.
 /// New private locations and writers of one tensor, committed together.
 type NewLocs = (Vec<(TBox, (usize, u32))>, Vec<(TBox, u32)>);
@@ -244,10 +248,11 @@ pub struct Lowerer<'a> {
     lifetimes: Vec<Lifetime>,
     cost_cache: BTreeMap<CostKey, Arc<NestCost>>,
     last_cost: Option<(CostKey, Arc<NestCost>)>,
-    shares: BTreeMap<(u32, Vec<usize>), Arc<Share>>,
+    shares: BTreeMap<(ShareKey, Vec<usize>), Arc<Share>>,
     share_ids: BTreeMap<Vec<u64>, u32>,
-    /// Shares of the op being lowered, by unit template (its unit set is fixed).
-    op_shares: Vec<(u32, Arc<Share>)>,
+    /// Shares of the op being lowered (its unit set is fixed), and the op's units on each private-or-feed group.
+    op_shares: Vec<(ShareKey, Arc<Share>)>,
+    op_sharers: BTreeMap<GroupIx, usize>,
     /// Transfer profiles fetched from the view, with their slowest-resource seconds per byte, by group pair.
     pcache: Vec<Option<(Arc<Profile>, f64)>>,
     roof_cache: BTreeMap<RoofKey, f64>,
@@ -373,6 +378,7 @@ impl<'a> Lowerer<'a> {
             shares: BTreeMap::new(),
             share_ids: BTreeMap::new(),
             op_shares: vec![],
+            op_sharers: BTreeMap::new(),
             pcache: vec![None; view.groups.len() * view.groups.len()],
             roof_cache: BTreeMap::new(),
             dscratch: vec![],
@@ -555,7 +561,7 @@ impl<'a> Lowerer<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn nest_cost(&mut self, oi: usize, op: &POp, sig: u32, s: &Slice, fps: &[TBox], u: usize, share: &Share, quick: bool) -> Result<Arc<NestCost>, Diagnostic> {
+    fn nest_cost(&mut self, oi: usize, op: &POp, sig: u32, s: &Slice, fps: &[TBox], u: usize, share: &Share, quick: bool, partial: bool) -> Result<Arc<NestCost>, Diagnostic> {
         let seg = &op.segs[s.seg as usize];
         let ext: Vec<u64> = (0..s.lo.len()).map(|d| s.extent(d)).collect();
         let pos = if seg.cons.is_empty() && seg.params.is_empty() {
@@ -572,7 +578,7 @@ impl<'a> Lowerer<'a> {
         let mut pos = pos;
         pos.extend(alignment(self.prog, op, s));
         let caps = &share.caps;
-        let mode = if self.floor { 2 } else { u8::from(quick) };
+        let mode = if self.floor { 2 } else { u8::from(quick) } | u8::from(partial) << 2;
         let at = self.residency(oi, op, u);
         let key = (self.view.units[u].template_ix, sig, ext, s.seg, pos, share.id, mode, at.clone());
         if let Some((k, c)) = &self.last_cost
@@ -605,6 +611,7 @@ impl<'a> Lowerer<'a> {
             residency: &residency,
             gang: ui.members.len() as u32,
             quick,
+            partial,
         };
         let c = Arc::new(match self.floor.then(|| self.cost.cost_floor(&q)).flatten() {
             Some(Ok(c)) => c,
@@ -648,21 +655,30 @@ impl<'a> Lowerer<'a> {
         m
     }
 
-    /// `u`'s [`Share`] when the op runs on `pool_units` (cached per template and unit set). The bandwidth share
-    /// of a shared on-chip level is the rate each unit gets when every unit using it reads from it at once.
+    /// Starts the shares of an op running on `pool_units`.
+    fn begin_shares(&mut self, pool_units: &[usize]) {
+        self.op_shares.clear();
+        self.op_sharers = Self::sharers(self.view, pool_units);
+    }
+
+    /// `u`'s [`Share`] when the op runs on `pool_units` (cached by its capacity shares, the groups above them and
+    /// the unit set). The bandwidth share of a shared on-chip level is the rate each unit gets when every unit
+    /// using it reads from it at once.
     fn share(&mut self, u: usize, pool_units: &[usize]) -> Result<Arc<Share>, Diagnostic> {
         let view = self.view;
         let ui = &view.units[u];
-        if let Some((_, s)) = self.op_shares.iter().find(|x| x.0 == ui.template_ix) {
+        let caps = ui.chain[..ui.private].iter().map(|g| view.groups[*g].capacity / self.op_sharers.get(g).copied().unwrap_or(1).max(1) as u64);
+        let upper = &ui.chain[ui.private.max(1).min(ui.chain.len())..];
+        if let Some((_, s)) = self.op_shares.iter().find(|x| x.0.0.iter().copied().eq(caps.clone()) && x.0.1 == upper) {
             return Ok(s.clone());
         }
-        let key = (ui.template_ix, pool_units.to_vec());
+        let sk: ShareKey = (caps.collect(), upper.to_vec());
+        let key = (sk.clone(), pool_units.to_vec());
         if let Some(s) = self.shares.get(&key) {
-            self.op_shares.push((ui.template_ix, s.clone()));
+            self.op_shares.push((sk, s.clone()));
             return Ok(s.clone());
         }
-        let sharers = Self::sharers(view, pool_units);
-        let caps: Vec<u64> = ui.chain[..ui.private].iter().map(|g| view.groups[*g].capacity / sharers.get(g).copied().unwrap_or(1).max(1) as u64).collect();
+        let caps = sk.0.clone();
         let mut bw = vec![];
         for i in ui.private.max(1)..ui.chain.len() {
             let g = ui.chain[i];
@@ -685,7 +701,7 @@ impl<'a> Lowerer<'a> {
         let id = *self.share_ids.entry(vk).or_insert(n);
         let s = Arc::new(Share { caps, bw, id });
         self.shares.insert(key, s.clone());
-        self.op_shares.push((ui.template_ix, s.clone()));
+        self.op_shares.push((sk, s.clone()));
         Ok(s)
     }
 
@@ -720,7 +736,7 @@ impl<'a> Lowerer<'a> {
         let view = self.view;
         let op = &self.prog.ops[oi_prog];
         let pool_units = Self::pool_units(p, units);
-        self.op_shares.clear();
+        self.begin_shares(&pool_units);
         let sig = self.prog.signature(oi_prog);
         let mut per_unit: Vec<f64> = vec![0.0; view.units.len()];
         let mut last: Option<(RoofKey, f64)> = None;
@@ -762,6 +778,7 @@ impl<'a> Lowerer<'a> {
                         residency: &[],
                         gang: ui.members.len() as u32,
                         quick: true,
+                        partial: false,
                     })?;
                     let sfu = ui.special.first().map_or(0.0, |&r| c.special_cycles / view.clock_hz(view.resources[r as usize].clock));
                     let t = (c.cycles / view.clock_hz(ui.clock)).max(sfu) * view.clock_hz(ui.clock);
@@ -794,11 +811,18 @@ impl<'a> Lowerer<'a> {
         }
         let slices = Self::slices(op, p);
         let pool_units = Self::pool_units(p, units);
-        self.op_shares.clear();
-        let cx = OpCtx { sharers: Self::sharers(view, &pool_units) };
+        self.begin_shares(&pool_units);
+        let cx = OpCtx { sharers: self.op_sharers.clone() };
         let mut local_staged: BTreeMap<StageKey, u32> = BTreeMap::new();
         let mut out_sets: OutSets = BTreeMap::new();
         let mut fps: Vec<TBox> = Vec::with_capacity(op.operands.len());
+        // Outputs several slices write are partial sums the combine below completes.
+        let mut writers: BTreeMap<(usize, TBox), u32> = BTreeMap::new();
+        for s in slices.iter().filter(|s| !s.is_empty()) {
+            for (oi, o) in op.operands.iter().enumerate().filter(|(_, o)| o.access.writes()) {
+                *writers.entry((oi, footprint(op, oi, s, &prog.tensors[o.tensor].shape))).or_default() += 1;
+            }
+        }
         // Operands a fused convert produces: read from its source, converted beside the MAC unit.
         let conv: Vec<(usize, usize, usize)> = (0..op.operands.len()).filter_map(|oi| prog.converted_from(oi_prog, oi).map(|(t, c)| (oi, t, c))).collect();
         let src = |oi: usize| conv.iter().find(|x| x.0 == oi).map_or(op.operands[oi].tensor, |x| x.1);
@@ -822,7 +846,8 @@ impl<'a> Lowerer<'a> {
             let share = self.share(u, &pool_units)?;
             fps.clear();
             fps.extend(op.operands.iter().enumerate().map(|(oi, o)| footprint(op, oi, s, &prog.tensors[o.tensor].shape)));
-            let nc = self.nest_cost(oi_prog, op, sig, s, &fps, u, &share, !commit)?;
+            let partial = op.operands.iter().enumerate().any(|(oi, o)| o.access.writes() && writers.get(&(oi, fps[oi])).is_some_and(|&n| n > 1));
+            let nc = self.nest_cost(oi_prog, op, sig, s, &fps, u, &share, !commit, partial)?;
             let mut deps: Vec<u32> = vec![];
             let mut fold: Vec<Amount> = vec![];
             let mut fold_lat = (0.0f64, u32::MAX);
@@ -950,11 +975,15 @@ impl<'a> Lowerer<'a> {
                 }
                 let n = (producers.len() - 1) as f64 * b.elems() as f64;
                 let acc = op.kernel.accum.unwrap_or(kiln_ir::precision::Precision::Fp32);
-                // Each add reads two partial sums and writes one.
-                let acc_b = f64::from(acc.element_bits()) / 8.0;
-                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", &[acc], |k| n / k.class_rate(OpClass::Elementwise), (2.0 * n * acc_b, n * acc_b))?;
-                fx.stats.vec_ops += n as u128;
-                vw.charge(&mut fx.stats, n);
+                let out = prog.tensors[o.tensor].dtype.scalar;
+                // Each add reads two partial sums and writes one; the completed sums are then converted once.
+                let (acc_b, out_b) = (f64::from(acc.element_bits()) / 8.0, f64::from(out.element_bits()) / 8.0);
+                let cvt = if op.mac.is_some() && out != acc { b.elems() as f64 } else { 0.0 };
+                let work = |k: &ComputeKind| n / k.class_rate(OpClass::Elementwise) + cvt / k.class_rate(OpClass::Convert);
+                let io = ((2.0 * n + cvt) * acc_b, n * acc_b + cvt * out_b);
+                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", &[acc], work, io)?;
+                fx.stats.vec_ops += (n + cvt) as u128;
+                vw.charge(&mut fx.stats, n + cvt);
                 let dem = self.vector_demands(&vw)?;
                 last = self.push_task(TaskKind::Reduce, oi_prog, 0.0, &[], &dem, &preds, 0.0);
             }

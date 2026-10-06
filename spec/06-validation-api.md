@@ -556,7 +556,7 @@ Module `kiln` (wheel built with maturin, abi3, Linux x86_64/aarch64 + macOS for 
 | `workloads` | `"evolve"` | Which workload set produces the score (02 §11.4; 6.6 held-out) |
 | `interval` | `"sensitivity"` | `"none"`, `"sensitivity"` (linearized, about 1.1x cost) or `"corners"` (at most 3x); audits and claims force `"corners"` (03 §9.1) |
 | `seeds` | `[0]` | Mapper seeds; > 1 means multi-seed scoring (median) |
-| `timeout_s` | `{"A": 5, "B": 300}` | Wall-clock per evaluation per tier; cooperative cancellation |
+| `timeout_s` | `{"A": 60, "B": 300}` | Wall-clock per evaluation per tier; cooperative cancellation |
 | `audit` | `{"suspicion_ratio": 1.15, "random_rate": 0.02, "seeds": 3, "heldout": true}` | 6.6 |
 | `trace` | `"summary"` | `"none"`, `"summary"`, `"ops"`, `"full"` (05 §3.3; Tier A emits `ops` only on request, 00 decision 8); `ops`/`full` traces written to the cache and referenced by handle |
 | `features` | standard set | Descriptor names to compute (6.3) |

@@ -162,7 +162,11 @@ pub fn assemble(a: &Assembly, run: &RunOut) -> SimResult {
             continue;
         }
         let (start, end) = span.get(&st.op).copied().unwrap_or((0.0, 0.0));
-        let end = end.max(if start.is_finite() { start } else { 0.0 });
+        let start = if start.is_finite() { start } else { s.start_s };
+        // The envelope covers the op's own work on its busiest resource, inside its segment.
+        let own = run.op_busy.get(st.op).copied().unwrap_or(0.0);
+        let end = end.max(start + own).min(s.start_s + s.time_est).max(start);
+        let start = start.min(end - own).max(s.start_s.min(start));
         let op = &a.prog.ops[st.op];
         let mut floors = vec![];
         if st.peak_macs_per_s > 0.0 {
@@ -174,7 +178,7 @@ pub fn assemble(a: &Assembly, run: &RunOut) -> SimResult {
         ops.push(OpResult {
             op: id(&op.id),
             layer: a.prog.iteration_of_op(st.op),
-            start_s: if start.is_finite() { start.min(makespan) } else { 0.0 },
+            start_s: start.min(makespan),
             end_s: end.min(makespan),
             binding: s.binding.clone(),
             runner_up: s.runner_up.clone(),

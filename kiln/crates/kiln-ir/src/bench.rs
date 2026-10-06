@@ -236,10 +236,12 @@ impl BenchOp {
             .iter()
             .map(|(name, o)| {
                 let shape = self.operand_shape(name)?;
-                let numel = shape.iter().map(|&d| u128::from(d)).product();
-                Some(elem_type(&o.dtype)?.bytes(numel, &shape))
+                let numel = shape
+                    .iter()
+                    .try_fold(1u128, |n, &d| n.checked_mul(u128::from(d)))?;
+                elem_type(&o.dtype)?.checked_bytes(numel, &shape)
             })
-            .sum()
+            .try_fold(0u128, |acc, b| acc.checked_add(b?))
     }
 
     /// Dense contraction FLOPs.
@@ -248,7 +250,9 @@ impl BenchOp {
             return None;
         }
         let d = |k| self.dim(k).map(u128::from);
-        Some(2 * d("batch").unwrap_or(1) * d("m")? * d("n")? * d("k")?)
+        [d("batch").unwrap_or(1), d("m")?, d("n")?, d("k")?]
+            .into_iter()
+            .try_fold(2u128, u128::checked_mul)
     }
 }
 
@@ -305,6 +309,19 @@ mod tests {
         assert_eq!(
             BenchOp::gemm(3, 4, 5, true).operand_shape("b"),
             Some(vec![4, 5])
+        );
+    }
+
+    #[test]
+    fn unrepresentable_counts_are_none() {
+        let big = BenchOp::gemm(1 << 43, 1 << 43, 1 << 43, false);
+        assert_eq!(big.flops(), None);
+        assert_eq!(big.min_bytes(), Some(3 << 87));
+        let wide = BenchOp::bmm(1 << 63, 1 << 63, 1 << 63, 1);
+        assert_eq!((wide.flops(), wide.min_bytes()), (None, None));
+        assert_eq!(
+            BenchOp::gemm(1 << 40, 1 << 40, 1 << 40, false).flops(),
+            Some(1 << 121)
         );
     }
 

@@ -154,6 +154,8 @@ pub struct GroupKernel {
     pub name: String,
     pub kind: KernelKind,
     pub bytes: f64,
+    /// Of `bytes`, those written.
+    pub wbytes: f64,
     /// Served by the shared on-chip level (else off chip).
     pub onchip: bool,
 }

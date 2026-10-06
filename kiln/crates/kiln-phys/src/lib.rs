@@ -450,7 +450,8 @@ fn build_model(hw: &HwModel, params: Params, tier: PlaceTier) -> Model {
     let t_links = t1.elapsed().as_secs_f64() * 1e6;
     let clocked: Vec<f64> = ch.nodes.iter().map(|n| n.area_um2 - n.parts[characterize::Part::Phy as usize]).collect();
     let dies: Vec<(usize, f64)> = fp.dies.iter().map(|d| (d.node, d.area_env_um2 / 1e6)).collect();
-    let power = PowerModel::build(hw, &ch, &params, &dies, &clocked);
+    let pipes = power::pipes(hw, &links);
+    let power = PowerModel::build(hw, &ch, &params, &dies, &clocked, &pipes);
     let report = report::build(hw, &ch, &fp, &power, &params, (t_char, fp.stats.place_us, t_links));
     let mac_peak = hw
         .units
@@ -472,7 +473,7 @@ fn build_model(hw: &HwModel, params: Params, tier: PlaceTier) -> Model {
                 .map(|(mpc, e)| (u.clock, mpc, e, u.node))
         })
         .collect();
-    let caps = CapDomain::build_all(hw, &ch, &params, &dies, &clocked);
+    let caps = CapDomain::build_all(hw, &ch, &params, &dies, &clocked, &pipes);
     Model { params, ch, fp, power, links, report, caps, mac_peak }
 }
 

@@ -154,6 +154,22 @@ pub fn op_class(op: &kiln_ir::bench::BenchOp) -> &'static str {
     }
 }
 
+/// Count-weighted `(predicted, measured)` sums per phase, one weight layout per op (the `_linear` twin where both
+/// were measured).
+pub fn phase_sums(ops: &[OpRow]) -> BTreeMap<String, (f64, f64)> {
+    let mut out: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for o in ops {
+        let twin = format!("{}_linear", o.name);
+        if ops.iter().any(|x| x.name == twin) {
+            continue;
+        }
+        let e = out.entry(o.phase.clone()).or_default();
+        e.0 += o.count as f64 * o.cal_s;
+        e.1 += o.count as f64 * o.meas_s;
+    }
+    out
+}
+
 /// Test-split evaluation of `set` on one device.
 pub fn device_report(set: &Arc<CalibSet>, dev: &Device, role: Role) -> Result<DeviceReport, Diagnostic> {
     let bench = Bench::new(dev.design)?;
@@ -215,17 +231,7 @@ pub fn device_report(set: &Arc<CalibSet>, dev: &Device, role: Role) -> Result<De
         }
         m.into_iter().map(|(k, v)| (k, stats(&v))).collect()
     };
-    // Phase sums: one weight layout per op (the `_linear` twin where both were measured).
-    let mut phase_sum: BTreeMap<String, (f64, f64)> = BTreeMap::new();
-    for o in &ops {
-        let twin = format!("{}_linear", o.name);
-        if ops.iter().any(|x| x.name == twin) {
-            continue;
-        }
-        let e = phase_sum.entry(o.phase.clone()).or_default();
-        e.0 += o.count as f64 * o.cal_s;
-        e.1 += o.count as f64 * o.meas_s;
-    }
+    let phase_sum = phase_sums(&ops);
     let y: Vec<f64> = ops.iter().map(|o| (o.cal_s / o.meas_s).ln()).collect();
     let lx = |f: fn(&OpRow) -> f64| -> Vec<f64> { ops.iter().map(|o| f(o).max(1.0).ln()).collect() };
     let slopes = if ops.len() > 3 {
@@ -258,9 +264,9 @@ pub fn device_report(set: &Arc<CalibSet>, dev: &Device, role: Role) -> Result<De
     })
 }
 
-/// Acceptance targets (06 §3.5 as given for M2): same device per-op median 8%, p90 20%, whole-step phase 5%;
-/// held-out per-op median 15%, phase 12%; interval coverage 80%; no target tighter than twice the measured
-/// cross-session noise.
+/// Acceptance targets (06 §3.5 as given for M2): same device per-op median 8%, p90 20%, phase sum and whole-step
+/// phase 5%; held-out per-op median 15%, phase sum and whole step 12%; interval coverage 80%; no target tighter
+/// than twice the measured cross-session noise.
 pub fn verdicts(d: &DeviceReport) -> Vec<Verdict> {
     let noise = d.noise.iter().map(|n| n.1).fold(0.0, f64::max);
     let t = |target: f64| target.max(2.0 * noise);
@@ -273,11 +279,17 @@ pub fn verdicts(d: &DeviceReport) -> Vec<Verdict> {
             for s in &d.steps {
                 push(format!("whole-step |err| {}", s.phase), (s.central_s / s.meas_s - 1.0).abs(), t(0.05));
             }
+            for (p, (pred, meas)) in &d.phase_sum {
+                push(format!("phase-sum |err| {p}"), (pred / meas - 1.0).abs(), t(0.05));
+            }
         }
         Role::HeldOut => {
             push("held-out per-op |err| median (LLM suite)".into(), d.op_cal.median, t(0.15));
             for s in &d.steps {
                 push(format!("held-out whole-step |err| {}", s.phase), (s.central_s / s.meas_s - 1.0).abs(), t(0.12));
+            }
+            for (p, (pred, meas)) in &d.phase_sum {
+                push(format!("held-out phase-sum |err| {p}"), (pred / meas - 1.0).abs(), t(0.12));
             }
         }
     }

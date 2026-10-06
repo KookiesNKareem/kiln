@@ -275,3 +275,30 @@ fn assumed_caps_are_reported_not_enforced() {
     let r = check(Design::from_value(canonical("tpu_v5e")).unwrap(), Profile::Search, &Default::default());
     assert!(r.diagnostics.iter().any(|d| d.code == "E-IR-1106"), "a searched design cannot carry an unpublished cap");
 }
+
+/// 04 §6.3: vertical bandwidth is bounded by the signal pads of the bond under the two footprints' overlap.
+#[test]
+fn vertical_links_fit_their_bond_pads() {
+    let bond = |v: Value| Phys::new(&from_value_lenient(v)).problems().iter().filter(|d| d.code == "E-PHYS-BOND-CAPACITY").count();
+    let base = canonical("ember");
+    assert_eq!(bond(base.clone()), 0, "each L3 die sits over its own chiplet");
+    let mut wide = base.clone();
+    visit(&mut wide, &mut |o| {
+        if o.get("width_bits") == Some(&Value::from(8192)) {
+            o.insert("width_bits".into(), Value::from(4_000_000));
+        }
+    });
+    // 324 mm^2 at 9 um pitch, half the pads for signals: ~2.0 M signals for 8 M wires (two directions).
+    assert_eq!(bond(wide), 4);
+    let mut apart = base;
+    visit(&mut apart, &mut |o| {
+        if o.get("id") == Some(&Value::from("sram")) {
+            o.insert("placement".into(), serde_json::json!({ "mode": "pinned", "x": "100mm", "y": 0 }));
+        }
+    });
+    assert_eq!(bond(apart), 4, "no overlap carries no signals");
+}
+
+fn from_value_lenient(v: Value) -> HwModel {
+    check(Design::from_value(v).expect("typed"), Profile::Full, &Default::default()).model.expect("model")
+}

@@ -491,16 +491,17 @@ impl Cx {
             .and_then(|s| s.details.get("copies"))
             .and_then(Value::as_u64);
         if let (Some(c), Some(b)) = (copies, r.get("min_bytes").and_then(Value::as_u64)) {
-            let footprint = c * b;
-            if footprint < ROTATE_BYTES {
-                let l2 = l2_bytes
-                    .filter(|&l2| footprint <= l2)
-                    .map_or(String::new(), |l2| {
+            let footprint = u128::from(c) * u128::from(b);
+            if footprint < u128::from(ROTATE_BYTES) {
+                let l2 = l2_bytes.filter(|&l2| footprint <= u128::from(l2)).map_or(
+                    String::new(),
+                    |l2| {
                         format!(
                             "; fits in the {} L2, so operands may be L2-resident rather than cold",
                             mib(l2 as f64)
                         )
-                    });
+                    },
+                );
                 quality.flag(format!(
                     "graph_cold rotates {c} copies = {} < 512 MiB (64-copy cap){l2}",
                     mib(footprint as f64)
@@ -903,11 +904,11 @@ impl Cx {
                 .and_then(|i| i.get("R"))
                 .and_then(Value::as_u64),
             r.get("bytes").and_then(Value::as_u64),
-        ) && rot * bytes < ROTATE_BYTES
+        ) && u128::from(rot) * u128::from(bytes) < u128::from(ROTATE_BYTES)
         {
             quality.flag(format!(
                 "loop rotates R={rot} copies = {} < 512 MiB (64-copy cap)",
-                mib((rot * bytes) as f64)
+                mib(rot as f64 * bytes as f64)
             ));
         }
         if !mode_errors.is_empty() {

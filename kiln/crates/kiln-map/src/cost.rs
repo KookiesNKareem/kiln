@@ -6,7 +6,7 @@ use kiln_ir::common::Diagnostic;
 use kiln_ir::hw::HwModel;
 use kiln_ir::hw::compute::{ComputeKind, Geometry, PrecisionMode};
 use kiln_ir::op_class::{OpClass, SpecialFn};
-use kiln_ir::precision::Precision;
+use kiln_ir::precision::{Precision, PrecisionSpec};
 use kiln_ir::wl::KernelClass;
 
 use crate::geom::Slice;
@@ -33,6 +33,28 @@ pub struct NestQuery<'a> {
     pub gang: u32,
     /// Candidate scoring: a cheaper search is acceptable.
     pub quick: bool,
+    /// The slice's outputs are partial sums other slices' results are added to: they stay at accumulator
+    /// precision (written as such, never down-converted here).
+    pub partial: bool,
+}
+
+impl NestQuery<'_> {
+    /// Precision operand `oi` is stored at by this slice.
+    fn operand_spec(&self, oi: usize) -> PrecisionSpec {
+        let o = &self.op.operands[oi];
+        if self.partial && o.access.writes() {
+            return PrecisionSpec::new(self.op.kernel.accum.unwrap_or(Precision::Fp32));
+        }
+        kiln_wl::convert::operand_spec(&self.prog.tensors[o.tensor].dtype)
+    }
+
+    /// Bytes of `elems` elements of operand `oi` as this slice stores them (block scales included).
+    fn bytes_of(&self, oi: usize, elems: u128) -> f64 {
+        if self.partial && self.op.operands[oi].access.writes() {
+            return (elems * u128::from(self.operand_spec(oi).precision.element_bits())).div_ceil(8) as f64;
+        }
+        bytes_of(self.prog, self.op, oi, elems)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -246,7 +268,7 @@ impl UnitCostModel for RooflineCost {
         let fp = |oi: usize| {
             let t = &q.prog.tensors[op.operands[oi].tensor];
             let b = crate::geom::footprint(op, oi, s, &t.shape);
-            bytes_of(q.prog, op, oi, b.elems())
+            q.bytes_of(oi, b.elems())
         };
         let nops = op.operands.len();
         let mut feed_bytes: Vec<f64> = (0..nops).map(fp).collect();
@@ -537,7 +559,7 @@ impl KilnCost {
         let fp: Vec<f64> = (0..nops)
             .map(|oi| {
                 let tt = &q.prog.tensors[op.operands[oi].tensor];
-                bytes_of(q.prog, op, oi, crate::geom::footprint(op, oi, s, &tt.shape).elems())
+                q.bytes_of(oi, crate::geom::footprint(op, oi, s, &tt.shape).elems())
             })
             .collect();
         let mut feed_bytes = fp.clone();
@@ -644,7 +666,7 @@ impl KilnCost {
         (0..q.op.operands.len())
             .map(|oi| {
                 let tt = &q.prog.tensors[q.op.operands[oi].tensor];
-                bytes_of(q.prog, q.op, oi, crate::geom::footprint(q.op, oi, q.slice, &tt.shape).elems())
+                q.bytes_of(oi, crate::geom::footprint(q.op, oi, q.slice, &tt.shape).elems())
             })
             .collect()
     }
@@ -664,7 +686,6 @@ impl KilnCost {
     }
 
     fn tile(&self, q: &NestQuery) -> Result<(std::sync::Arc<Tpl>, kiln_cost::OpNest), Diagnostic> {
-        use kiln_ir::precision::PrecisionSpec;
         let (op, s) = (q.op, q.slice);
         let seg = &op.segs[s.seg as usize];
         let mut k = op.kernel.clone();
@@ -672,7 +693,7 @@ impl KilnCost {
             dim.extent = seg.ext[d];
         }
         k.domain = kiln_ir::wl::Domain::Box;
-        let dtypes: Vec<PrecisionSpec> = op.operands.iter().map(|o| kiln_wl::convert::operand_spec(&q.prog.tensors[o.tensor].dtype)).collect();
+        let dtypes: Vec<PrecisionSpec> = (0..op.operands.len()).map(|oi| q.operand_spec(oi)).collect();
         let roles: Option<Vec<kiln_ir::hw::compute::OperandRole>> = op.mac.as_ref().map(|m| {
             use kiln_ir::hw::compute::OperandRole as R;
             (0..op.operands.len()).map(|i| if i == m.a { R::A } else if i == m.b { R::B } else if i == m.out { R::O } else { R::In }).collect()

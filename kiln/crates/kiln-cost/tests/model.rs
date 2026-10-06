@@ -481,3 +481,33 @@ fn persistent_cache_round_trips() {
     std::fs::write(&path, text).expect("write");
     assert!(CostCache::open(&path, CostCache::DEFAULT_FILE_BYTES).is_empty());
 }
+
+#[test]
+fn lowered_nest_keeps_mx_scaling() {
+    let m = kiln_wl::zoo::workload("llama3_8b:decode_b8").expect("workload");
+    let (_, lg, _) = kiln_wl::evaluate_snapshot(m.model(), m.scenario()).expect("lower");
+    let mut node = lg.nodes.iter().find(|n| n.path.ends_with("down")).expect("down proj").clone();
+    for t in node.inputs.iter_mut() {
+        t.dtype = kiln_ir::wl::ElemType::from(Precision::Mxfp8E4m3);
+    }
+    let nest = OpNest::from_lowered(&node, 0).expect("nest");
+    let inputs: Vec<_> = nest.operands.iter().filter(|o| !o.is_output).map(|o| o.dtype.precision).collect();
+    assert_eq!(inputs, [Precision::Mxfp8E4m3; 2]);
+    let tile = nest.tile(&nest.dims.iter().map(|d| d.size.min(64)).collect::<Vec<_>>(), None);
+    let ue = mx_unit(true);
+    let e = cost(&CostQuery { unit: &ue, nest: &tile, objective: Objective::Latency, options: CostOptions::default() });
+    assert!(e.is_ok(), "a native MXFP8 mode maps the lowered MX operands: {:?}", e.err());
+}
+
+#[test]
+fn ragged_reductions_finalize_each_output_once() {
+    let mut u = unit(4, 4);
+    u.fused_down_conversion = false;
+    u.e_vector_op_j = PJ;
+    // k = 5 on four rows: both reduction classes accumulate into the one output element.
+    let n = gemm(1, 1, 5, Precision::Bf16, Precision::Bf16);
+    let e = cost(&CostQuery { unit: &u, nest: &n, objective: Objective::Latency, options: CostOptions::default() }).unwrap();
+    assert_eq!(e.useful_macs, 5);
+    assert_eq!(e.conversion_ops, 1, "one fp32 -> bf16 conversion of the single output");
+    assert_eq!(access(&e, 1, 2).write_bytes, 2, "the single bf16 result written once");
+}

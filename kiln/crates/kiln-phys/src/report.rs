@@ -123,6 +123,7 @@ pub fn build(hw: &HwModel, ch: &Characterized, fp: &Floorplan, pw: &PowerModel, 
         .collect();
     let mut problems = ch.problems.clone();
     problems.extend(fp.problems.iter().cloned());
+    problems.extend(crate::links::bond_problems(hw, fp));
     problems.extend(crate::power::vf_problems(hw, ch));
     let node = dies.first().map_or_else(String::new, |d| d.node.clone());
     let _ = Part::Datapath;

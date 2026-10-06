@@ -246,6 +246,62 @@ def test_memory_limit(program):
     assert m["errors"][0]["code"] in ("E-SANDBOX-MEMORY", "E-SANDBOX-CRASH", "E-SANDBOX-BUILD")
 
 
+def test_descendants_cannot_add_memory_beyond_the_limit(program):
+    p = program("""
+        import os
+        def build():
+            pids = []
+            for _ in range(3):
+                pid = os.fork()
+                if pid == 0:
+                    x = bytearray(200 << 20)
+                    x[::4096] = b"x" * len(x[::4096])
+                    os._exit(0)
+                pids.append(pid)
+            for pid in pids:
+                os.waitpid(pid, 0)
+            return {}
+    """)
+    out = run_build(p, memory_mb=256, timeout_s=20.0)
+    assert not out.ok, "three 200 MiB children ran under a 256 MiB limit"
+    assert out.stage in ("build", "memory", "crash"), out.error
+
+
+def _seccomp_verdict(prog: bytes, arch: int, nr: int, arg0: int = 0) -> int:
+    import struct
+    data = struct.pack("=iIQQ", nr, arch, 0, arg0) + bytes(40)
+    ins = [struct.unpack_from("=HBBI", prog, i) for i in range(0, len(prog), 8)]
+    pc, a = 0, 0
+    while True:
+        op, jt, jf, k = ins[pc]
+        pc += 1
+        if op == 0x20:
+            a = struct.unpack_from("=I", data, k)[0]
+        elif op == 0x06:
+            return k
+        else:
+            hit = {0x15: a == k, 0x35: a >= k, 0x45: a & k != 0}[op]
+            pc += jt if hit else jf
+
+
+@pytest.mark.parametrize("machine, arch, fork, clone", [("x86_64", 0xC000003E, (57, 58), 56),
+                                                        ("aarch64", 0xC00000B7, (), 220)])
+def test_process_filter_denies_every_process_creation(machine, arch, fork, clone):
+    import errno
+    from kiln._sandbox_runner import _seccomp_program
+    prog = _seccomp_program(machine)
+    allow, eperm, enosys = 0x7FFF0000, 0x50000 | errno.EPERM, 0x50000 | errno.ENOSYS
+    for nr in fork:
+        assert _seccomp_verdict(prog, arch, nr) == eperm
+    assert _seccomp_verdict(prog, arch, clone, 17) == eperm
+    assert _seccomp_verdict(prog, arch, clone, 0x100 | 0x10000 | 0x800) == allow
+    assert _seccomp_verdict(prog, arch, 435) == enosys
+    assert _seccomp_verdict(prog, arch, 63) == allow
+    assert _seccomp_verdict(prog, 0x40000003, clone, 17) == 0x80000000
+    if machine == "x86_64":
+        assert _seccomp_verdict(prog, arch, 0x40000000 | 57) == eperm
+
+
 def test_network_is_blocked(program):
     p = program("""
         import socket

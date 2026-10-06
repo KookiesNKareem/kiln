@@ -70,6 +70,14 @@ pub fn param_count(model: &Model, b: &Binding) -> Result<u64, Diagnostic> {
                 .stack
                 .as_ref()
                 .map_or(Ok(1), |e| graph::eval_dim(e, b, id.as_str()))?;
-            Ok(acc + ti.numel() as u64 * stack)
+            let dims = || ti.shape.iter().chain([&stack]);
+            let n = if dims().any(|&d| d == 0) { Some(0) } else { dims().try_fold(1u64, |n, &d| n.checked_mul(d)) };
+            n.and_then(|n| acc.checked_add(n))
+                .ok_or_else(|| {
+                    Diagnostic::error(
+                        "E-WL-DIM-001",
+                        format!("parameter count overflows u64 at weight {id}"),
+                    )
+                })
         })
 }
