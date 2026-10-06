@@ -11,6 +11,7 @@ pub mod interval;
 pub mod layout;
 pub mod meas;
 pub mod perfetto;
+pub mod phys;
 pub mod provenance;
 pub mod result;
 pub mod sim;

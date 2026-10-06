@@ -7,6 +7,7 @@ rust-version.workspace = true
 
 [dependencies]
 kiln-ir = { path = "../kiln-ir" }
+kiln-phys = { path = "../kiln-phys" }
 serde.workspace = true
 serde_json = { workspace = true, features = ["float_roundtrip"] }
 thiserror.workspace = true

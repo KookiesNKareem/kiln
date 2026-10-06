@@ -78,9 +78,9 @@ pub struct NestCost {
     pub spill: Vec<(String, f64, f64)>,
     pub mode: String,
     pub bits: (u32, u32),
-    /// Cycles on each special-function unit next to the slice's vector unit(s) ([`special_units`]), at that
-    /// unit's clock: the transcendentals they implement, run alongside the vector work in `cycles`.
-    pub special_cycles: f64,
+    /// Cycles on each special-function unit next to the slice's vector unit(s) (indexed as [`special_units`]),
+    /// each at its own clock: the transcendentals it implements, run alongside the vector work in `cycles`.
+    pub special_cycles: Vec<f64>,
 }
 
 /// Special-function units (01 §5.4) a vector unit hands its transcendentals to: enabled, not near-memory,
@@ -116,9 +116,10 @@ fn special_fns(field: usize) -> &'static [(SpecialFn, u16)] {
 }
 
 /// Per point, for the transcendentals of `body` that the special units `specials` (one vector unit's, or one gang
-/// member's) implement: their count, the cycles they take on each special unit when `gang` vector units share
-/// the slice, and the extra vector multiplies they need there. The rest stay on the vector unit.
-fn special_terms(hw: &HwModel, specials: &[usize], body: &kiln_ir::wl::ScalarBody, dt: Precision, gang: f64) -> (f64, f64, f64) {
+/// member's) implement: their count, the cycles each special unit spends on them at its own clock when `gang`
+/// vector units share the slice (each function split over the units implementing it in proportion to their
+/// operations per second), and the extra vector multiplies they need there. The rest stay on the vector unit.
+fn special_terms(hw: &HwModel, specials: &[usize], body: &kiln_ir::wl::ScalarBody, dt: Precision, gang: f64) -> (f64, Vec<f64>, f64) {
     let terms = [body.exp, body.log, body.rcp, body.rsqrt, body.tanh, body.erf, body.sin_cos];
     let rate = |u: usize, f: SpecialFn| -> f64 {
         let x = &hw.units[u];
@@ -132,12 +133,18 @@ fn special_terms(hw: &HwModel, specials: &[usize], body: &kiln_ir::wl::ScalarBod
         };
         f64::from(sp.lanes) * r * sp.fn_rates.get(&f).copied().unwrap_or(1.0)
     };
-    let (mut n_sup, mut cycles, mut muls) = (0.0, 0.0, 0.0);
+    let (mut n_sup, mut cycles, mut muls) = (0.0, vec![0.0; specials.len()], 0.0);
     for (i, &n) in terms.iter().enumerate().filter(|(_, n)| **n > 0) {
-        let best = special_fns(i).iter().map(|&(f, m)| (specials.iter().map(|&u| rate(u, f)).sum::<f64>(), m)).find(|(r, _)| *r > 0.0);
+        let best = special_fns(i).iter().map(|&(f, m)| (specials.iter().map(|&u| rate(u, f)).collect::<Vec<f64>>(), m)).find(|(r, _)| r.iter().any(|&x| x > 0.0));
         if let Some((r, m)) = best {
+            let ops_per_s: f64 = r.iter().zip(specials).map(|(&x, &u)| x * nominal_hz(hw, u)).sum();
+            let secs = f64::from(n) / (ops_per_s * gang);
+            for ((c, &x), &u) in cycles.iter_mut().zip(&r).zip(specials) {
+                if x > 0.0 {
+                    *c += secs * nominal_hz(hw, u);
+                }
+            }
             n_sup += f64::from(n);
-            cycles += f64::from(n) / (r * gang);
             muls += f64::from(n * m);
         }
     }
@@ -356,7 +363,7 @@ impl UnitCostModel for RooflineCost {
             let useful = points as u128 * u128::from(body.mac);
             return Ok(NestCost {
                 cycles: (cycles / f64::from(q.gang.max(1))).ceil(),
-                fill_cycles: fill + ui.spec.pipeline.fill.map_or(0.0, |c| c.0),
+                fill_cycles: fill + ui.spec.pipeline.fill.map_or(0.0, |c| c.0) + ui.spec.pipeline.drain.map_or(0.0, |c| c.0),
                 useful_macs: useful,
                 issued_macs: (issued.round() as u128).max(useful),
                 vec_ops: 0,
@@ -368,7 +375,7 @@ impl UnitCostModel for RooflineCost {
                 reread,
                 mode: mode.0,
                 bits: (pa.element_bits(), pb.element_bits()),
-                special_cycles: 0.0,
+                special_cycles: vec![],
             });
         }
         let lanes = ui.spec.kind.base_ops_per_cycle() as f64;
@@ -379,11 +386,11 @@ impl UnitCostModel for RooflineCost {
         let per = lanes * rate * gang;
         let transc = points * f64::from(body.transcendental());
         let specials = if body.transcendental() > 0 { special_units(hw, q.unit) } else { vec![] };
-        let (n_sup, sfu_pt, muls) = if specials.is_empty() { (0.0, 0.0, 0.0) } else { special_terms(hw, &specials, body, mdt, gang) };
-        let moves = match op.class() {
-            KernelClass::Gather | KernelClass::Scatter => points / kr(OpClass::GatherScatter),
-            KernelClass::Layout => points / kr(OpClass::Permute),
-            _ => 0.0,
+        let (n_sup, sfu_pt, muls) = if specials.is_empty() { (0.0, vec![], 0.0) } else { special_terms(hw, &specials, body, mdt, gang) };
+        let (moves, moved) = match op.class() {
+            KernelClass::Gather | KernelClass::Scatter => (points / kr(OpClass::GatherScatter), points),
+            KernelClass::Layout => (points / kr(OpClass::Permute), points),
+            _ => (0.0, 0.0),
         };
         let vec = points * f64::from(body.vector());
         let cvt = points * f64::from(body.cvt);
@@ -392,14 +399,17 @@ impl UnitCostModel for RooflineCost {
         // compiler may leave some on a wide vector unit: v6e's bf16 VPU emulates exp as fast as its EUP).
         let on_vec = points * n_sup / kr(OpClass::Transcendental) / per;
         let mul = points * muls / kr(OpClass::Elementwise) / per;
-        let sfu = points * sfu_pt;
-        let ratio = if specials.is_empty() { 1.0 } else { nominal_hz(hw, q.unit) / nominal_hz(hw, specials[0]) };
-        let share = if on_vec > mul && sfu > 0.0 { ((base + on_vec) / (sfu * ratio + on_vec - mul)).min(1.0) } else { 0.0 };
-        let cycles = base + (1.0 - share) * on_vec + share * mul;
+        // The special units' time on all of it, in vector-unit cycles: the busiest one's.
+        let sfu = sfu_pt.iter().zip(&specials).map(|(&c, &u)| points * c / nominal_hz(hw, u)).fold(0.0, f64::max) * nominal_hz(hw, q.unit);
+        let share = if on_vec > mul && sfu > 0.0 { ((base + on_vec) / (sfu + on_vec - mul)).min(1.0) } else { 0.0 };
         let vec = vec + share * points * muls;
+        // One instruction per lane-width of operations each member issues, each paying the issue overhead.
+        let pl = &ui.spec.pipeline;
+        let insts = ((vec + cvt + transc - share * points * n_sup + moved) / (lanes * gang)).ceil();
+        let cycles = base + (1.0 - share) * on_vec + share * mul + pl.issue_overhead.0 * insts;
         Ok(NestCost {
             cycles: cycles.ceil(),
-            fill_cycles: ui.spec.pipeline.fill.map_or(0.0, |c| c.0),
+            fill_cycles: pl.fill.map_or(0.0, |c| c.0) + pl.drain.map_or(0.0, |c| c.0),
             useful_macs: 0,
             issued_macs: 0,
             vec_ops: (vec + cvt) as u128,
@@ -411,7 +421,7 @@ impl UnitCostModel for RooflineCost {
             reread,
             mode: format!("{}@{rate}", mdt.name()),
             bits: (mdt.element_bits(), mdt.element_bits()),
-            special_cycles: (share * sfu).ceil(),
+            special_cycles: sfu_pt.iter().map(|&c| (share * points * c).ceil()).collect(),
         })
     }
 }
@@ -513,7 +523,14 @@ impl KilnCost {
                     for (l, le) in unit.levels.iter_mut().zip(&level_entity) {
                         if *le == e {
                             let copies: u64 = l.instance_axes.iter().map(|&a| axes[a]).product();
-                            l.capacity_bytes = l.capacity_bytes.min(cap * copies);
+                            let share = l.capacity_bytes.min(cap * copies);
+                            if share < l.capacity_bytes {
+                                // A unit's share of a partitioned level shrinks every partition alike.
+                                for p in &mut l.partitions {
+                                    p.1 = (u128::from(p.1) * u128::from(share) / u128::from(l.capacity_bytes)) as u64;
+                                }
+                            }
+                            l.capacity_bytes = share;
                         }
                     }
                 }
@@ -618,7 +635,7 @@ impl KilnCost {
             spill,
             mode: mode.map_or_else(String::new, |m| format!("{}*{}+{}", m.a, m.b, m.acc)),
             bits: mode.map_or((16, 16), |m| (m.a.precision.element_bits(), m.b.precision.element_bits())),
-            special_cycles: 0.0,
+            special_cycles: vec![],
         })
     }
 }
@@ -735,5 +752,50 @@ impl UnitCostModel for KilnCost {
             self.fallbacks.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             RooflineCost.cost(q)
         })
+    }
+}
+
+/// A software stack's library tile quantization (08 §F, `kiln.stack/1` `tiles`) over another cost model: a
+/// contraction of program node `n` issues at least `rows[n]` times its useful MACs (padded tile rows), at the
+/// unit's MAC rate; traffic and useful work are unchanged.
+pub struct TilePadded<'a> {
+    pub inner: &'a dyn UnitCostModel,
+    /// Issued over useful MACs per program node (`kiln_wl::stack::Stack::row_padding`).
+    pub rows: Vec<f64>,
+}
+
+impl TilePadded<'_> {
+    fn pad(&self, q: &NestQuery, mut c: NestCost) -> NestCost {
+        let f = self.rows.get(q.op.node).copied().unwrap_or(1.0);
+        if q.op.class() != KernelClass::Contraction || f <= 1.0 {
+            return c;
+        }
+        let want = (c.useful_macs as f64 * f).ceil() as u128;
+        if want <= c.issued_macs {
+            return c;
+        }
+        // The array's issue rate on this slice: the structural model's issued MACs per cycle.
+        if let Ok(r) = RooflineCost.cost(q)
+            && r.cycles > 0.0
+            && r.issued_macs > 0
+        {
+            c.cycles = c.cycles.max((want as f64 * r.cycles / r.issued_macs as f64).ceil());
+        }
+        c.issued_macs = want;
+        c
+    }
+}
+
+impl UnitCostModel for TilePadded<'_> {
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    fn cost(&self, q: &NestQuery) -> Result<NestCost, Diagnostic> {
+        self.inner.cost(q).map(|c| self.pad(q, c))
+    }
+
+    fn cost_floor(&self, q: &NestQuery) -> Option<Result<NestCost, Diagnostic>> {
+        self.inner.cost_floor(q).map(|r| r.map(|c| self.pad(q, c)))
     }
 }

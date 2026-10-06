@@ -104,6 +104,33 @@ pub fn default_enums() -> BTreeMap<String, Vec<String>> {
             v(&["time_by_binding", "top_resource", "slack"]),
         ),
         ("ceilings.kind", v(&["compute", "memory", "link"])),
+        (
+            "floorplan.source",
+            v(&["unplaced", "placed", "layout", "filled", "site"]),
+        ),
+        (
+            "floorplan.block",
+            v(&["misc", "compute", "sram", "noc", "phy", "hbm", "control"]),
+        ),
+        (
+            "wires.kind",
+            v(&[
+                "feed", "mem_port", "noc_hop", "bus", "d2d", "serdes", "vertical", "optical", "near",
+                "host",
+            ]),
+        ),
+        (
+            "wires.source",
+            v(&["wire", "noc_hop", "phy", "bond3d", "package", "host"]),
+        ),
+        (
+            "wires.class",
+            v(&["none", "local", "intermediate", "semi_global", "global"]),
+        ),
+        (
+            "package_geometry.kind",
+            v(&["package", "shoreline", "harvested"]),
+        ),
         ("diagnostics.severity", v(&["error", "warning", "info"])),
     ]
     .into_iter()
@@ -281,6 +308,55 @@ pub struct FloorplanRow {
     /// Rectilinear outline as flattened `x0, y0, x1, y1, ...`; `None` = the rect.
     pub poly: Option<Vec<f64>>,
     pub rotation: u8,
+    /// `floorplan.source`: placed by kiln-phys (dies, macros, stacks, packages), its hierarchical layout inside
+    /// a macro, filled in by kiln-trace (compute units, which kiln-phys arranges without), a site marker
+    /// (routers: position only), or the unplaced hierarchy layout.
+    pub source: u8,
+    /// `floorplan.block`: block category (containers: the largest area part of their subtree).
+    pub block: u8,
+    /// Silicon area of the subtree (kiln-phys roll-up), um^2.
+    pub area_um2: Option<f64>,
+    /// Leakage of the subtree at V_nom and 85 C, W.
+    pub leak_w: Option<f64>,
+}
+
+/// A link drawn on the floorplan (05 §3.4 `wires`): one row per hardware channel, routed as a Manhattan L
+/// between its endpoints' positions; length, latency and energy are kiln-phys's derived link cost (04 §7.2).
+#[derive(Clone, Debug, PartialEq)]
+pub struct WireRow {
+    /// Channel resource (`src-dst` path pair); `NONE_U32` when the trace has none.
+    pub link: u32,
+    pub src: u32,
+    pub dst: u32,
+    pub kind: u8,
+    pub source: u8,
+    pub layer: u8,
+    /// Flattened `x0, y0, x1, y1, ...` in the floorplan frame (um).
+    pub polyline: Vec<f64>,
+    pub length_um: f64,
+    pub width_bits: Option<f64>,
+    pub bw_bps: f64,
+    pub latency_s: f64,
+    pub e_j_per_bit: f64,
+    pub class: u8,
+    pub pipeline_stages: u32,
+}
+
+/// Package-level geometry besides placed blocks (05 §3.4 `package_geometry`): package outlines (label: package
+/// technology), shoreline segments per die edge (`value` = used um, `value2` = of it HBM um, label = edge) and
+/// harvested dies or stacks.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackageRow {
+    pub kind: u8,
+    pub resource: Option<u32>,
+    pub layer: u8,
+    pub x_um: f64,
+    pub y_um: f64,
+    pub w_um: f64,
+    pub h_um: f64,
+    pub label: String,
+    pub value: Option<f64>,
+    pub value2: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -339,6 +415,8 @@ pub struct Trace {
     pub groups: Vec<GroupRow>,
     pub collectives: Vec<CollectiveRow>,
     pub floorplan: Vec<FloorplanRow>,
+    pub wires: Vec<WireRow>,
+    pub package_geometry: Vec<PackageRow>,
     pub diagnostics: Vec<DiagnosticRow>,
     pub ceilings: Vec<CeilingRow>,
     pub phases: Vec<PhaseRow>,
@@ -360,6 +438,8 @@ impl Trace {
             groups: vec![],
             collectives: vec![],
             floorplan: vec![],
+            wires: vec![],
+            package_geometry: vec![],
             diagnostics: vec![],
             ceilings: vec![],
             phases: vec![],
@@ -450,6 +530,11 @@ impl Trace {
             ("groups", groups_batch(&self.groups)),
             ("collectives", collectives_batch(&self.collectives)),
             ("floorplan", floorplan_batch(&self.floorplan)),
+            ("wires", wires_batch(&self.wires)),
+            (
+                "package_geometry",
+                package_batch(&self.package_geometry),
+            ),
             ("ceilings", ceilings_batch(&self.ceilings)),
             ("diagnostics", diagnostics_batch(&self.diagnostics)),
             ("run_scalars", run_scalars_batch(&self.run_scalars)),
@@ -470,6 +555,8 @@ impl Trace {
             "groups" => self.groups = read_groups(b)?,
             "collectives" => self.collectives = read_collectives(b)?,
             "floorplan" => self.floorplan = read_floorplan(b)?,
+            "wires" => self.wires = read_wires(b)?,
+            "package_geometry" => self.package_geometry = read_package(b)?,
             "ceilings" => self.ceilings = read_ceilings(b)?,
             "diagnostics" => self.diagnostics = read_diagnostics(b)?,
             "run_scalars" => self.run_scalars = read_run_scalars(b)?,
@@ -1035,7 +1122,11 @@ fn floorplan_batch(rows: &[FloorplanRow]) -> RecordBatch {
         .push("w_um", false, f64v(col!(rows, |r| r.w_um)))
         .push("h_um", false, f64v(col!(rows, |r| r.h_um)))
         .push("poly", true, list_f64(col!(rows, |r| r.poly.as_deref())))
-        .push("rotation", false, u8s(col!(rows, |r| Some(r.rotation))));
+        .push("rotation", false, u8s(col!(rows, |r| Some(r.rotation))))
+        .push("source", true, u8s(col!(rows, |r| Some(r.source))))
+        .push("block", true, u8s(col!(rows, |r| Some(r.block))))
+        .push("area_um2", true, f64s(col!(rows, |r| r.area_um2)))
+        .push("leak_w", true, f64s(col!(rows, |r| r.leak_w)));
     batch("floorplan", c)
 }
 
@@ -1050,6 +1141,10 @@ fn read_floorplan(b: &[RecordBatch]) -> Result<Vec<FloorplanRow>, Diagnostic> {
     let h = t.f64("h_um")?;
     let poly = t.list_f64("poly")?;
     let rot = t.opt_int::<u8>("rotation")?;
+    let src = t.opt_int::<u8>("source")?;
+    let block = t.opt_int::<u8>("block")?;
+    let area = t.opt_f64("area_um2")?;
+    let leak = t.opt_f64("leak_w")?;
     Ok((0..t.rows())
         .map(|i| FloorplanRow {
             resource: res[i],
@@ -1061,6 +1156,118 @@ fn read_floorplan(b: &[RecordBatch]) -> Result<Vec<FloorplanRow>, Diagnostic> {
             h_um: h[i],
             poly: poly[i].clone(),
             rotation: rot[i].unwrap_or(0),
+            source: src[i].unwrap_or(0),
+            block: block[i].unwrap_or(0),
+            area_um2: area[i],
+            leak_w: leak[i],
+        })
+        .collect())
+}
+
+fn wires_batch(rows: &[WireRow]) -> RecordBatch {
+    use arrowx::*;
+    let mut c = Cols::new();
+    c.push("link", false, u32s(col!(rows, |r| Some(r.link))))
+        .push("src", false, u32s(col!(rows, |r| Some(r.src))))
+        .push("dst", false, u32s(col!(rows, |r| Some(r.dst))))
+        .push("kind", false, u8s(col!(rows, |r| Some(r.kind))))
+        .push("source", false, u8s(col!(rows, |r| Some(r.source))))
+        .push("layer", false, u8s(col!(rows, |r| Some(r.layer))))
+        .push(
+            "polyline",
+            false,
+            list_f64(col!(rows, |r| Some(&r.polyline[..]))),
+        )
+        .push("length_um", false, f64v(col!(rows, |r| r.length_um)))
+        .push("width_bits", true, f64s(col!(rows, |r| r.width_bits)))
+        .push("bw_bps", false, f64v(col!(rows, |r| r.bw_bps)))
+        .push("latency_s", false, f64v(col!(rows, |r| r.latency_s)))
+        .push("e_j_per_bit", false, f64v(col!(rows, |r| r.e_j_per_bit)))
+        .push("class", false, u8s(col!(rows, |r| Some(r.class))))
+        .push(
+            "pipeline_stages",
+            false,
+            u32s(col!(rows, |r| Some(r.pipeline_stages))),
+        );
+    batch("wires", c)
+}
+
+fn read_wires(b: &[RecordBatch]) -> Result<Vec<WireRow>, Diagnostic> {
+    let t = Table::new("wires", b);
+    let link = t.opt_u32("link")?;
+    let src = t.opt_u32("src")?;
+    let dst = t.opt_u32("dst")?;
+    let kind = t.opt_int::<u8>("kind")?;
+    let source = t.opt_int::<u8>("source")?;
+    let layer = t.opt_int::<u8>("layer")?;
+    let poly = t.list_f64("polyline")?;
+    let len = t.f64("length_um")?;
+    let width = t.opt_f64("width_bits")?;
+    let bw = t.opt_f64("bw_bps")?;
+    let lat = t.opt_f64("latency_s")?;
+    let e = t.opt_f64("e_j_per_bit")?;
+    let class = t.opt_int::<u8>("class")?;
+    let stages = t.opt_u32("pipeline_stages")?;
+    Ok((0..t.rows())
+        .map(|i| WireRow {
+            link: link[i].unwrap_or(NONE_U32),
+            src: src[i].unwrap_or(NONE_U32),
+            dst: dst[i].unwrap_or(NONE_U32),
+            kind: kind[i].unwrap_or(0),
+            source: source[i].unwrap_or(0),
+            layer: layer[i].unwrap_or(0),
+            polyline: poly[i].clone().unwrap_or_default(),
+            length_um: len[i],
+            width_bits: width[i],
+            bw_bps: bw[i].unwrap_or(0.0),
+            latency_s: lat[i].unwrap_or(0.0),
+            e_j_per_bit: e[i].unwrap_or(0.0),
+            class: class[i].unwrap_or(0),
+            pipeline_stages: stages[i].unwrap_or(0),
+        })
+        .collect())
+}
+
+fn package_batch(rows: &[PackageRow]) -> RecordBatch {
+    use arrowx::*;
+    let mut c = Cols::new();
+    c.push("kind", false, u8s(col!(rows, |r| Some(r.kind))))
+        .push("resource", true, u32s(col!(rows, |r| r.resource)))
+        .push("layer", false, u8s(col!(rows, |r| Some(r.layer))))
+        .push("x_um", false, f64v(col!(rows, |r| r.x_um)))
+        .push("y_um", false, f64v(col!(rows, |r| r.y_um)))
+        .push("w_um", false, f64v(col!(rows, |r| r.w_um)))
+        .push("h_um", false, f64v(col!(rows, |r| r.h_um)))
+        .push("label", false, utf8s(col!(rows, |r| r.label.as_str())))
+        .push("value", true, f64s(col!(rows, |r| r.value)))
+        .push("value2", true, f64s(col!(rows, |r| r.value2)));
+    batch("package_geometry", c)
+}
+
+fn read_package(b: &[RecordBatch]) -> Result<Vec<PackageRow>, Diagnostic> {
+    let t = Table::new("package_geometry", b);
+    let kind = t.int::<u8>("kind")?;
+    let res = t.opt_u32("resource")?;
+    let layer = t.opt_int::<u8>("layer")?;
+    let x = t.f64("x_um")?;
+    let y = t.f64("y_um")?;
+    let w = t.f64("w_um")?;
+    let h = t.f64("h_um")?;
+    let label = t.opt_str("label")?;
+    let v = t.opt_f64("value")?;
+    let v2 = t.opt_f64("value2")?;
+    Ok((0..t.rows())
+        .map(|i| PackageRow {
+            kind: kind[i],
+            resource: res[i],
+            layer: layer[i].unwrap_or(0),
+            x_um: x[i],
+            y_um: y[i],
+            w_um: w[i],
+            h_um: h[i],
+            label: label[i].clone().unwrap_or_default(),
+            value: v[i],
+            value2: v2[i],
         })
         .collect())
 }

@@ -15,7 +15,7 @@ use kiln_trace::calib_report::CalibRow;
 use kiln_trace::trace::Trace;
 
 pub use scene::{Hit, Scene};
-pub use views::{FloorColor, Selection, ViewKind, ViewSpec};
+pub use views::{FloorColor, Selection, ViewKind, ViewSpec, WireColor};
 
 use crate::chart::fmt_pct;
 use crate::scene::{HAlign, Rect, Stroke, VAlign};
@@ -88,6 +88,24 @@ pub fn render(inp: &Inputs, spec: &ViewSpec, sel: &Selection) -> Scene {
             |a| views::archive::scene(a, spec, sel),
         ),
         ViewKind::Calibration => views::calibration::scene(inp.calib.unwrap_or(&[]), spec, sel),
+        ViewKind::Design => run.map_or_else(
+            || {
+                missing(
+                    "the design sheet needs a design or a run",
+                    "kiln viz render design.json5 --view design",
+                )
+            },
+            |t| views::design::scene(t, spec, sel),
+        ),
+        ViewKind::Wires => run.map_or_else(
+            || {
+                missing(
+                    "the wires view needs a design or a run",
+                    "kiln viz render design.json5 --view wires",
+                )
+            },
+            |t| views::wires::scene(t, spec, sel),
+        ),
     }
 }
 

@@ -27,7 +27,7 @@ fn eval_writes_trace_that_validates_renders_and_exports() {
     let info = kiln(&["trace", "info", s(&run)]);
     ok(&info);
     let text = String::from_utf8_lossy(&info.stdout);
-    assert!(text.contains("table     spans") && text.contains("floorplan unplaced"), "{text}");
+    assert!(text.contains("table     spans") && text.contains("floorplan kiln-phys/m3") && text.contains("table     wires"), "{text}");
     ok(&kiln(&["trace", "validate", s(&run)]));
 
     let png = dir.path().join("fig.png");
@@ -39,7 +39,7 @@ fn eval_writes_trace_that_validates_renders_and_exports() {
     let svg = dir.path().join("fp.svg");
     ok(&kiln(&["viz", "render", s(&run), "--view", "floorplan", "--color", "kind", "-o", s(&svg)]));
     let text = std::fs::read_to_string(&svg).unwrap();
-    assert!(text.starts_with("<svg") && text.contains("unit_matrix"));
+    assert!(text.starts_with("<svg") && text.contains("compute") && !text.contains("UNPLACED"));
     let svg2 = dir.path().join("fp2.svg");
     ok(&kiln(&["viz", "render", s(&run), "--view", "floorplan", "--color", "kind", "-o", s(&svg2)]));
     assert_eq!(text, std::fs::read_to_string(&svg2).unwrap(), "headless output is deterministic");
@@ -64,6 +64,20 @@ fn design_only_floorplan_and_missing_gui() {
     let dir = tempfile::tempdir().unwrap();
     let png = dir.path().join("structure.png");
     ok(&kiln(&["viz", "render", "tpu_v5e", "--view", "floorplan", "--color", "kind", "--size", "640x400", "-o", s(&png)]));
+    // A design file: placed floorplan, design sheet and wires without a simulation.
+    let svg = dir.path().join("d.svg");
+    ok(&kiln(&["viz", "render", s(&design()), "--view", "floorplan", "--view", "design", "--view", "wires", "--size", "900x560", "-o", s(&svg)]));
+    let fp = std::fs::read_to_string(dir.path().join("d-floorplan.svg")).unwrap();
+    assert!(fp.contains("kiln-phys/m3") && fp.contains("color: kind") && !fp.contains("UNPLACED"), "falls back to kind without a run");
+    let sheet = std::fs::read_to_string(dir.path().join("d-design.svg")).unwrap();
+    assert!(sheet.contains("Memory hierarchy") && sheet.contains("reference profile") && sheet.contains("TDP"));
+    assert!(std::fs::read_to_string(dir.path().join("d-wires.svg")).unwrap().contains("pJ/bit"));
+    for (flag, val) in [("--color", "density"), ("--wire-color", "length"), ("--layer", "0")] {
+        ok(&kiln(&["viz", "render", s(&design()), "--view", "floorplan", flag, val, "--size", "640x400", "-o", s(&png)]));
+    }
+    let csv = kiln(&["trace", "export", s(&design()), "--csv", "wires"]);
+    ok(&csv);
+    assert!(String::from_utf8_lossy(&csv.stdout).lines().count() > 1000);
     if !cfg!(feature = "gui") {
         assert_eq!(kiln(&["viz", s(&design())]).status.code(), Some(69));
     }

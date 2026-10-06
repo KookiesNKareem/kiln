@@ -524,10 +524,12 @@ impl V<'_> {
             (CimStyle::Digital, Some(_)) => bad.push("adc_bits on a digital CIM".into()),
             _ => {}
         }
+        let valid = bad.is_empty();
         for b in bad {
             self.push(key, err("E-IR-0609", format!("CIM parameter out of range: {b}"), at));
         }
-        if let (CimStyle::Analog, Some(adc)) = (c.style, c.adc_bits)
+        if valid
+            && let (CimStyle::Analog, Some(adc)) = (c.style, c.adc_bits)
             && adc < c.boundary_adc_bits()
         {
             self.push(
@@ -1226,7 +1228,7 @@ impl V<'_> {
             }
             let derived_fill = match &s.kind {
                 ComputeKind::Matrix(mx) => match mx.geometry {
-                    Geometry::Systolic { rows, cols } => Some(f64::from(rows + cols) - 1.0),
+                    Geometry::Systolic { rows, cols } => Some(f64::from(rows) + f64::from(cols) - 1.0),
                     _ => None,
                 },
                 _ => None,

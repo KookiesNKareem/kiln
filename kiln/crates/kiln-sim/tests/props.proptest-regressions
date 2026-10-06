@@ -7,3 +7,4 @@
 cc 3d0392d6fa781b2816354b928ad6d293df8fc5f7cc28739aa59f2d24b1b6c4fa # shrinks to p = Params { gr: 1, gc: 1, rows: 8, cols: 8, lanes: 4, sram_kib: 1024, pin_gbps: 2 }, (decode, batch) = (false, 2)
 cc e5a20cbc519a81ad2ab02fc8a2d9347cb909c6da3771655acf072cada3db6866 # shrinks to p = Params { gr: 1, gc: 1, rows: 8, cols: 8, lanes: 4, sram_kib: 64, pin_gbps: 2 }, (decode, batch) = (false, 1)
 cc b861f1f46c34af2ec9deeb127fc2efc23f0be8ee0f2b054df931f0a08de417dc # shrinks to p = Params { gr: 1, gc: 3, rows: 64, cols: 8, lanes: 13, sram_kib: 263, pin_gbps: 7 }, (decode, batch) = (true, 2)
+cc 519e0f0fb7b42b06e9ca104d45dc1627e5e90d686b33bd487401103ed79d78bb # shrinks to p = Params { gr: 3, gc: 3, rows: 32, cols: 32, lanes: 4, sram_kib: 1025, pin_gbps: 2 }, (decode, batch) = (true, 1)

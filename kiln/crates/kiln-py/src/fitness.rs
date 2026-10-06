@@ -463,7 +463,8 @@ pub fn apply(r: &mut EvalResult, baseline: Option<(&str, &EvalResult)>, opts: &O
                 .filter_map(|p| {
                     let b = base.phase(p.phase.as_str())?;
                     let d = phase_metric(base, k, b).central;
-                    (d > 0.0).then(|| (phase_metric(r, k, p).central / d, 1.0))
+                    let w = opts.fitness.phase_weights.get(p.phase.as_str()).copied().unwrap_or(1.0);
+                    (d > 0.0).then(|| (phase_metric(r, k, p).central / d, w))
                 })
                 .collect();
             aggregate(&v, agg)
@@ -883,6 +884,17 @@ mod tests {
         let o = opts(json!({"fitness": {"phase_weights": {"b": 0.0}}}));
         apply(&mut cand, Some(("x", &base)), &o);
         assert!((cand.score - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn pareto_energy_component_uses_the_phase_weights() {
+        let base = result_with(&[("a", 100.0), ("b", 100.0)], 800.0, 400.0);
+        let mut cand = result_with(&[("a", 100.0), ("b", 100.0)], 800.0, 400.0);
+        cand.phases[1].tokens_per_j = Interval::point(100.0 * base.phases[1].tokens_per_j.central);
+        let o = opts(json!({"fitness": {"kind": "pareto", "phase_weights": {"b": 0.0}}}));
+        apply(&mut cand, Some(("x", &base)), &o);
+        let Some(Feature::Vector(v)) = cand.features.get("pareto") else { panic!("{:?}", cand.features.get("pareto")) };
+        assert!((v[1] - 1.0).abs() < 1e-12, "{v:?}");
     }
 
     #[test]

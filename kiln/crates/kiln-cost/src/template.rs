@@ -2,7 +2,7 @@
 
 use kiln_ir::common::{Diagnostic, content_hash};
 use kiln_ir::hw::HwModel;
-use kiln_ir::hw::compute::{ComputeKind, Geometry, MemKind, OperandRole, PortDir as IrPortDir, PrecisionMode};
+use kiln_ir::hw::compute::{ComputeKind, Geometry, MemKind, OperandPolicy, OperandRole, PortDir as IrPortDir, PrecisionMode};
 use kiln_ir::hw::model::{MemSpec, NodeIx};
 use kiln_ir::precision::{PrecisionKind, PrecisionSpec};
 
@@ -266,7 +266,8 @@ impl Builder<'_> {
                     .overrides
                     .read_energy
                     .map_or_else(|| energy::e_read_onchip(Some(m.kind), mi.capacity.0), |e| e.0);
-                let lat = m.overrides.latency.map_or(0, |c| c.0.round() as u64);
+                // Declared in memory cycles; the template counts unit cycles.
+                let lat = m.overrides.latency.map_or(0, |c| (c.0 * self.f_unit / f_mem * (1.0 - 1e-12)).ceil() as u64);
                 (ports, e, true, lat)
             }
             MemSpec::Stack(_) => {
@@ -278,6 +279,13 @@ impl Builder<'_> {
                 let p = MemPort { dir: PortDir::ReadWrite, bytes_per_cycle: LOCAL_BYTES_PER_CYCLE, serves: vec![], lanes: 1 };
                 (vec![p], energy::e_read_onchip(Some(MemKind::RegisterFile), buffer.capacity.0), buffer.double_buffered, 0)
             }
+        };
+        let partitions = match &mi.spec {
+            MemSpec::OnChip(m) => match &m.operands {
+                OperandPolicy::Partitioned { parts } => parts.iter().map(|(&r, b)| (r, b.0 * mems.len() as u64 * u64::from(copies))).collect(),
+                _ => vec![],
+            },
+            _ => vec![],
         };
         let e_w = match &mi.spec {
             MemSpec::OnChip(m) => m.overrides.write_energy.map_or(e_r * energy::WRITE_RATIO, |e| e.0),
@@ -294,6 +302,7 @@ impl Builder<'_> {
             e_write_j_per_b: e_w,
             latency_cycles: latency,
             external: false,
+            partitions,
         });
         self.keys.push(key);
         self.levels.len() - 1
@@ -427,7 +436,7 @@ pub(crate) fn from_hw(hw: &HwModel, unit: usize, opts: &TemplateOptions) -> Resu
     let pl = &u.spec.pipeline;
     let fill_default = match kind {
         ComputeKind::Matrix(m) => match m.geometry {
-            Geometry::Systolic { rows, cols } => u64::from(rows + cols - 1),
+            Geometry::Systolic { rows, cols } => (u64::from(rows) + u64::from(cols)).saturating_sub(1),
             _ => 0,
         },
         _ => 0,

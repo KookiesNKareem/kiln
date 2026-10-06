@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use kiln_ir::common::Diagnostic;
-use kiln_ir::hw::model::{ChannelKind, ContainerKind, HwModel, NodeIx};
+use kiln_ir::hw::model::{Channel, ChannelKind, ContainerKind, HwModel, NodeIx};
 use kiln_ir::hw::net::{BondKind, LinkPhys};
 
 use crate::characterize::{Characterized, PhyUse};
@@ -43,6 +43,45 @@ fn cluster_lca(hw: &HwModel, a: usize, b: usize) -> Option<usize> {
         x = hw.nodes[y].parent;
     }
     None
+}
+
+fn bond_table(t: &'static Tables, b: BondKind) -> Option<&'static crate::tables::PhyT> {
+    t.phy.get(match b {
+        BondKind::Hybrid => "hybrid_bond",
+        BondKind::Microbump => "microbump",
+        BondKind::Tsv => "tsv",
+    })
+}
+
+fn die_at(fp: &Floorplan, n: usize) -> Option<usize> {
+    fp.die_of[n].and_then(|c| fp.dies.iter().position(|d| d.container == c))
+}
+
+fn is_stack(hw: &HwModel, n: usize) -> bool {
+    matches!(hw.nodes[n].ix, NodeIx::Mem(m) if hw.memories[m].is_stack())
+}
+
+/// Bond kind and declared pitch of a vertical channel: its declared vertical link, else the bond of the upper die's
+/// package layer, else hybrid.
+fn vertical_bond(hw: &HwModel, fp: &Floorplan, c: &Channel) -> (BondKind, f64) {
+    let (s, d) = (hw.node_of(c.src), hw.node_of(c.dst));
+    let declared = c.network.map(|n| &hw.networks[n].spec.link).or_else(|| [s, d].into_iter().find_map(|x| match hw.nodes[x].ix {
+        NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
+        _ => None,
+    }));
+    if let Some(LinkPhys::Vertical(v)) = declared.map(|l| &l.phys) {
+        return (v.bond, v.pitch_um.0);
+    }
+    let layer_bond = |d: usize| {
+        let c = fp.dies[d].container;
+        let lid = hw.tree[c].die.as_ref()?.layer.as_ref()?;
+        let pkg = std::iter::successors(hw.nodes[hw.tree[c].node].parent, |&x| hw.nodes[x].parent).find_map(|x| match hw.nodes[x].ix {
+            NodeIx::Container(p) => hw.tree[p].package.as_ref(),
+            _ => None,
+        })?;
+        pkg.layers.iter().find(|l| l.id.as_str() == lid.as_str()).map(|l| (l.bond, l.pitch_um.0))
+    };
+    [s, d].into_iter().filter(|&n| !is_stack(hw, n)).filter_map(|n| die_at(fp, n)).max_by_key(|&x| fp.dies[x].layer).and_then(layer_bond).unwrap_or((BondKind::Hybrid, 0.0))
 }
 
 pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params) -> Vec<LinkCost> {
@@ -92,7 +131,7 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
                     source: kind_src,
                 }
             };
-            let stack = |x: usize| matches!(hw.nodes[x].ix, NodeIx::Mem(m) if hw.memories[m].is_stack());
+            let stack = |x: usize| is_stack(hw, x);
             let mut lc = match c.kind {
                 // Stack <-> PHY: the DRAM and PHY energy and DRAM latency are charged at the stack (04 §7.3).
                 _ if stack(s) || stack(d) => LinkCost {
@@ -110,7 +149,7 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
                 ChannelKind::Serdes | ChannelKind::Optical => phy_link(LinkSource::Phy, 0.0),
                 ChannelKind::Host => phy_link(LinkSource::Host, 0.0),
                 ChannelKind::Vertical => {
-                    let pt = t.phy.get("hybrid_bond").expect("bond table");
+                    let pt = bond_table(t, vertical_bond(hw, fp, c).0).expect("bond table");
                     LinkCost {
                         class: None,
                         length_um: 0.0,
@@ -169,24 +208,8 @@ pub fn derive(hw: &HwModel, ch: &Characterized, fp: &Floorplan, params: &Params)
 /// pitch. A vertically attached memory stack sits on its die (its footprint is the overlap).
 pub fn bond_problems(hw: &HwModel, fp: &Floorplan) -> Vec<Diagnostic> {
     let t = Tables::get();
-    let table = |b: BondKind| {
-        t.phy.get(match b {
-            BondKind::Hybrid => "hybrid_bond",
-            BondKind::Microbump => "microbump",
-            BondKind::Tsv => "tsv",
-        })
-    };
-    let die_at = |n: usize| fp.die_of[n].and_then(|c| fp.dies.iter().position(|d| d.container == c));
-    let stack_at = |n: usize| matches!(hw.nodes[n].ix, NodeIx::Mem(m) if hw.memories[m].is_stack()).then_some(n);
-    let layer_bond = |d: usize| {
-        let c = fp.dies[d].container;
-        let lid = hw.tree[c].die.as_ref()?.layer.as_ref()?;
-        let pkg = std::iter::successors(hw.nodes[hw.tree[c].node].parent, |&x| hw.nodes[x].parent).find_map(|x| match hw.nodes[x].ix {
-            NodeIx::Container(p) => hw.tree[p].package.clone(),
-            _ => None,
-        })?;
-        pkg.layers.iter().find(|l| l.id.as_str() == lid.as_str()).map(|l| (l.bond, l.pitch_um.0))
-    };
+    let die_at = |n: usize| die_at(fp, n);
+    let stack_at = |n: usize| is_stack(hw, n).then_some(n);
     // (footprint a, footprint b) -> (signals, overlap um^2, pitch um, signal fraction); a footprint is a die index or
     // a stack's arena node (offset past the dies).
     let mut pairs: BTreeMap<(usize, usize), (f64, f64, f64, f64)> = BTreeMap::new();
@@ -194,16 +217,8 @@ pub fn bond_problems(hw: &HwModel, fp: &Floorplan) -> Vec<Diagnostic> {
         let (s, d) = (hw.node_of(c.src), hw.node_of(c.dst));
         let at = |n: usize| stack_at(n).map(|x| fp.dies.len() + x).or_else(|| die_at(n));
         let (Some(a), Some(b)) = (at(s), at(d)) else { continue };
-        let declared = c.network.map(|n| &hw.networks[n].spec.link).or_else(|| [s, d].into_iter().find_map(|x| match hw.nodes[x].ix {
-            NodeIx::Port(p) => hw.ports[p].spec.link.as_ref(),
-            _ => None,
-        }));
-        let upper = [a, b].into_iter().filter(|&x| x < fp.dies.len()).max_by_key(|&x| fp.dies[x].layer);
-        let (bond, pitch) = match declared.map(|l| &l.phys) {
-            Some(LinkPhys::Vertical(v)) => (v.bond, v.pitch_um.0),
-            _ => upper.and_then(layer_bond).unwrap_or((BondKind::Hybrid, 0.0)),
-        };
-        let Some(pt) = table(bond) else { continue };
+        let (bond, pitch) = vertical_bond(hw, fp, c);
+        let Some(pt) = bond_table(t, bond) else { continue };
         let pitch = pitch.max(pt.pitch_um.unwrap_or(0.0)).max(1e-3);
         let frac = pt.signal_frac.unwrap_or(0.5);
         let rect = |x: usize| if x < fp.dies.len() { fp.rect[fp.dies[x].node] } else { fp.rect[x - fp.dies.len()] };

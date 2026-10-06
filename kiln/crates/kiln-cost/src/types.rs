@@ -129,6 +129,33 @@ pub struct MemLevel {
     /// The level is the boundary to resources outside the unit; its bandwidth is `bw_assumed` (03 §2.5) and
     /// kiln-sim re-checks it against the real shared resources.
     pub external: bool,
+    /// Fixed per-role partitions of the capacity (01 `operands: { policy: "partitioned" }`), totals over all
+    /// instances as `capacity_bytes`; empty = unified.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub partitions: Vec<(OperandRole, u64)>,
+}
+
+impl MemLevel {
+    /// The capacity share operands of `role` compete for at this level, over all instances: their partition
+    /// (none = 0 bytes) on a partitioned level, else the whole level. The key tells shares apart.
+    pub fn share(&self, role: OperandRole) -> (usize, u64) {
+        use OperandRole::*;
+        if self.partitions.is_empty() {
+            return (usize::MAX, self.capacity_bytes);
+        }
+        let aliases: &[OperandRole] = match role {
+            A | B | C => &[In],
+            O => &[Out, C],
+            In => &[A],
+            Out => &[O],
+            Any => &[],
+        };
+        let find = |r: OperandRole| self.partitions.iter().position(|p| p.0 == r);
+        match find(role).or_else(|| aliases.iter().find_map(|&r| find(r))).or_else(|| find(Any)) {
+            Some(i) => (i, self.partitions[i].1),
+            None => (self.partitions.len(), 0),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

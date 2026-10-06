@@ -253,7 +253,7 @@ fn layers_per_dir(n: &TechNode) -> f64 {
 /// radix-8 tiles whose outputs merge over the block (the flat matrix for P > 8 grows as P^2 W^2).
 pub fn router(n: &TechNode, p: u32, v: u32, b: u32, w: f64, n_pipe: u32, util: f64) -> Router {
     let p = p.max(2);
-    let pv = f64::from(p * v.max(1));
+    let pv = f64::from(p) * f64::from(v.max(1));
     let a_bit = n.a_bit_flop_um2 * (1.0 + n.k_w).powi(2);
     let buf_bits = f64::from(p) * f64::from(v.max(1)) * f64::from(b.max(1)) * w;
     let a_buf = buf_bits * a_bit;
@@ -353,5 +353,13 @@ mod tests {
             assert!(r.area_um2 >= last, "radix {p}");
             last = r.area_um2;
         }
+    }
+
+    #[test]
+    fn router_allocator_does_not_wrap_at_huge_vc_counts() {
+        let n7 = Tables::get().node("tsmc_n7").unwrap();
+        let small = router(n7, 4, 1 << 20, 1, 64.0, 2, 0.65);
+        let huge = router(n7, 4, 1 << 30, 1, 64.0, 2, 0.65);
+        assert!(huge.area_um2 > small.area_um2 && huge.t_cycle_min_s > small.t_cycle_min_s && huge.t_cycle_min_s.is_finite());
     }
 }

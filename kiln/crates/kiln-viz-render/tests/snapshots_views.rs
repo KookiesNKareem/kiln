@@ -7,7 +7,7 @@ use kiln_trace::archive::Archive;
 use kiln_trace::calib_report::{CalibRow, from_calibrate_json};
 use kiln_trace::container::read_kiln;
 use kiln_trace::trace::Trace;
-use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec};
+use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec, WireColor};
 use kiln_viz_render::{Inputs, Selection, render, to_png, to_svg};
 
 fn golden(name: &str) -> PathBuf {
@@ -131,4 +131,95 @@ fn png_is_deterministic_and_hits_resolve() {
         }
     }
     assert!(hits > 10);
+}
+
+/// A design-only trace (no simulation): kiln-ir expansion and validation, kiln-phys placement.
+fn structure(name: &str) -> Trace {
+    let p = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../designs/reference/{name}.json5"));
+    let d = kiln_ir::hw::load_file(&p).unwrap();
+    let (hw, _) = d.expand(&Default::default()).unwrap();
+    let checks = kiln_trace::phys::profile_checks(&d, &hw);
+    kiln_trace::build::structure(&hw, Some(d.canonical.clone()), Some(name.into()), &checks)
+}
+
+#[test]
+fn placed_views_svg_snapshots() {
+    let sel = Selection::default();
+    let run = trace("tpu_v5e_decode_b1_ops_v1.1.kiln");
+    let multi = trace("tpu_v5e_2x2_decode_b1_ops_v1.1.kiln");
+    let v6e = structure("tpu_v6e");
+    let ember = structure("ember");
+    let one = |t: &Trace, sp: &ViewSpec| {
+        to_svg(&render(
+            &Inputs {
+                runs: vec![t],
+                ..Default::default()
+            },
+            sp,
+            &sel,
+        ))
+    };
+    let fp = spec(ViewKind::Floorplan);
+    insta::assert_snapshot!("v5e_decode_placed_floorplan", one(&run, &fp));
+    insta::assert_snapshot!(
+        "v5e_decode_placed_floorplan_traffic",
+        one(&run, &ViewSpec { color: FloorColor::Energy, wire_color: WireColor::Traffic, ..fp.clone() })
+    );
+    insta::assert_snapshot!(
+        "v5e_2x2_placed_floorplan_kind",
+        one(&multi, &ViewSpec { color: FloorColor::Kind, ..fp.clone() })
+    );
+    insta::assert_snapshot!("v5e_decode_design", one(&run, &spec(ViewKind::Design)));
+    insta::assert_snapshot!("v5e_decode_wires", one(&run, &spec(ViewKind::Wires)));
+    insta::assert_snapshot!("v6e_design_only_floorplan", one(&v6e, &fp));
+    insta::assert_snapshot!(
+        "v6e_design_only_floorplan_density",
+        one(&v6e, &ViewSpec { color: FloorColor::Density, wire_color: WireColor::Length, ..fp.clone() })
+    );
+    insta::assert_snapshot!("v6e_design_only_design", one(&v6e, &spec(ViewKind::Design)));
+    insta::assert_snapshot!("v6e_design_only_wires", one(&v6e, &spec(ViewKind::Wires)));
+    insta::assert_snapshot!(
+        "ember_design_only_floorplan_layers",
+        one(&ember, &ViewSpec { labels: false, wires: false, ..fp.clone() })
+    );
+    insta::assert_snapshot!(
+        "ember_design_only_floorplan_layer1",
+        one(&ember, &ViewSpec { layer: Some(1), root: Some("board.pkg".into()), color: FloorColor::Area, ..fp.clone() })
+    );
+}
+
+#[test]
+fn placed_png_is_deterministic_and_hits_resolve() {
+    for t in [trace("tpu_v5e_decode_b1_ops_v1.1.kiln"), structure("ember")] {
+        let inp = Inputs {
+            runs: vec![&t],
+            ..Default::default()
+        };
+        let s = render(&inp, &spec(ViewKind::Floorplan), &Selection::default());
+        let again = render(&inp, &spec(ViewKind::Floorplan), &Selection::default());
+        assert!(to_png(&s, 1.0) == to_png(&again, 1.0) && to_svg(&s) == to_svg(&again));
+        assert!(!to_svg(&s).contains("UNPLACED"));
+        // Block hits resolve to placed rows, wire hits to links with a wires row.
+        let (mut blocks, mut wires) = (0, 0);
+        for p in &s.prims {
+            match p {
+                kiln_viz_render::scene::Prim::Rect {
+                    hit: kiln_viz_render::Hit::Resource(r),
+                    ..
+                } => {
+                    assert!(t.floorplan.iter().any(|f| f.resource == *r));
+                    blocks += 1;
+                }
+                kiln_viz_render::scene::Prim::Line {
+                    hit: kiln_viz_render::Hit::Resource(r),
+                    ..
+                } => {
+                    assert!(t.wires.iter().any(|w| w.link == *r));
+                    wires += 1;
+                }
+                _ => {}
+            }
+        }
+        assert!(blocks > 10 && wires > 5, "{blocks} blocks, {wires} wires");
+    }
 }

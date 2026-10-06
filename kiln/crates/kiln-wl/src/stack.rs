@@ -4,7 +4,8 @@
 //!
 //! A rule matches a node by op name, optional roles and shape conditions. Its `primary` kernel is the one the
 //! mapped task graph already models; every other kernel is charged on top (launch class plus its own traffic).
-//! A node without a matching rule is one primary kernel.
+//! A node without a matching rule is one primary kernel. A `tiles` rule describes the library's tile quantization
+//! of a node's contractions: the rows it issues per tile, padded rows included.
 
 use kiln_ir::common::{Diagnostic, content_hash};
 use kiln_ir::hw::types::ExecModel;
@@ -46,6 +47,36 @@ pub struct Stack {
     pub dequantize: bool,
     #[serde(default)]
     pub rules: Vec<Rule>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tiles: Vec<TileRule>,
+}
+
+/// Library tile quantization of a node's contractions (cuBLAS/CUTLASS CTA tiles, flash-attention query blocks):
+/// the kernels issue `rows` (a product of shape terms) in tiles of `tile` rows, so the padded rows of the last
+/// tile are issued MACs on top of the useful ones. The first matching rule applies.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TileRule {
+    pub op: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub roles: Vec<String>,
+    #[serde(default)]
+    pub when: When,
+    pub rows: Vec<RowTerm>,
+    pub tile: u64,
+}
+
+/// Shape terms whose product is the rows a library kernel tiles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RowTerm {
+    /// Leading dim of the first input.
+    Tokens,
+    /// [`NodeShape`] tokens per active sequence.
+    TokensPerSeq,
+    /// Query heads (dim 1 of the first input) per KV head (dim 2 of the first KV-cache input): grouped-query
+    /// attention kernels that fold a KV head's query heads into the query rows of a tile.
+    QueryHeadsPerKvHead,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -192,6 +223,20 @@ fn dtype_bytes(name: &str) -> Option<f64> {
     })
 }
 
+impl RowTerm {
+    fn value(self, n: &NodeShape) -> Option<u64> {
+        match self {
+            Self::Tokens => Some(n.tokens()),
+            Self::TokensPerSeq => Some(n.tokens_per_seq()),
+            Self::QueryHeadsPerKvHead => {
+                let q = n.inputs.first()?.shape.get(1).copied()?;
+                let kv = n.inputs.iter().find(|t| t.class == TensorClass::KvCache)?.shape.get(2).copied()?;
+                (kv > 0 && q.is_multiple_of(kv)).then(|| q / kv)
+            }
+        }
+    }
+}
+
 impl When {
     fn holds(&self, n: &NodeShape) -> bool {
         let (t, s) = (n.tokens(), n.tokens_per_seq());
@@ -249,6 +294,11 @@ impl Stack {
         if !(0.0..=1.0).contains(&self.onchip_fraction) {
             return err(format!("onchip_fraction {} outside [0, 1]", self.onchip_fraction));
         }
+        for t in &self.tiles {
+            if t.tile == 0 || t.rows.is_empty() {
+                return err(format!("tile rule for {}: tile must be >= 1 over at least one row term", t.op));
+            }
+        }
         for r in &self.rules {
             if r.kernels.iter().filter(|k| k.primary).count() != 1 {
                 return err(format!("rule for {} needs exactly one primary kernel", r.op));
@@ -278,6 +328,18 @@ impl Stack {
 
     pub fn rule(&self, n: &NodeShape) -> Option<&Rule> {
         self.rules.iter().find(|r| r.op == n.op && (r.roles.is_empty() || n.role.is_some_and(|x| r.roles.iter().any(|y| y == x))) && r.when.holds(n))
+    }
+
+    /// Issued over useful MACs of a node's contractions under the first matching tile rule: rows rounded up to
+    /// whole tiles (1 without a rule).
+    pub fn row_padding(&self, n: &NodeShape) -> Result<f64, Diagnostic> {
+        let Some(t) = self.tiles.iter().find(|t| t.op == n.op && (t.roles.is_empty() || n.role.is_some_and(|x| t.roles.iter().any(|y| y == x))) && t.when.holds(n)) else {
+            return Ok(1.0);
+        };
+        let rows = t.rows.iter().try_fold(1u64, |a, r| r.value(n).map(|v| a.saturating_mul(v))).ok_or_else(|| {
+            Diagnostic::error(CODE, format!("tile rule for {}: a row term {:?} is not defined on this node", t.op, t.rows)).at(self.id.clone())
+        })?;
+        Ok(if rows == 0 { 1.0 } else { (rows.div_ceil(t.tile) * t.tile) as f64 / rows as f64 })
     }
 
     /// The kernels a node costs beyond its primary one (empty without a matching rule).
@@ -385,6 +447,31 @@ mod tests {
         assert_eq!(attn(1, Some(1)), ["memset"]);
         assert_eq!(attn(16, Some(1)), attn(1, Some(1)));
         assert_eq!(attn(16, None), attn(16, Some(16)));
+    }
+
+    #[test]
+    fn library_tiles_pad_rows() {
+        let s = Stack::load("pytorch_cuda_graph_sdpa").unwrap();
+        let cache = |b: u64| TypeInfo::new(vec![b, 2048, 8, 128], ElemType::BF16, TensorClass::KvCache);
+        let attn = |t: u64, b: u64| {
+            let ins = [act(&[t, 32, 128]), cache(b), cache(b)];
+            let outs = [act(&[t, 32, 128])];
+            s.row_padding(&NodeShape { op: "attention", role: Some("attn.core"), inputs: &ins, outputs: &outs, seqs: Some(b) }).unwrap()
+        };
+        // Flash folds the 4 query heads of a KV head into the rows of a 64-row (split-KV) or 128-row tile.
+        assert_eq!((attn(1, 1), attn(8, 8), attn(32, 32)), (16.0, 16.0, 32.0));
+        assert_eq!(attn(2000, 1), 2048.0 / 2000.0);
+        let gemm = |t: u64| {
+            let ins = [act(&[t, 4096]), act(&[4096, 4096])];
+            let outs = [act(&[t, 4096])];
+            s.row_padding(&NodeShape { op: "einsum", role: Some("attn.qkv"), inputs: &ins, outputs: &outs, seqs: None }).unwrap()
+        };
+        assert_eq!((gemm(1), gemm(32), gemm(64), gemm(2048), gemm(2050)), (64.0, 2.0, 1.0, 1.0, 2176.0 / 2050.0));
+        for id in ["kiln_ideal", "xla_tpu_fused"] {
+            let ins = [act(&[32, 4096]), act(&[4096, 4096])];
+            let outs = [act(&[32, 4096])];
+            assert_eq!(Stack::load(id).unwrap().row_padding(&NodeShape { op: "einsum", role: None, inputs: &ins, outputs: &outs, seqs: None }).unwrap(), 1.0);
+        }
     }
 
     #[test]

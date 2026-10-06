@@ -49,28 +49,32 @@ struct Cx {
 #[derive(Clone, Copy)]
 enum Gran {
     Mem { banks: u32 },
-    Stack { channels: u32, pcs: u32 },
+    Stack { channels: u32, pcs: u64, banks_per_pc: u32 },
 }
 
 impl Gran {
     fn of(m: &MemSpec) -> Self {
         match m {
             MemSpec::OnChip(m) => Self::Mem { banks: m.banks },
-            MemSpec::Stack(s) => Self::Stack { channels: s.channel_count(), pcs: s.pseudo_channels() },
+            MemSpec::Stack(s) => Self::stack(s),
             MemSpec::Local { .. } => Self::Mem { banks: 1 },
         }
     }
 
-    fn granules(self, g: NearGranularity) -> u32 {
+    fn stack(s: &MemStack) -> Self {
+        Self::Stack { channels: s.channel_count(), pcs: s.pseudo_channels(), banks_per_pc: s.banks_per_pseudo_channel() }
+    }
+
+    fn granules(self, g: NearGranularity) -> u64 {
         match (self, g) {
             (_, NearGranularity::PerInstance | NearGranularity::PerStack) => 1,
-            (Self::Mem { banks }, NearGranularity::PerBank) => banks,
-            (Self::Mem { banks }, NearGranularity::PerBankGroup) => banks.div_ceil(4),
+            (Self::Mem { banks }, NearGranularity::PerBank) => banks.into(),
+            (Self::Mem { banks }, NearGranularity::PerBankGroup) => banks.div_ceil(4).into(),
             (Self::Mem { .. }, _) => 1,
-            (Self::Stack { channels, .. }, NearGranularity::PerChannel) => channels,
+            (Self::Stack { channels, .. }, NearGranularity::PerChannel) => channels.into(),
             (Self::Stack { pcs, .. }, NearGranularity::PerPseudoChannel) => pcs,
-            (Self::Stack { pcs, .. }, NearGranularity::PerBankGroup) => pcs * 4,
-            (Self::Stack { pcs, .. }, NearGranularity::PerBank) => pcs * 16,
+            (Self::Stack { pcs, .. }, NearGranularity::PerBankGroup) => pcs.saturating_mul(4),
+            (Self::Stack { pcs, banks_per_pc, .. }, NearGranularity::PerBank) => pcs.saturating_mul(banks_per_pc.into()),
         }
     }
 }
@@ -408,7 +412,7 @@ impl B<'_> {
             self.scopes.push(
                 spec.mem_stacks
                     .iter()
-                    .map(|s| (s.id.to_string(), Gran::Stack { channels: s.channel_count(), pcs: s.pseudo_channels() }))
+                    .map(|s| (s.id.to_string(), Gran::stack(s)))
                     .collect(),
             );
             for d in &spec.dies {
@@ -493,7 +497,7 @@ impl B<'_> {
         }
     }
 
-    fn near_granules(&self, near: &NearBinding) -> Option<u32> {
+    fn near_granules(&self, near: &NearBinding) -> Option<u64> {
         let segs = super::select::split_segments(&near.memory);
         let last = segs.last().copied().unwrap_or_default();
         let name: String = last.split(['[', '{']).next().unwrap_or(last).to_owned();
@@ -509,6 +513,13 @@ impl B<'_> {
             && rep.count.is_none()
             && matches!(rep.layout, Layout::Linear)
         {
+            let Ok(g) = u32::try_from(g) else {
+                self.d.push_inst(
+                    "budget",
+                    Diagnostic::error("E-IR-0210", format!("'{key}' implies {g} near units, beyond a u32 count")).at(&key),
+                );
+                return;
+            };
             rep.count = Some(g);
         }
         for (inst, spec) in self.replicate(cx, u.id.as_str(), &rep, u) {
@@ -1489,7 +1500,7 @@ impl B<'_> {
                         }
                         let g = Gran::of(&self.m.memories[mi].spec).granules(near.granularity);
                         let (count, slice) = (self.m.nodes[node].count, self.m.nodes[node].index);
-                        if count != g {
+                        if u64::from(count) != g {
                             self.d.push_inst(
                                 &key,
                                 Diagnostic::error("E-IR-0607", format!("'{key}' count {count} != {g} granules of its bound memory"))

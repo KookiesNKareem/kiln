@@ -588,3 +588,47 @@ fn replicated_package_links_apply_vary() {
     bw.dedup();
     assert_eq!(bw, [16e9, 8e9]);
 }
+
+fn stack_near(stack: &str, unit: &str) -> String {
+    mutate("id: \"die\", default_clock: \"clk\",", &format!("id: \"die\", default_clock: \"clk\", units: [ {{ id: \"pim\", {unit} kind: \"vector\", lanes: 16, precisions: [\"fp32@1\"], feeds: {{ any: \"hbm\" }} }} ],"))
+        .replacen("io_width_bits: 1024,", &format!("io_width_bits: 1024, {stack}"), 1)
+}
+
+#[test]
+fn per_bank_near_units_use_the_declared_banks_per_pc() {
+    let stack = "channels: 2, pseudo_channels_per_channel: 2, banks_per_pc: 32,";
+    let near = |count: &str, g: &str| stack_near(stack, &format!("{count} near: {{ memory: \"hbm\", granularity: \"{g}\" }},"));
+    let r = check_str(&MemLoader::default(), None, &near("", "per_bank"), Profile::Full);
+    let m = r.model.unwrap_or_else(|| panic!("{:?}", r.diagnostics));
+    assert_eq!(m.units.iter().filter(|u| m.nodes[u.node].entity_id == "pim").count(), 128);
+    assert!(!codes(&near("count: 128,", "per_bank")).contains(&"E-IR-0607".into()));
+    expect(&near("count: 64,", "per_bank"), "E-IR-0607");
+}
+
+#[test]
+fn huge_pseudo_channel_counts_do_not_wrap() {
+    let stack = "channels: 2147483648, pseudo_channels_per_channel: 2,";
+    for g in ["per_pseudo_channel", "per_bank_group", "per_bank"] {
+        expect(&stack_near(stack, &format!("near: {{ memory: \"hbm\", granularity: \"{g}\" }},")), "E-IR-0210");
+        expect(&stack_near(stack, &format!("count: 4, near: {{ memory: \"hbm\", granularity: \"{g}\" }},")), "E-IR-0607");
+    }
+    assert!(!codes(&stack_near(stack, "")).iter().any(|c| c.starts_with("E-")), "{:?}", codes(&stack_near(stack, "")));
+}
+
+#[test]
+fn systolic_fill_is_derived_without_wrapping() {
+    let src = mutate("geometry: { systolic: { rows: 16, cols: 16 } },", "geometry: { systolic: { rows: 4294967295, cols: 1 } }, pipeline: { fill: 4294967294 },");
+    let c = codes_with(&src, Profile::Search);
+    assert!(c.contains(&"E-IR-1101".into()), "{c:?}");
+    let ok = src.replace("fill: 4294967294", "fill: 4294967295");
+    let c = codes_with(&ok, Profile::Search);
+    assert!(!c.iter().any(|x| x == "E-IR-1101"), "{c:?}");
+}
+
+#[test]
+fn invalid_analog_cim_bits_are_diagnosed_without_panicking() {
+    let src = mutate("units: [", "units: [ { id: \"cim\", kind: \"cim\", rows: 1, cols: 1, cell_bits: 32, input_bits_per_cycle: 32, style: \"analog\", adc_bits: 1, precisions: [\"int8*int8+int32\"], near: { memory: \"sram\", granularity: \"per_instance\" } },");
+    for p in [Profile::Full, Profile::Search] {
+        assert!(codes_with(&src, p).contains(&"E-IR-0609".into()), "{p:?}");
+    }
+}

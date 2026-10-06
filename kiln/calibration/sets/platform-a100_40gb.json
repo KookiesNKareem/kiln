@@ -1,7 +1,7 @@
 {
   "schema": "kiln.calib/1",
   "id": "platform:a100_40gb",
-  "version": 4,
+  "version": 5,
   "kind": "platform",
   "platform": "a100_40gb",
   "parameters": [
@@ -22,8 +22,8 @@
         0.9242149196198618
       ],
       "range": {
-        "lower": 0.8529334526506769,
-        "upper": 0.9515708926370616,
+        "lower": 0.8422521726438692,
+        "upper": 0.9622521726438693,
         "basis": "single_device"
       },
       "pess_dir": "lower",
@@ -139,8 +139,8 @@
         9.450966802139488e-6
       ],
       "range": {
-        "lower": 3.4562368259890652e-6,
-        "upper": 8.926380442921258e-6,
+        "lower": 3.980823185207295e-6,
+        "upper": 9.450966802139488e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -177,7 +177,7 @@
       ],
       "range": {
         "lower": 1e-7,
-        "upper": 8.643056288996562e-7,
+        "upper": 9.941564690484163e-7,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -234,8 +234,8 @@
         1.7651110778931695e-6
       ],
       "range": {
-        "lower": 5.692502621008763e-7,
-        "upper": 2.2343613399940455e-6,
+        "lower": 1e-7,
+        "upper": 1.7651110778931695e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -593,5 +593,5 @@
     }
   ],
   "created": "2026-10-05",
-  "hash": "cal1-83743823851967d1a8fdf08c3303d243"
+  "hash": "cal1-488f21a67135fa4d8db0dd1451530c3a"
 }

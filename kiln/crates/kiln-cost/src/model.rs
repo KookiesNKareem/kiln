@@ -384,7 +384,8 @@ pub(crate) fn evaluate_with(
     ev.issued = ev.issued.max(ev.useful);
 
     let mut acts: Vec<Act> = Vec::with_capacity(p.streams.len() * 8);
-    let mut level_use = vec![0u64; unit.levels.len()];
+    // Per level, the bytes resident in each capacity share ([`MemLevel::share`]).
+    let mut level_use: Vec<Vec<((usize, u64), u64)>> = vec![vec![]; unit.levels.len()];
     let mut level_culprit: Vec<Option<usize>> = vec![None; unit.levels.len()];
     ev.energy.levels_j = vec![0.0; unit.levels.len()];
     // ZigZag-compat side tables, per stream per chain level.
@@ -483,7 +484,11 @@ pub(crate) fn evaluate_with(
             let mult = if dbuf(j) { 2 } else { 1 };
             let streams_through = j > 0 && j + 1 < n && b[j] == b[j - 1];
             if !streams_through {
-                level_use[l] += bytes(f[j], tile_bits) * mult;
+                let (sh, need) = (lv.share(s.role), bytes(f[j], tile_bits) * mult);
+                match level_use[l].iter_mut().find(|x| x.0 == sh) {
+                    Some(x) => x.1 += need,
+                    None => level_use[l].push((sh, need)),
+                }
             }
             if level_culprit[l].is_none() && j + 1 < n {
                 level_culprit[l] = loops.get(b[j].saturating_sub(1)).map(|x| x.dim);
@@ -528,13 +533,14 @@ pub(crate) fn evaluate_with(
     }
 
     if check_capacity && !p.compat {
-        for (l, &need) in level_use.iter().enumerate() {
+        for (l, uses) in level_use.iter().enumerate() {
             let lv = &unit.levels[l];
             let n_inst: u64 = lv.instance_axes.iter().map(|&a| u64::from(unit.axes[a].size)).product::<u64>().max(1);
-            let cap = lv.capacity_bytes / n_inst;
-            if need > cap {
-                let dim = level_culprit[l].map(|d| p.nest.dims[d].name.clone());
-                return Err(infeasible(lv, need, cap, dim.as_deref()));
+            for &((_, cap), need) in uses {
+                if need > cap / n_inst {
+                    let dim = level_culprit[l].map(|d| p.nest.dims[d].name.clone());
+                    return Err(infeasible(lv, need, cap / n_inst, dim.as_deref()));
+                }
             }
         }
     }

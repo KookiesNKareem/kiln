@@ -924,13 +924,6 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
             }
         }
         let mut outline = bbox.unwrap_or_default();
-        if outline.area() > pt.max_mm2 * 1e6 * (1.0 + 1e-9) {
-            problems.push(
-                Diagnostic::error("E-PHYS-PACKAGE-OVERFLOW", format!("{}: package outline {:.0} mm^2 exceeds the {} limit {:.0} mm^2", hw.nodes[pnode].path, outline.area() / 1e6, table, pt.max_mm2))
-                    .at(&hw.nodes[pnode].path)
-                    .hint("use fewer dies/stacks or a larger package technology (CoWoS-L, organic)"),
-            );
-        }
         // A declared substrate outline bounds the package, and a fixed one is the package.
         let declared = pkg.as_ref().map(|p| &p.substrate.outline);
         let (bw, bh) = (outline.w(), outline.h());
@@ -950,6 +943,13 @@ pub fn build(inp: &FloorplanInput) -> Floorplan {
                 Diagnostic::error("E-PHYS-PACKAGE-OVERFLOW", format!("{}: dies and stacks span {:.1} x {:.1} mm, beyond the declared {lim}", hw.nodes[pnode].path, bw / 1000.0, bh / 1000.0))
                     .at(&hw.nodes[pnode].path)
                     .hint("enlarge the substrate outline or use fewer dies/stacks"),
+            );
+        }
+        if outline.area() > pt.max_mm2 * 1e6 * (1.0 + 1e-9) {
+            problems.push(
+                Diagnostic::error("E-PHYS-PACKAGE-OVERFLOW", format!("{}: package outline {:.0} mm^2 exceeds the {} limit {:.0} mm^2", hw.nodes[pnode].path, outline.area() / 1e6, table, pt.max_mm2))
+                    .at(&hw.nodes[pnode].path)
+                    .hint("use fewer dies/stacks or a larger package technology (CoWoS-L, organic)"),
             );
         }
         packages.push(PackageFp { container: pci, path: hw.nodes[pnode].path.clone(), table, outline, stacks, max_mm2: pt.max_mm2 });

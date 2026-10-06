@@ -15,6 +15,7 @@ use kiln_ir::hw::model::{ContainerKind, MemSpec, NodeIx};
 use crate::container::{Headline, Manifest};
 use crate::interval::{Corner, Interval};
 use crate::layout;
+use crate::phys::{self, Placed, ProfileCheck};
 use crate::provenance::TraceLevel;
 use crate::result::EvalResult;
 use crate::sim::{BindingClass, ResourceKind, SimResult, Target};
@@ -28,8 +29,11 @@ pub struct BuildInput<'a> {
     pub design_name: Option<String>,
     pub workload_name: Option<String>,
     pub level: TraceLevel,
-    /// A placed floorplan (04, kiln-phys) and its placer id; `None` = the unplaced hierarchy layout.
+    /// A placed floorplan and its placer id; `None` = kiln-phys's placement of `hw` (the unplaced hierarchy
+    /// layout without a model, or when kiln-phys fails).
     pub floorplan: Option<(Vec<FloorplanRow>, String)>,
+    /// Validation of the design per profile, for the design sheet.
+    pub checks: &'a [ProfileCheck],
 }
 
 /// 03 binding class -> `limiters.binding` code (default enum order).
@@ -188,12 +192,27 @@ fn hw_resources(hw: &HwModel) -> (Vec<Res>, BTreeMap<String, f64>) {
             array: (n.count > 1).then(|| (n.entity.clone(), n.index)),
         });
     }
+    // Every channel is a resource (05 §3.4 `channel`: expanded link/port pair), named as 03 names links.
     let mut chan_bw = BTreeMap::new();
     for c in &hw.channels {
-        if let Some(bw) = c.bandwidth {
-            let key = format!("{}-{}", hw.path(c.src), hw.path(c.dst));
-            chan_bw.entry(key).or_insert(bw.0);
+        if !hw.enabled(c.src) || !hw.enabled(c.dst) {
+            continue;
         }
+        let key = format!("{}-{}", hw.path(c.src), hw.path(c.dst));
+        if chan_bw.contains_key(&key) {
+            continue;
+        }
+        chan_bw.insert(key.clone(), c.bandwidth.map_or(0.0, |b| b.0));
+        out.push(Res {
+            path: key,
+            entity: None,
+            kind: "channel",
+            class: "interconnect",
+            mem_level: None,
+            capacity_b: None,
+            peak_bw_bps: c.bandwidth.map(|b| b.0),
+            array: None,
+        });
     }
     (out, chan_bw)
 }
@@ -796,9 +815,34 @@ pub fn build(input: &BuildInput) -> Trace {
         }
     }
 
+    let placed = match (&input.floorplan, input.hw) {
+        (None, Some(hw)) => match place_phys(hw, &index, input.checks) {
+            Ok(p) => Some(p),
+            Err(why) => {
+                t.manifest.notes.push(format!(
+                    "kiln-phys placement unavailable ({why}): the floorplan falls back to the unplaced hierarchy layout"
+                ));
+                None
+            }
+        },
+        _ => None,
+    };
     if let Some((rows, source)) = &input.floorplan {
         t.floorplan = rows.clone();
         t.manifest.floorplan_source = Some(source.clone());
+    } else if let Some(p) = placed {
+        t.floorplan = p.floorplan;
+        t.wires = p.wires;
+        t.package_geometry = p.package;
+        t.manifest.floorplan_source = Some(p.source);
+        t.manifest.notes.push("floorplan: kiln-phys placement (dies, die-level macros, shoreline PHYs, memory stacks, packages side by side) and its layout inside macros; compute units are filled in by area inside their placed parent because kiln-phys arranges dies without unit area; wires are Manhattan routes between endpoint positions with kiln-phys link lengths and costs".into());
+        t.run_scalars.push((
+            "design_summary".into(),
+            kiln_ir::common::canonical_json(&p.summary),
+        ));
+        if t.manifest.headline.area_mm2.is_none() {
+            t.manifest.headline.area_mm2 = Some(Interval::point(p.package_mm2));
+        }
     } else {
         t.floorplan = layout::unplaced_floorplan(&t);
         t.manifest.floorplan_source =
@@ -810,13 +854,89 @@ pub fn build(input: &BuildInput) -> Trace {
     if input.level >= TraceLevel::Ops {
         t.manifest.notes.push("spans are Tier A estimates (one per op on its binding resource, no contention); whole-step makespans extrapolate the middle iteration of the scheduled repeat window".into());
     }
+    let area = t.manifest.headline.area_mm2;
     t.manifest.headline = headline(r);
+    if t.manifest.headline.area_mm2.is_none() {
+        t.manifest.headline.area_mm2 = area;
+    }
     t.manifest.headline.floor_failures = t
         .diagnostics
         .iter()
         .filter(|d| d.code.starts_with("E-FLOOR"))
         .map(|d| d.code.clone())
         .collect();
+    t
+}
+
+/// kiln-phys's model of `hw` placed into trace rows; a kiln-phys panic or a design without dies is an error.
+fn place_phys(
+    hw: &HwModel,
+    index: &BTreeMap<&str, u32>,
+    checks: &[ProfileCheck],
+) -> Result<Placed, String> {
+    let run = || {
+        let ph = kiln_phys::Phys::new(hw);
+        phys::place(hw, &ph, &|p: &str| index.get(p).copied(), checks)
+    };
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)) {
+        Ok(Some(p)) => Ok(p),
+        Ok(None) => Err("no placed dies or packages".into()),
+        Err(e) => Err(e
+            .downcast_ref::<String>()
+            .cloned()
+            .or_else(|| e.downcast_ref::<&str>().map(|s| (*s).to_string()))
+            .unwrap_or_else(|| "kiln-phys panicked".into())),
+    }
+}
+
+/// A structure-only trace of `hw` (no simulation, 05 §8 `kiln viz <design>`): resources, kiln-phys floorplan,
+/// wires, package geometry, roofline ceilings and the design sheet.
+pub fn structure(
+    hw: &HwModel,
+    design_json: Option<serde_json::Value>,
+    design_name: Option<String>,
+    checks: &[ProfileCheck],
+) -> Trace {
+    let mut prov = crate::Provenance::unknown(crate::Tier::A);
+    prov.design_hash = hw.design_hash.clone();
+    let r = EvalResult {
+        schema: crate::RESULT_SCHEMA.into(),
+        status: crate::result::Status::Ok,
+        score: 0.0,
+        score_interval: None,
+        score_components: None,
+        score_realistic: None,
+        interval: Default::default(),
+        stage_reached: crate::result::Stage::S0,
+        tier: None,
+        phases: vec![],
+        ops: vec![],
+        physical: None,
+        features: BTreeMap::new(),
+        violations: vec![],
+        errors: vec![],
+        warnings: vec![],
+        audit: Default::default(),
+        trace: None,
+        provenance: prov,
+        timing: Default::default(),
+        calibration: None,
+        invariants: None,
+        sim: vec![],
+    };
+    let mut t = build(&BuildInput {
+        result: &r,
+        hw: Some(hw),
+        design_json,
+        design_name,
+        workload_name: None,
+        level: TraceLevel::Summary,
+        floorplan: None,
+        checks,
+    });
+    t.manifest
+        .notes
+        .push("structure only: no simulation (run kiln eval -o run.kiln for metrics)".into());
     t
 }
 
@@ -905,6 +1025,7 @@ pub fn from_sim(sim: &SimResult, hw: Option<&HwModel>, level: TraceLevel) -> Tra
         workload_name: None,
         level,
         floorplan: None,
+        checks: &[],
     })
 }
 
@@ -953,6 +1074,7 @@ mod tests {
                 workload_name: None,
                 level,
                 floorplan: None,
+                checks: &[],
             });
             assert!(!t.resources.is_empty() && !t.ops.is_empty() && !t.phases.is_empty());
             assert_eq!(t.spans.is_empty(), level < TraceLevel::Ops);

@@ -58,7 +58,7 @@ pub fn model(t: &Trace, spec: &ViewSpec) -> Model {
             FloorColor::Idle => s.util.map(|u| 1.0 - u),
             FloorColor::Energy => (s.energy_j > 0.0).then_some(s.energy_j),
             FloorColor::Bytes => (s.bytes > 0.0).then_some(s.bytes),
-            FloorColor::Kind => None,
+            FloorColor::Kind | FloorColor::Area | FloorColor::Power | FloorColor::Density => None,
         }
     };
     let mut value = vec![None; n];
@@ -87,6 +87,25 @@ pub fn model(t: &Trace, spec: &ViewSpec) -> Model {
         } else if let Some(v) = own(i) {
             value[i] = Some(v);
             sum[i] = (v, 1);
+        }
+    }
+    if matches!(
+        spec.color,
+        FloorColor::Area | FloorColor::Power | FloorColor::Density
+    ) {
+        // Physical roll-ups are per subtree already: containers carry their own value.
+        for (i, v) in value.iter_mut().enumerate() {
+            *v = fp_row[i].and_then(|k| {
+                let f = &t.floorplan[k];
+                match spec.color {
+                    FloorColor::Area => f.area_um2.filter(|a| *a > 0.0),
+                    FloorColor::Power => f.leak_w.filter(|w| *w > 0.0),
+                    _ => match (f.leak_w, f.area_um2) {
+                        (Some(w), Some(a)) if a > 0.0 && w > 0.0 => Some(w / (a / 1e6)),
+                        _ => None,
+                    },
+                }
+            });
         }
     }
     if spec.color == FloorColor::Kind {
@@ -124,7 +143,7 @@ pub fn model(t: &Trace, spec: &ViewSpec) -> Model {
     }
 }
 
-fn norm(m: &Model, spec: &ViewSpec, v: f64) -> f64 {
+pub(crate) fn norm(m: &Model, spec: &ViewSpec, v: f64) -> f64 {
     match spec.color {
         FloorColor::Utilization | FloorColor::Idle => v,
         _ if log_scale(m, spec) => (v.max(m.lo).ln() - m.lo.ln()) / (m.hi.ln() - m.lo.ln()),
@@ -133,14 +152,14 @@ fn norm(m: &Model, spec: &ViewSpec, v: f64) -> f64 {
     }
 }
 
-fn log_scale(m: &Model, spec: &ViewSpec) -> bool {
+pub(crate) fn log_scale(m: &Model, spec: &ViewSpec) -> bool {
     !matches!(spec.color, FloorColor::Utilization | FloorColor::Idle)
         && m.hi > 0.0
         && m.lo > 0.0
         && m.hi / m.lo > 100.0
 }
 
-fn denorm(m: &Model, spec: &ViewSpec, t: f64) -> f64 {
+pub(crate) fn denorm(m: &Model, spec: &ViewSpec, t: f64) -> f64 {
     match spec.color {
         FloorColor::Utilization | FloorColor::Idle => t,
         _ if log_scale(m, spec) => (m.lo.ln() + t * (m.hi.ln() - m.lo.ln())).exp(),
@@ -148,17 +167,56 @@ fn denorm(m: &Model, spec: &ViewSpec, t: f64) -> f64 {
     }
 }
 
-fn fmt_value(spec: &ViewSpec, v: f64) -> String {
+pub(crate) fn fmt_value(spec: &ViewSpec, v: f64) -> String {
     match spec.color {
         FloorColor::Utilization | FloorColor::Idle => fmt_pct(v),
         FloorColor::Energy => fmt_energy(v),
         FloorColor::Bytes => fmt_bytes(v),
         FloorColor::Kind => String::new(),
+        FloorColor::Area => fmt_area(v),
+        FloorColor::Power => crate::chart::fmt_power(v),
+        FloorColor::Density => format!("{} W/mm^2", crate::chart::fmt_num(v)),
     }
 }
 
-/// Floorplan scene; `t.floorplan` must be non-empty (otherwise a banner).
+pub(crate) fn color_label(c: FloorColor) -> &'static str {
+    match c {
+        FloorColor::Utilization => "busy fraction",
+        FloorColor::Idle => "idle fraction",
+        FloorColor::Energy => "energy",
+        FloorColor::Bytes => "bytes moved",
+        FloorColor::Kind => "",
+        FloorColor::Area => "silicon area",
+        FloorColor::Power => "static power (85 C)",
+        FloorColor::Density => "static power density",
+    }
+}
+
+/// um^2 as mm^2 (or um^2 below 0.01 mm^2).
+pub fn fmt_area(um2: f64) -> String {
+    if um2 >= 1e4 {
+        format!("{} mm^2", crate::chart::fmt_num(um2 / 1e6))
+    } else {
+        format!("{} um^2", crate::chart::fmt_num(um2))
+    }
+}
+
+/// Floorplan scene: kiln-phys's placement when the trace carries it, else the unplaced hierarchy layout
+/// (labelled); a banner without any floorplan. Run-only color modes on a trace without a run fall back to kind.
 pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
+    let eff;
+    let spec = if spec.color.needs_run() && t.aggregates_resource.is_empty() {
+        eff = ViewSpec {
+            color: FloorColor::Kind,
+            ..spec.clone()
+        };
+        &eff
+    } else {
+        spec
+    };
+    if crate::views::placed::is_placed(t) {
+        return crate::views::placed::scene(t, spec, sel);
+    }
     let th = spec.theme();
     let mut s = Scene::new(spec.width, spec.height, th.bg);
     let design = t
@@ -167,13 +225,19 @@ pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
         .clone()
         .unwrap_or_else(|| short_hash(&t.manifest.provenance.design_hash));
     let unplaced = t.manifest.floorplan_source.as_deref() == Some(kiln_trace::layout::UNPLACED);
+    let why = t
+        .manifest
+        .notes
+        .iter()
+        .find(|n| n.starts_with("kiln-phys placement unavailable"))
+        .map_or("", |_| "kiln-phys placement failed, ");
     let phase = spec.phase.clone().unwrap_or_else(|| "all phases".into());
     let sub = format!(
         "{}color: {} | {} | tier {:?}",
         if unplaced {
-            "UNPLACED (hierarchy layout, nominal sizes, not physical) | "
+            format!("UNPLACED ({why}hierarchy layout, nominal sizes, not physical) | ")
         } else {
-            ""
+            String::new()
         },
         spec.color.name(),
         phase,
@@ -346,13 +410,7 @@ pub fn scene(t: &Trace, spec: &ViewSpec, sel: &Selection) -> Scene {
         chart::swatches(&mut s, &th, lx, 90.0, &items);
     } else {
         let cm = spec.cmap;
-        let label = match spec.color {
-            FloorColor::Utilization => "busy fraction",
-            FloorColor::Idle => "idle fraction",
-            FloorColor::Energy => "energy",
-            FloorColor::Bytes => "bytes moved",
-            FloorColor::Kind => "",
-        };
+        let label = color_label(spec.color);
         let mm = &m;
         let fmt_t = |t: f64| fmt_value(spec, denorm(mm, spec, t));
         chart::gradient_legend(

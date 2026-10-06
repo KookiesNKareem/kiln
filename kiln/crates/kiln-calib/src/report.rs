@@ -74,12 +74,14 @@ pub struct Slope {
     pub regressor: String,
     pub slope: f64,
     pub t: f64,
+    /// Two-sided p-value of `t` under Student's t with `n - 2` degrees of freedom.
+    pub p: f64,
     /// |slope| times the regressor's observed range (log units): the effect across the data.
     pub effect: f64,
     pub significant: bool,
 }
 
-/// Univariate OLS of `y` on `x` (06 §3.3.6: significance at p < 0.01 two-sided, |t| > 2.58, and effect > 5%).
+/// Univariate OLS of `y` on `x` (06 §3.3.6: significance at p < 0.01 two-sided and effect > 5%).
 pub fn slope(name: &str, x: &[f64], y: &[f64]) -> Slope {
     let n = x.len() as f64;
     let (mx, my) = (x.iter().sum::<f64>() / n, y.iter().sum::<f64>() / n);
@@ -97,7 +99,72 @@ pub fn slope(name: &str, x: &[f64], y: &[f64]) -> Slope {
     };
     let range = x.iter().copied().fold(f64::NEG_INFINITY, f64::max) - x.iter().copied().fold(f64::INFINITY, f64::min);
     let effect = (b * range).abs();
-    Slope { regressor: name.into(), slope: b, t, effect, significant: t.abs() > 2.58 && effect > 0.05_f64.ln_1p() }
+    let p = if n > 2.0 { student_t_two_sided(t, n - 2.0) } else { 1.0 };
+    Slope { regressor: name.into(), slope: b, t, p, effect, significant: p < 0.01 && effect > 0.05_f64.ln_1p() }
+}
+
+/// `P(|T| >= |t|)` for Student's t with `df` degrees of freedom: `I_{df/(df+t^2)}(df/2, 1/2)`.
+fn student_t_two_sided(t: f64, df: f64) -> f64 {
+    if t.is_infinite() {
+        return 0.0;
+    }
+    reg_inc_beta(df / (df + t * t), 0.5 * df, 0.5)
+}
+
+/// Regularized incomplete beta `I_x(a, b)` (continued fraction, modified Lentz).
+fn reg_inc_beta(x: f64, a: f64, b: f64) -> f64 {
+    if x <= 0.0 {
+        return 0.0;
+    }
+    if x >= 1.0 {
+        return 1.0;
+    }
+    if x > (a + 1.0) / (a + b + 2.0) {
+        return 1.0 - reg_inc_beta(1.0 - x, b, a);
+    }
+    let front = (ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b) + a * x.ln() + b * (1.0 - x).ln()).exp() / a;
+    let tiny = 1e-300;
+    let (mut c, mut d) = (1.0, 1.0 - (a + b) * x / (a + 1.0));
+    d = 1.0 / if d.abs() < tiny { tiny } else { d };
+    let mut f = d;
+    for m in 1..500 {
+        let m = f64::from(m);
+        for num in [m * (b - m) * x / ((a + 2.0 * m - 1.0) * (a + 2.0 * m)), -(a + m) * (a + b + m) * x / ((a + 2.0 * m) * (a + 2.0 * m + 1.0))] {
+            d = 1.0 + num * d;
+            d = 1.0 / if d.abs() < tiny { tiny } else { d };
+            c = 1.0 + num / c;
+            if c.abs() < tiny {
+                c = tiny;
+            }
+            f *= c * d;
+        }
+        if (c * d - 1.0).abs() < 1e-15 {
+            break;
+        }
+    }
+    front * f
+}
+
+/// Lanczos approximation (g = 7, n = 9), accurate to ~1e-15 for x > 0.
+fn ln_gamma(x: f64) -> f64 {
+    const G: [f64; 9] = [
+        0.999_999_999_999_809_9,
+        676.520_368_121_885_1,
+        -1_259.139_216_722_402_8,
+        771.323_428_777_653_1,
+        -176.615_029_162_140_6,
+        12.507_343_278_686_905,
+        -0.138_571_095_265_720_12,
+        9.984_369_578_019_572e-6,
+        1.505_632_735_149_311_6e-7,
+    ];
+    if x < 0.5 {
+        return (std::f64::consts::PI / (std::f64::consts::PI * x).sin()).ln() - ln_gamma(1.0 - x);
+    }
+    let x = x - 1.0;
+    let t = x + 7.5;
+    let s = G[1..].iter().enumerate().fold(G[0], |s, (i, g)| s + g / (x + i as f64 + 1.0));
+    0.5 * (2.0 * std::f64::consts::PI).ln() + (x + 0.5) * t.ln() - t + s.ln()
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -362,7 +429,7 @@ pub fn render(r: &Report) -> String {
         let _ = writeln!(s, "  interval coverage {:.0}%", 100.0 * d.coverage);
         let _ = writeln!(s, "residual structure (test ops, log(pred/meas) on regressor):");
         for sl in &d.slopes {
-            let _ = writeln!(s, "  {:<26} slope {:+.4}  t {:+6.2}  effect {:.1}%  {}", sl.regressor, sl.slope, sl.t, 100.0 * sl.effect.exp_m1(), if sl.significant { "SIGNIFICANT" } else { "ok" });
+            let _ = writeln!(s, "  {:<26} slope {:+.4}  t {:+6.2}  p {:.2e}  effect {:.1}%  {}", sl.regressor, sl.slope, sl.t, sl.p, 100.0 * sl.effect.exp_m1(), if sl.significant { "SIGNIFICANT" } else { "ok" });
         }
         for (k, c) in &d.class_cal {
             if !(0.95..=1.05).contains(&c.geomean) {

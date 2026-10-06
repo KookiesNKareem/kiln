@@ -352,6 +352,11 @@ class Campaign:
         flagged = [r for r in ok if r["id"] in reasons]
         self.evaluator.audit(flagged, reasons)
         for r in flagged:
+            if r.get("features"):
+                # The audit replaces the interval, so interval-dependent descriptors may move the record's cell.
+                r["cell"] = list(self.archive.cell(r["features"]) or []) or None
+                r["descriptors"] = self.archive.normalized(r["features"])
+                r["eligible"] = r.get("eligible", False) and r["cell"] is not None
             if r["audit"]["status"] == "failed":
                 self._finding("audit_failed", r, r["audit"])
 

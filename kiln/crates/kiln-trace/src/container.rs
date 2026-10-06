@@ -17,7 +17,7 @@ use crate::trace::Trace;
 
 pub const MAGIC: [u8; 8] = *b"KILNTRC\0";
 pub const CONTAINER_VERSION: u32 = 1;
-pub const TRACE_SCHEMA_VERSION: &str = "1.0";
+pub const TRACE_SCHEMA_VERSION: &str = "1.1";
 pub const BLOCK: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -630,7 +630,7 @@ pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
     // Logic area per GE relative to N7 (misc logic quoted in N7 mm^2 scales like every other logic block).
     let logic_rel = |n: &TechNode| (n.a_ge_um2 / util_of(n)) / (a_ge_n7 / t.node("tsmc_n7").map_or(0.65, &util_of));
     let add_phy = |node: usize, kind: IoKind, units_n: f64, table: &str, nodes: &mut Vec<NodePhys>, phys: &mut Vec<PhyUse>, n: &TechNode, enabled: bool| {
-        let Some(pt): Option<&PhyT> = t.phy.get(table) else { return };
+        let Some(pt): Option<&PhyT> = t.phy.get(table) else { return 0.0 };
         let area = pt.area_mm2_n7 * 1e6 * units_n * (n.a_ge_um2 / a_ge_n7).sqrt();
         let np = &mut nodes[node];
         np.parts[Part::Phy as usize] += area;
@@ -646,13 +646,14 @@ pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
             e_j_per_bit: pt.e_pj_per_bit * 1e-12,
             latency_s: pt.latency_ns * 1e-9,
         });
+        area
     };
     let stack_kind = |mi: usize| hw.memories[mi].dram_kind().and_then(|k| serde_json::to_value(k).ok()).and_then(|v| v.as_str().map(String::from));
     for b in &hw.blocks {
         let n = node_of(b.node, &mut missing);
         let util = util_of(n);
         let enabled = hw.nodes[b.node].enabled;
-        let (area, part) = match &b.spec.kind {
+        let (area, part, counted) = match &b.spec.kind {
             BlockKind::Phy(ps) => {
                 // The stack this PHY serves (channel to a stack memory) picks the HBM generation.
                 let dram = hw.out_edges[b.node]
@@ -666,20 +667,20 @@ pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
                     IoKind::Lpddr => f64::from(ps.lanes.unwrap_or(64)) / 64.0,
                     _ => f64::from(ps.lanes.unwrap_or(1)),
                 };
-                add_phy(b.node, ps.for_kind, units_n, table, &mut nodes, &mut phys, n, enabled);
-                (0.0, Part::Phy)
+                let a = add_phy(b.node, ps.for_kind, units_n, table, &mut nodes, &mut phys, n, enabled);
+                (a, Part::Phy, a)
             }
-            BlockKind::MemController(_) => (0.0, Part::Misc),
-            BlockKind::Dma(_) => (dp.c("dma_ge") * n.a_ge_um2 / util, Part::Control),
-            BlockKind::Sequencer { .. } => (dp.c("sequencer_ge") * n.a_ge_um2 / util, Part::Control),
-            BlockKind::Misc { .. } => (misc_block * 1e6 * logic_rel(n), Part::Misc),
+            BlockKind::MemController(_) => (0.0, Part::Misc, 0.0),
+            BlockKind::Dma(_) => (dp.c("dma_ge") * n.a_ge_um2 / util, Part::Control, 0.0),
+            BlockKind::Sequencer { .. } => (dp.c("sequencer_ge") * n.a_ge_um2 / util, Part::Control, 0.0),
+            BlockKind::Misc { .. } => (misc_block * 1e6 * logic_rel(n), Part::Misc, 0.0),
         };
         let declared = b.spec.footprint.as_ref().and_then(|f| f.area).map(|a| a.0 * 1e6).or(b.spec.power.area.map(|a| a.0 * 1e6));
         let area = match (&b.spec.kind, declared) {
             (BlockKind::Misc { .. }, Some(d)) => d,
             (_, Some(d)) => d.max(area),
             _ => area,
-        };
+        } - counted;
         let np = &mut nodes[b.node];
         np.parts[part as usize] += area;
         np.area_um2 += area;

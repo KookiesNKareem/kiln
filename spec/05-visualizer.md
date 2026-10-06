@@ -264,9 +264,14 @@ evaluated them. Shown in the Run info panel.
 `loop_nest utf8` (JSON, opaque to viz, pretty-printed in inspector), `tiling_by_level list<utf8>`.
 
 **`floorplan`**: per placed block: `resource u32`, `die u32`, `layer u8` (stack layer, 0 = base), `x_um, y_um, w_um,
-h_um f64`, `poly list<(f64,f64)>` (nullable; rectilinear outlines), `rotation u8`. Plus `package_geometry` (package
-outline, interposer, chip positions, HBM stack positions, shoreline segments) and `wires` (`link u32`,
-`polyline list<(f64,f64)>`, `layer u8`, `length_um f64`). Produced by 04's placer.
+h_um f64`, `poly list<(f64,f64)>` (nullable; rectilinear outlines), `rotation u8`; since schema 1.1 also `source u8`
+(enum: unplaced, placed, layout, filled, site), `block u8` (enum: misc, compute, sram, noc, phy, hbm, control) and
+`area_um2`, `leak_w` (f64, nullable: the subtree's silicon area and leakage). Plus `package_geometry` (`kind u8`
+enum package, shoreline, harvested; `resource`, `layer`, `x_um, y_um, w_um, h_um`, `label`, `value`, `value2`:
+package outlines with their technology, shoreline per die edge with used and HBM um, harvested dies and stacks) and
+`wires` (`link u32`, `src u32`, `dst u32`, `kind u8`, `source u8`, `layer u8`, `polyline` as a flat
+`x0, y0, x1, y1, ...` list, `length_um`, `width_bits`, `bw_bps`, `latency_s`, `e_j_per_bit`, `class u8`,
+`pipeline_stages u32`). Produced from 04's placer and link derivation.
 
 **`diagnostics`**: structured errors/warnings carried through from engines and physical checks (code, message,
 entity path, hint, as in the overview). Viz shows them as an issue list with click-to-entity.
@@ -1042,8 +1047,10 @@ What the first implementation does where this spec left room, or deviates from i
   `floorplan` (`poly` as a flat `x0, y0, x1, y1, ...` list), `ceilings` (new: per-chip roofline ceilings: dense
   peak per MAC mode, bandwidth per memory level, inter-chip links), `diagnostics`, `run_scalars` (`name`, canonical
   `json`: energy, power, invariants and calibration per phase, and the result without `sim`/`timing`), `spans`.
-  `ops` gains `family` (path without `.i<N>`/`.k<N>`), `energy_j`, `time_low_s`, `time_high_s`. Not yet written:
-  `mapping`, `wires`, `routes`, `transfers`, `counters`, `thermal_frames`, `critical_path` (Tier B, M4) and the
+  `ops` gains `family` (path without `.i<N>`/`.k<N>`), `energy_j`, `time_low_s`, `time_high_s`. Schema 1.1
+  (2026-10-06) adds `wires`, `package_geometry`, the floorplan columns of §3.4 and a `design_summary` run scalar
+  (the design sheet). Not yet written: `mapping`, `routes`, `transfers`, `counters`, `thermal_frames`,
+  `critical_path` (Tier B, M4) and the
   LOD pyramids. Enum codes index the manifest lists; `ops.kind` is a coarse class derived from the op path
   (matmul, attention, norm, memory, ...) because `SimResult` does not carry 02's op tag.
 - **Writing a trace.** `kiln eval <design> --trace summary|ops -o run.kiln`; the engine always records ops for a
@@ -1051,17 +1058,36 @@ What the first implementation does where this spec left room, or deviates from i
   resource (lanes assigned so spans in a lane never overlap). Resources are the expanded model's instances plus
   03's engine resources (links and ports as `channel`, the sequencer); memory levels also resolve 03's
   multi-instance group names (the template entity path).
-- **Floorplan.** Until kiln-phys exposes placement, the floorplan is a deterministic squarified-treemap layout of
-  the hierarchy with nominal sizes per kind, `manifest.floorplan_source = "unplaced"`, labelled UNPLACED in every
-  view. `BuildInput.floorplan` takes placed rows and a placer id when kiln-phys provides them; power-density and
-  temperature color modes wait for that.
+- **Floorplan (2026-10-06).** With the design, `kiln-trace` builds the floorplan from kiln-phys's model
+  (`Phys::new`, Tier A): die outlines, die-level macros (PHYs on their shoreline edges), memory stacks and package
+  outlines are its placement (`source = placed`), blocks inside a macro its hierarchical layout (`layout`).
+  kiln-phys arranges dies without compute-unit area (04 §6.1, P6), so units and their local buffers have no
+  rectangle there: they are laid out by area inside their placed parent (`filled`), as are their siblings.
+  Routers and footprint-less ports are position-only `site` rows. One frame per package, y down; packages are laid
+  out side by side (on their 2-D array coordinates when declared), containers above them get the box around their
+  contents. Every enabled channel is a `channel` resource and a `wires` row: a Manhattan L between its endpoints'
+  positions with kiln-phys's link length, latency and energy (cluster-internal lengths are kiln-phys's 0.5 sqrt of
+  the live cluster area, not the drawn L). Blocks kiln-phys leaves out of geometry (no channels, e.g. A100
+  `uncore`) are listed, not drawn. `manifest.floorplan_source = "kiln-phys/m3 tier A"`; if kiln-phys panics or
+  places no die, the unplaced treemap remains, labelled UNPLACED with the reason. The view draws to scale (scale
+  bar in mm), opens containers above `drill_px`, colors by run metrics, block kind, area, static power or power
+  density, and draws wires aggregated onto the blocks drawn at the current depth (bandwidth and bytes summed,
+  utilization, length, energy and latency maximal), colored by utilization (runs) or bandwidth (designs) or any
+  of traffic, length, energy, latency, width ~ log bandwidth. Stacked dies are drawn one panel per layer (or one
+  layer with `--layer`, the others outlined); vertical links show as rings at both ends.
+- **Design-only (2026-10-06).** `kiln viz render <design> --view floorplan|design|wires` and `kiln viz <design>`
+  build a structure trace (kiln-ir expansion, reference and search profile validation, kiln-phys) without kiln-sim.
+  `design` is a sheet of peaks per precision, memory levels, off-chip memory, networks, area per die with its
+  parts, a power estimate (all MAC units and DRAM at peak, nominal clocks, against the TDP), clocks and V/f,
+  validation and E-PHYS findings; `wires` is a length vs energy-per-bit scatter and a table of link classes.
+  Run-only color modes fall back to `kind` on a design.
 - **Op times.** Tier A op envelopes do not span their execution group's traffic (a fused GEMV's envelope ends long
   before its weights finish streaming), while group times tile the scheduled window. Views therefore (a) plot the
   roofline per execution group (FLOPs and boundary bytes summed, labelled by the largest op) and (b) attribute
   group time to ops by the group's binding term (FLOPs for compute-bound groups, boundary bytes for memory-bound
   ones) for bottleneck bars, recoverable time and compare. 03 records bytes *delivered into* each level, so the
   traffic across a level's boundary is what was delivered into it plus into the next level inward.
-- **Views.** All eight render headless. NoC at Tier A is a ranked list of link utilizations (no time axis); the
+- **Views.** All ten render headless (the eight of §6 plus `design` and `wires`). NoC at Tier A is a ranked list of link utilizations (no time axis); the
   timeline at Tier A shows phases, execution groups, op envelopes per family and estimated span lanes; compare
   aligns by `phase/op family`; the calibration view reads the 05 §3.9 table or `kiln calibrate report --format
   json` output (`kiln viz --calibration`), and measured points also appear on the roofline (`--device`).

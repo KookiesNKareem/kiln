@@ -99,6 +99,19 @@ def test_pipe_held_by_an_escaped_process_does_not_block_draining():
     assert killed is None and time.monotonic() - t0 < 3
 
 
+def test_closing_stderr_does_not_end_supervision():
+    work = "import os, time; os.close(2); time.sleep({})"
+    p = subprocess.Popen([sys.executable, "-c", work.format(0.3)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.PIPE, start_new_session=True)
+    _, killed = _supervise(p, time.monotonic() + 2, None)
+    assert killed is None and p.returncode == 0, p.returncode
+    p = subprocess.Popen([sys.executable, "-c", work.format(30)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.PIPE, start_new_session=True)
+    t0 = time.monotonic()
+    _, killed = _supervise(p, t0 + 0.5, None)
+    assert killed == "timeout" and time.monotonic() - t0 < 3
+
+
 def test_stderr_flood_is_bounded(program):
     p = program("""
         import os

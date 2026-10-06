@@ -21,6 +21,7 @@ pub enum Action {
     Up,
     ToggleAggregate,
     NextPhase,
+    ToggleWires,
 }
 
 impl AppState {
@@ -32,10 +33,13 @@ impl AppState {
         }
     }
 
-    /// `1`..`8` switch views, `C` cycles the floorplan color mode, `Esc` clears, `U` goes up (05 §4.3).
+    /// `1`..`9`, `0` switch views, `C` cycles the floorplan color mode, `W` toggles wires, `Esc` clears, `U`
+    /// goes up (05 §4.3).
     pub fn key(c: char) -> Option<Action> {
         Some(match c {
-            '1'..='8' => Action::View(ViewKind::ALL[(c as u8 - b'1') as usize]),
+            '1'..='9' => Action::View(ViewKind::ALL[(c as u8 - b'1') as usize]),
+            '0' => Action::View(ViewKind::ALL[9]),
+            'w' | 'W' => Action::ToggleWires,
             'c' | 'C' => Action::CycleColor,
             'u' | 'U' => Action::Up,
             'a' | 'A' => Action::ToggleAggregate,
@@ -61,6 +65,7 @@ impl AppState {
                 self.spec.root = self.crumbs.last().cloned();
             }
             Action::ToggleAggregate => self.spec.aggregate = !self.spec.aggregate,
+            Action::ToggleWires => self.spec.wires = !self.spec.wires,
             Action::NextPhase => {
                 let i = self
                     .spec
@@ -143,6 +148,18 @@ impl AppState {
         out
     }
 
+    /// Floorplan layer selector: every layer side by side, then each of `layers` alone.
+    pub fn cycle_layer(&mut self, layers: &[u8]) {
+        let i = self
+            .spec
+            .layer
+            .and_then(|l| layers.iter().position(|x| *x == l));
+        self.spec.layer = match i {
+            None => layers.first().copied(),
+            Some(i) => layers.get(i + 1).copied(),
+        };
+    }
+
     /// The view-state string (05 §4.2): JSON of the view spec, restorable with `--state`.
     pub fn state_string(&self) -> String {
         serde_json::to_string(&self.spec).expect("view spec serializes")
@@ -175,6 +192,17 @@ mod tests {
         assert_eq!(s.spec.view, ViewKind::Roofline);
         s.apply(AppState::key('c').unwrap(), &[]);
         assert_eq!(s.spec.color, FloorColor::Idle);
+        s.apply(AppState::key('9').unwrap(), &[]);
+        assert_eq!(s.spec.view, ViewKind::Design);
+        s.apply(AppState::key('0').unwrap(), &[]);
+        assert_eq!(s.spec.view, ViewKind::Wires);
+        s.apply(AppState::key('w').unwrap(), &[]);
+        assert!(!s.spec.wires);
+        s.cycle_layer(&[0, 1]);
+        assert_eq!(s.spec.layer, Some(0));
+        s.cycle_layer(&[0, 1]);
+        s.cycle_layer(&[0, 1]);
+        assert_eq!(s.spec.layer, None);
         let phases = vec!["decode".to_string(), "prefill".to_string()];
         s.apply(Action::NextPhase, &phases);
         s.apply(Action::NextPhase, &phases);
@@ -185,9 +213,17 @@ mod tests {
     }
 
     #[test]
-    fn click_selects_links_and_drills_on_a_golden_trace() {
+    fn click_selects_links_and_drills_on_golden_traces() {
+        // v1.0: the unplaced hierarchy layout; v1.1: kiln-phys placement.
+        for v in ["1.0", "1.1"] {
+            click_drill(&format!("tpu_v5e_decode_b1_ops_v{v}.kiln"));
+        }
+    }
+
+    fn click_drill(name: &str) {
         let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../kiln-trace/tests/golden/trace/tpu_v5e_decode_b1_ops_v1.0.kiln");
+            .join("../kiln-trace/tests/golden/trace")
+            .join(name);
         let t = kiln_trace::container::read_kiln(&std::fs::read(p).unwrap()).unwrap();
         let inputs = Inputs {
             runs: vec![&t],

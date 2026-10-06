@@ -9,11 +9,12 @@ use kiln_trace::archive::Archive;
 use kiln_trace::build::{BuildInput, build};
 use kiln_trace::calib_report::{self, CalibRow};
 use kiln_trace::container::{self, write_kiln};
+use kiln_trace::phys::profile_checks;
 use kiln_trace::result::EvalResult;
 use kiln_trace::sim::SimResult;
 use kiln_trace::trace::Trace;
 use kiln_trace::{RESULT_SCHEMA, SIM_SCHEMA, TraceLevel};
-use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec};
+use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec, WireColor};
 use kiln_viz_render::{Inputs, Selection};
 use serde_json::Value;
 
@@ -73,6 +74,7 @@ pub fn trace_for_eval(
         workload_name: Some(workload.to_string()),
         level,
         floorplan: None,
+        checks: &profile_checks(&d, &hw),
     }))
 }
 
@@ -112,6 +114,7 @@ pub fn load_run(path: &Path) -> Result<Trace, Failure> {
                     workload_name: None,
                     level: TraceLevel::Ops,
                     floorplan: None,
+                    checks: &[],
                 });
                 t.manifest.notes.push("built from a result JSON without the design: hierarchy recovered from resource paths, no roofline ceilings".into());
                 return Ok(t);
@@ -128,49 +131,15 @@ pub fn load_run(path: &Path) -> Result<Trace, Failure> {
     structure_only(&path.display().to_string())
 }
 
-/// `kiln viz <design>`: expansion and the hierarchy floorplan only, no simulation (05 §8).
+/// `kiln viz <design>`: expansion, kiln-phys placement and the design sheet only, no simulation (05 §8).
 pub fn structure_only(design: &str) -> Result<Trace, Failure> {
     let (hw, d) = load_hw(design)?;
-    let mut prov = kiln_trace::Provenance::unknown(kiln_trace::Tier::A);
-    prov.design_hash = hw.design_hash.clone();
-    let r = EvalResult {
-        schema: RESULT_SCHEMA.into(),
-        status: kiln_trace::result::Status::Ok,
-        score: 0.0,
-        score_interval: None,
-        score_components: None,
-        score_realistic: None,
-        interval: Default::default(),
-        stage_reached: kiln_trace::result::Stage::S0,
-        tier: None,
-        phases: vec![],
-        ops: vec![],
-        physical: None,
-        features: Default::default(),
-        violations: vec![],
-        errors: vec![],
-        warnings: vec![],
-        audit: Default::default(),
-        trace: None,
-        provenance: prov,
-        timing: Default::default(),
-        calibration: None,
-        invariants: None,
-        sim: vec![],
-    };
-    let mut t = build(&BuildInput {
-        result: &r,
-        hw: Some(&hw),
-        design_json: Some(d.canonical.clone()),
-        design_name: Some(design_name(design)),
-        workload_name: None,
-        level: TraceLevel::Summary,
-        floorplan: None,
-    });
-    t.manifest
-        .notes
-        .push("structure only: no simulation (run kiln eval -o run.kiln for metrics)".into());
-    Ok(t)
+    Ok(kiln_trace::build::structure(
+        &hw,
+        Some(d.canonical.clone()),
+        Some(design_name(design)),
+        &profile_checks(&d, &hw),
+    ))
 }
 
 pub struct Loaded {
@@ -257,9 +226,21 @@ fn spec_from(a: &RenderArgs, view: ViewKind) -> Result<ViewSpec, Failure> {
         spec.color = FloorColor::parse(c).ok_or_else(|| {
             usage(
                 format!("unknown --color {c:?}"),
-                "utilization, idle, energy, bytes, kind",
+                "utilization, idle, energy, bytes, kind, area, power, density",
             )
         })?;
+    }
+    if let Some(c) = &a.wire_color {
+        spec.wire_color = WireColor::parse(c).ok_or_else(|| {
+            usage(
+                format!("unknown --wire-color {c:?}"),
+                "auto, utilization, traffic, bandwidth, length, energy, latency",
+            )
+        })?;
+    }
+    spec.wires &= !a.no_wires;
+    if a.layer.is_some() {
+        spec.layer = a.layer;
     }
     if a.root.is_some() {
         spec.root.clone_from(&a.root);
@@ -299,7 +280,7 @@ pub fn render_cmd(g: &Global, a: &RenderArgs) -> Result<u8, Failure> {
             "use .png or .svg",
         ));
     }
-    let views: Vec<ViewKind> = a.views.iter().map(|v| ViewKind::parse(v).ok_or_else(|| usage(format!("unknown view {v:?}"), "floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration"))).collect::<Result<_, _>>()?;
+    let views: Vec<ViewKind> = a.views.iter().map(|v| ViewKind::parse(v).ok_or_else(|| usage(format!("unknown view {v:?}"), "floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration, design, wires"))).collect::<Result<_, _>>()?;
     let inputs = loaded.inputs();
     for v in &views {
         let spec = spec_from(a, *v)?;
@@ -451,7 +432,7 @@ pub fn viz_cmd(g: &Global, a: &VizArgs) -> Result<u8, Failure> {
         Some(v) => ViewKind::parse(v).ok_or_else(|| {
             usage(
                 format!("unknown view {v:?}"),
-                "floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration",
+                "floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration, design, wires",
             )
         })?,
         None if loaded.runs.len() > 1 => ViewKind::Compare,

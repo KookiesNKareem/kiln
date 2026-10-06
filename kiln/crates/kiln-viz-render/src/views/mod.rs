@@ -4,9 +4,12 @@ pub mod archive;
 pub mod bottleneck;
 pub mod calibration;
 pub mod compare;
+pub mod design;
 pub mod floorplan;
+pub mod placed;
 pub mod roofline;
 pub mod timeline;
+pub mod wires;
 
 use std::collections::BTreeSet;
 
@@ -29,10 +32,12 @@ pub enum ViewKind {
     Compare,
     Archive,
     Calibration,
+    Design,
+    Wires,
 }
 
 impl ViewKind {
-    pub const ALL: [ViewKind; 8] = [
+    pub const ALL: [ViewKind; 10] = [
         ViewKind::Floorplan,
         ViewKind::Noc,
         ViewKind::Timeline,
@@ -41,6 +46,8 @@ impl ViewKind {
         ViewKind::Compare,
         ViewKind::Archive,
         ViewKind::Calibration,
+        ViewKind::Design,
+        ViewKind::Wires,
     ];
 
     pub fn name(self) -> &'static str {
@@ -53,6 +60,8 @@ impl ViewKind {
             ViewKind::Compare => "compare",
             ViewKind::Archive => "archive",
             ViewKind::Calibration => "calibration",
+            ViewKind::Design => "design",
+            ViewKind::Wires => "wires",
         }
     }
 
@@ -66,6 +75,8 @@ impl ViewKind {
             ViewKind::Compare => "Compare",
             ViewKind::Archive => "Evolution",
             ViewKind::Calibration => "Calibration",
+            ViewKind::Design => "Design",
+            ViewKind::Wires => "Wires",
         }
     }
 
@@ -76,7 +87,8 @@ impl ViewKind {
     }
 }
 
-/// Floorplan color modes (05 §6.1) available without a physical model.
+/// Floorplan color modes (05 §6.1): run metrics (utilization, idle, energy, bytes), block kind, and the
+/// physical model's silicon area, static power and static power density (placed floorplans).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FloorColor {
@@ -86,15 +98,21 @@ pub enum FloorColor {
     Energy,
     Bytes,
     Kind,
+    Area,
+    Power,
+    Density,
 }
 
 impl FloorColor {
-    pub const ALL: [FloorColor; 5] = [
+    pub const ALL: [FloorColor; 8] = [
         FloorColor::Utilization,
         FloorColor::Idle,
         FloorColor::Energy,
         FloorColor::Bytes,
         FloorColor::Kind,
+        FloorColor::Area,
+        FloorColor::Power,
+        FloorColor::Density,
     ];
 
     pub fn name(self) -> &'static str {
@@ -104,11 +122,65 @@ impl FloorColor {
             FloorColor::Energy => "energy",
             FloorColor::Bytes => "bytes",
             FloorColor::Kind => "kind",
+            FloorColor::Area => "area",
+            FloorColor::Power => "power",
+            FloorColor::Density => "density",
         }
     }
 
     pub fn parse(s: &str) -> Option<FloorColor> {
         FloorColor::ALL.into_iter().find(|c| c.name() == s)
+    }
+
+    /// Needs a run (per-resource aggregates).
+    pub fn needs_run(self) -> bool {
+        matches!(
+            self,
+            FloorColor::Utilization | FloorColor::Idle | FloorColor::Energy | FloorColor::Bytes
+        )
+    }
+}
+
+/// Wire color modes: run traffic (utilization, bytes) or the link's physical attributes. `Auto` is
+/// utilization for a run and bandwidth for a design.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WireColor {
+    #[default]
+    Auto,
+    Utilization,
+    Traffic,
+    Bandwidth,
+    Length,
+    Energy,
+    Latency,
+}
+
+impl WireColor {
+    pub const ALL: [WireColor; 7] = [
+        WireColor::Auto,
+        WireColor::Utilization,
+        WireColor::Traffic,
+        WireColor::Bandwidth,
+        WireColor::Length,
+        WireColor::Energy,
+        WireColor::Latency,
+    ];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            WireColor::Auto => "auto",
+            WireColor::Utilization => "utilization",
+            WireColor::Traffic => "traffic",
+            WireColor::Bandwidth => "bandwidth",
+            WireColor::Length => "length",
+            WireColor::Energy => "energy",
+            WireColor::Latency => "latency",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<WireColor> {
+        WireColor::ALL.into_iter().find(|c| c.name() == s)
     }
 }
 
@@ -142,6 +214,11 @@ pub struct ViewSpec {
     pub lineage_of: Option<String>,
     /// Calibration: only this device.
     pub device: Option<String>,
+    /// Floorplan: stacked-die layer to show (others as outlines); `None` = every layer, side by side.
+    pub layer: Option<u8>,
+    /// Floorplan: draw links between blocks.
+    pub wires: bool,
+    pub wire_color: WireColor,
 }
 
 impl Default for ViewSpec {
@@ -164,6 +241,9 @@ impl Default for ViewSpec {
             y_axis: 1,
             lineage_of: None,
             device: None,
+            layer: None,
+            wires: true,
+            wire_color: WireColor::Auto,
         }
     }
 }

@@ -298,18 +298,28 @@ fn convert_kernel(k: &Kernel, oi: usize, src: &ElemType, to: Id, id: String) -> 
             .collect(),
         _ => dims,
     };
-    let scaled = !matches!(src.scaling, Scaling::None);
     Kernel {
         id,
         dims,
         domain,
         operands: vec![Operand::new(&op.tensor, Access::Read, op.index.clone()), Operand::new(&to, Access::Write, op.index.clone())],
-        body: ScalarBody { cvt: 1, mul: u16::from(scaled), ..ScalarBody::default() },
+        body: dequant_body(src),
         combine: None,
         accum: None,
         class: KernelClass::Map,
         opaque_cost: None,
     }
+}
+
+/// Per-element work of `(q - z) * scale` from `src`, converted: the subtraction only with a zero point, the
+/// multiply only with scales.
+pub fn dequant_body(src: &ElemType) -> ScalarBody {
+    let (mul, add) = match src.scaling {
+        Scaling::None => (0, 0),
+        Scaling::Block { zero_point, .. } => (1, u16::from(zero_point.is_some())),
+        Scaling::PerTensor { .. } | Scaling::PerAxis { .. } => (1, 0),
+    };
+    ScalarBody { cvt: 1, mul, add, ..ScalarBody::default() }
 }
 
 /// Inserts the converts every contraction of `lg` needs under `modes`; returns how many it inserted. A

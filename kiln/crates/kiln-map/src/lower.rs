@@ -135,8 +135,11 @@ pub struct Share {
 type ShareKey = (Vec<u64>, Vec<GroupIx>);
 
 /// Producers `(slice, unit, task)` of each `(operand, output box)`.
+/// Where a private box is: the unit that produced it, the task completing it there, and the group it was spilled
+/// to when the producer's private levels had no room for it.
+type PrivLoc = (usize, u32, Option<GroupIx>);
 /// New private locations and writers of one tensor, committed together.
-type NewLocs = (Vec<(TBox, (usize, u32))>, Vec<(TBox, u32)>);
+type NewLocs = (Vec<(TBox, PrivLoc)>, Vec<(TBox, u32)>);
 type OutSets = BTreeMap<(usize, TBox), Vec<(usize, usize, u32)>>;
 
 /// The local estimate of one op's tasks (03 §4.2 A1/L over the op alone), accumulated task by task in creation
@@ -206,8 +209,8 @@ impl Est {
         self.lmax = self.lmax.max(fin);
     }
 
-    /// The estimate; returns the zeroed scratch buffers.
-    fn finish(mut self, v: &HwView, profiles: &[Arc<Profile>]) -> (f64, Vec<f64>, Vec<f64>) {
+    /// The estimate and the busy time summed over resources; returns the zeroed scratch buffers.
+    fn finish(mut self, v: &HwView, profiles: &[Arc<Profile>]) -> (f64, f64, Vec<f64>, Vec<f64>) {
         self.ptouched.sort_unstable();
         self.ptouched.dedup();
         for &p in &self.ptouched {
@@ -219,12 +222,13 @@ impl Est {
                 self.busy[r as usize] += x * f / v.resources[r as usize].capacity.max(1.0);
             }
         }
-        let mut m = self.lmax;
+        let (mut m, mut load) = (self.lmax, 0.0);
         for &r in &self.touched {
             m = m.max(self.busy[r as usize]);
+            load += self.busy[r as usize];
             self.busy[r as usize] = 0.0;
         }
-        (m, self.busy, self.pbytes)
+        (m, load, self.busy, self.pbytes)
     }
 }
 
@@ -240,7 +244,15 @@ pub struct Lowerer<'a> {
     pscratch: Vec<f64>,
     /// Per profile: max over entries of share / capacity (seconds per byte on its slowest resource).
     pmax: Vec<f64>,
-    private: Vec<BoxIndex<(usize, u32)>>,
+    private: Vec<BoxIndex<PrivLoc>>,
+    /// Bytes each private tensor holds in the private levels of each storage group ([`Lowerer::store_of`]) during
+    /// the current span.
+    held: BTreeMap<(GroupIx, usize), u64>,
+    /// Capacity of the private levels behind each storage group.
+    store_cap: BTreeMap<GroupIx, u64>,
+    ranges: Vec<Option<(usize, usize)>>,
+    /// [`Lowerer::stream_dims`] by tensor.
+    streams: BTreeMap<usize, Arc<[String]>>,
     writers: Vec<BoxIndex<u32>>,
     touched: Vec<usize>,
     staged: BTreeMap<StageKey, u32>,
@@ -261,6 +273,9 @@ pub struct Lowerer<'a> {
     cur_group: u32,
     /// Speculative lowering costs slices with [`UnitCostModel::cost_floor`]: the estimate is a lower bound.
     pub floor: bool,
+    /// Busy time of the op last lowered summed over its resources (seconds at peak efficiencies): tells
+    /// candidates with equal estimates apart.
+    pub load: f64,
     /// Speculative lowering: tasks are folded into the estimate as they are created, never stored.
     virt: Option<Est>,
     /// Staging paths by (source group or unit, destination unit, source is a unit's feed).
@@ -293,7 +308,8 @@ impl VectorWork {
 #[derive(Default)]
 struct Effects {
     level: Vec<f64>,
-    private: Vec<(usize, TBox, usize, u32)>,
+    private: Vec<(usize, TBox, PrivLoc)>,
+    held: BTreeMap<(GroupIx, usize), u64>,
     writers: Vec<(usize, TBox, u32)>,
     counted: Vec<usize>,
     stats: OpStats,
@@ -368,6 +384,10 @@ impl<'a> Lowerer<'a> {
             pscratch: vec![],
             pmax: vec![],
             private: vec![BoxIndex::default(); n],
+            held: BTreeMap::new(),
+            store_cap: Self::store_caps(view),
+            ranges: prog.live_ranges(),
+            streams: BTreeMap::new(),
             writers: vec![BoxIndex::default(); n],
             touched: vec![],
             staged: BTreeMap::new(),
@@ -385,6 +405,7 @@ impl<'a> Lowerer<'a> {
             counted: Default::default(),
             cur_group: 0,
             floor: false,
+            load: 0.0,
             virt: None,
             paths: BTreeMap::new(),
             points: BTreeMap::new(),
@@ -780,7 +801,7 @@ impl<'a> Lowerer<'a> {
                         quick: true,
                         partial: false,
                     })?;
-                    let sfu = ui.special.first().map_or(0.0, |&r| c.special_cycles / view.clock_hz(view.resources[r as usize].clock));
+                    let sfu = ui.special.iter().zip(&c.special_cycles).map(|(&r, &x)| x / view.clock_hz(view.resources[r as usize].clock)).fold(0.0, f64::max);
                     let t = (c.cycles / view.clock_hz(ui.clock)).max(sfu) * view.clock_hz(ui.clock);
                     self.roof_cache.insert(key.clone(), t);
                     t
@@ -861,8 +882,8 @@ impl<'a> Lowerer<'a> {
             let f = view.clock_hz(ui.clock);
             let share = 1.0 / ui.members.len() as f64;
             let mut dem: Vec<Amount> = ui.members.iter().map(|&m| Amount::Res(view.units[m].compute, nc.cycles)).collect();
-            if nc.special_cycles > 0.0 {
-                dem.extend(ui.members.iter().flat_map(|&m| view.units[m].special.iter().map(|&r| Amount::Res(r, nc.special_cycles))));
+            for &m in &ui.members {
+                dem.extend(view.units[m].special.iter().zip(&nc.special_cycles).filter(|x| *x.1 > 0.0).map(|(&r, &x)| Amount::Res(r, x)));
             }
             for &(oi, t, c) in &conv {
                 let elems = fps[oi].elems() as f64;
@@ -988,7 +1009,16 @@ impl<'a> Lowerer<'a> {
                 last = self.push_task(TaskKind::Reduce, oi_prog, 0.0, &[], &dem, &preds, 0.0);
             }
             if self.lifetimes[root] == Lifetime::Private {
-                fx.private.push((root, b, owner, last));
+                let spill = self.hold(oi_prog, oi, root, &b, &slices[producers[0].0], owner, &mut fx)?;
+                let done = match spill {
+                    Some(g) => {
+                        let mut path = self.path(g, false, owner).to_vec();
+                        path.reverse();
+                        self.route_task(oi_prog, &path, prog.tensors[o.tensor].bytes(b.elems()) as f64, &[last], &mut fx, Some(owner), None)?.unwrap_or(last)
+                    }
+                    None => last,
+                };
+                fx.private.push((root, b, (owner, done, spill)));
                 continue;
             }
             let aliased = root != o.tensor;
@@ -1026,9 +1056,10 @@ impl<'a> Lowerer<'a> {
         if commit {
             fx.stats.level_bytes = fx.level.iter().enumerate().filter(|(_, b)| **b > 0.0).map(|(g, b)| (g, *b)).collect();
             let mut by_t: BTreeMap<usize, NewLocs> = BTreeMap::new();
-            for (t, b, u, task) in fx.private {
-                by_t.entry(t).or_default().0.push((b, (u, task)));
+            for (t, b, loc) in fx.private {
+                by_t.entry(t).or_default().0.push((b, loc));
             }
+            self.held.extend(fx.held);
             for (t, b, task) in fx.writers {
                 by_t.entry(t).or_default().1.push((b, task));
             }
@@ -1124,6 +1155,102 @@ impl<'a> Lowerer<'a> {
         &hw.nodes[hw.memories[self.view.groups[g].mems[0]].node].entity
     }
 
+    /// Storage group of unit `u`'s private levels: its outermost private chain level, which every unit holding
+    /// the same levels shares (an SM's tensor cores and ALUs).
+    fn store_of(view: &HwView, u: usize) -> GroupIx {
+        let ui = &view.units[u];
+        ui.chain[ui.private.max(1).min(ui.chain.len()) - 1]
+    }
+
+    /// On-chip capacity of the private levels behind each storage group.
+    fn store_caps(view: &HwView) -> BTreeMap<GroupIx, u64> {
+        let mut levels: BTreeMap<GroupIx, std::collections::BTreeSet<GroupIx>> = BTreeMap::new();
+        for ui in view.units.iter().filter(|u| !u.chain.is_empty()) {
+            let p = ui.private.max(1).min(ui.chain.len());
+            levels.entry(ui.chain[p - 1]).or_default().extend(ui.chain[..p].iter().copied().filter(|&g| !view.groups[g].offchip));
+        }
+        levels.into_iter().map(|(k, gs)| (k, gs.iter().map(|&g| view.groups[g].capacity).sum())).collect()
+    }
+
+    /// Dims (by name) every kernel touching tensor `t` runs in parallel and indexes `t` by alike: a compatible
+    /// schedule streams `t` through tiles one step of them wide (03 §3.6).
+    fn stream_dims(&mut self, t: usize) -> Arc<[String]> {
+        type Sig = Option<Vec<Vec<(i64, Option<String>)>>>;
+        fn mentions(e: &kiln_ir::wl::IndexExpr, d: &str) -> bool {
+            use kiln_ir::wl::IndexExpr::*;
+            match e {
+                Affine { terms, .. } => terms.iter().any(|x| x.dim.as_deref() == Some(d)),
+                FloorDiv { inner, .. } => mentions(inner, d),
+                Indirect { index, .. } => index.iter().any(|x| mentions(x, d)),
+            }
+        }
+        fn terms(index: &[kiln_ir::wl::IndexExpr], d: &str) -> Sig {
+            index
+                .iter()
+                .map(|e| match e {
+                    kiln_ir::wl::IndexExpr::Affine { terms, .. } => Some(terms.iter().filter(|x| x.dim.as_deref() == Some(d)).map(|x| (x.coeff, x.param.clone())).collect()),
+                    e => (!mentions(e, d)).then(Vec::new),
+                })
+                .collect()
+        }
+        if let Some(d) = self.streams.get(&t) {
+            return d.clone();
+        }
+        let prog = self.prog;
+        let mut sig: Option<BTreeMap<String, Sig>> = None;
+        let (a, b) = self.ranges[t].unwrap_or((1, 0));
+        for op in &prog.ops[a..=b.min(prog.ops.len() - 1)] {
+            for o in op.operands.iter().filter(|o| prog.root(o.tensor) == t) {
+                let here: BTreeMap<String, Sig> = op.kernel.dims.iter().map(|d| (d.name.clone(), terms(&o.index, &d.name).filter(|_| d.kind == kiln_ir::wl::DimKind::Parallel))).collect();
+                sig = Some(match sig {
+                    None => here,
+                    Some(prev) => prev.into_iter().filter_map(|(k, v)| here.get(&k).map(|w| (k, if v == *w { v } else { None }))).collect(),
+                });
+            }
+        }
+        let dims: Arc<[String]> = sig.unwrap_or_default().into_iter().filter(|(_, v)| v.as_ref().is_some_and(|x| x.iter().any(|a| !a.is_empty()))).map(|(k, _)| k).collect();
+        self.streams.insert(t, dims.clone());
+        dims
+    }
+
+    /// Reserves room for private box `b` of `root`, written by slice `s` of op `op_ix` (operand `oi`) on `owner`,
+    /// in the owner's private levels while the span still reads the tensor: a streamed tensor ([`Lowerer::stream_dims`])
+    /// holds its largest tile, any other every box at once. Returns the group the box spills to (the top of the
+    /// owner's chain) when the private tensors live there leave no room for it.
+    #[allow(clippy::too_many_arguments)]
+    fn hold(&mut self, op_ix: usize, oi: usize, root: usize, b: &TBox, s: &Slice, owner: usize, fx: &mut Effects) -> Result<Option<GroupIx>, Diagnostic> {
+        let view = self.view;
+        let key = Self::store_of(view, owner);
+        if view.groups[key].offchip {
+            return Ok(None);
+        }
+        let op = &self.prog.ops[op_ix];
+        let bytes = u64::try_from(self.prog.tensors[op.operands[oi].tensor].bytes(b.elems())).unwrap_or(u64::MAX);
+        let streamed = self.stream_dims(root);
+        let steps: u64 = streamed.iter().filter_map(|d| op.dim_ix(d)).map(|d| s.extent(d).max(1)).product();
+        let held = |k: &(GroupIx, usize)| fx.held.get(k).or_else(|| self.held.get(k)).copied().unwrap_or(0);
+        let own = held(&(key, root));
+        let need = if streamed.is_empty() { own.saturating_add(bytes) } else { own.max(bytes.div_ceil(steps.max(1))) };
+        let live: std::collections::BTreeSet<&(GroupIx, usize)> =
+            self.held.keys().chain(fx.held.keys()).filter(|k| k.0 == key && k.1 != root && self.ranges[k.1].is_some_and(|r| r.1 >= op_ix)).collect();
+        let others: u64 = live.into_iter().map(held).sum();
+        let cap = self.store_cap.get(&key).copied().unwrap_or(0);
+        if others.saturating_add(need) <= cap {
+            fx.held.insert((key, root), need);
+            return Ok(None);
+        }
+        let chain = &view.units[owner].chain;
+        match chain.last().copied().filter(|&g| chain.iter().position(|&c| c == g) >= Some(view.units[owner].private.max(1))) {
+            Some(g) => Ok(Some(g)),
+            None => Err(Diagnostic::error(
+                "E-MAP-CAP-004",
+                format!("private tensor {} needs {need} B next to {others} B of others in the {cap} B below {}, and nothing above them holds it", self.prog.tensors[root].id, view.groups[key].name),
+            )
+            .at(self.prog.tensors[root].id.clone())
+            .hint("give the tensor a home, or split its producer so the tiles fit")),
+        }
+    }
+
     /// The vector unit that reads MAC unit `owner`'s feed memory, where its operands and partial results live.
     fn reducer(&self, owner: usize) -> Option<usize> {
         let v = self.view;
@@ -1161,11 +1288,11 @@ impl<'a> Lowerer<'a> {
             if self.floor {
                 return Ok(());
             }
-            let srcs: Vec<(TBox, usize, u32)> = self.private[root]
+            let srcs: Vec<(TBox, PrivLoc)> = self.private[root]
                 .overlapping(b)
-                .filter_map(|(pb, (pu, task))| {
+                .filter_map(|(pb, loc)| {
                     let x = if aliased || pb.n != b.n { Some(*b) } else { pb.intersect(b) };
-                    x.map(|x| (x, *pu, *task))
+                    x.map(|x| (x, *loc))
                 })
                 .collect();
             let whole = aliased || srcs.iter().any(|s| s.0 == *b);
@@ -1175,13 +1302,16 @@ impl<'a> Lowerer<'a> {
                     .at(prog.tensors[root].id.clone())
                     .hint("give the tensor a home, or fuse its producers into the same span"));
             }
-            for (x, pu, task) in srcs {
-                if pu == u {
+            for (x, (pu, task, spill)) in srcs {
+                if pu == u && spill.is_none() {
                     deps.push(task);
                     continue;
                 }
-                let path = self.path(pu, true, u);
-                let id = self.route_task(op_ix, &path, t.bytes(x.elems()) as f64, &[task], fx, Some(pu), Some(u))?.unwrap_or(task);
+                let (path, src) = match spill {
+                    Some(g) => (self.path(g, false, u), None),
+                    None => (self.path(pu, true, u), Some(pu)),
+                };
+                let id = self.route_task(op_ix, &path, t.bytes(x.elems()) as f64, &[task], fx, src, Some(u))?.unwrap_or(task);
                 deps.push(id);
             }
             return Ok(());
@@ -1266,7 +1396,8 @@ impl<'a> Lowerer<'a> {
                 e
             }
         };
-        let (m, busy, pbytes) = e.finish(self.view, &self.g.profiles);
+        let (m, load, busy, pbytes) = e.finish(self.view, &self.g.profiles);
+        self.load = load;
         self.scratch = busy;
         self.pscratch = pbytes;
         m
@@ -1280,6 +1411,7 @@ impl<'a> Lowerer<'a> {
                 self.writers[t].clear();
                 self.private[t].clear();
             }
+            self.held.clear();
         }
         self.cur_group = self.g.groups.len() as u32;
         let n = self.g.tasks.len() as u32;

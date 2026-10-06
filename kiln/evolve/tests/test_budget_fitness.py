@@ -169,3 +169,27 @@ def test_resume_refuses_a_different_scoring_basis(make_cfg, key):
     path.write_text(json.dumps(st))
     with pytest.raises(CampaignError, match="scoring basis changed"):
         Campaign(cfg, resume=True, log=_quiet)
+
+
+class _SeedSession(_Session):
+    def evaluate_batch(self, items, opts, max_workers=None):
+        s = self.score[opts["seeds"][0]]
+        return [_Result({"status": "ok", "score": s, "score_interval": {"low": s - 0.01, "high": s + 0.01},
+                         "phases": [{}], "features": {},
+                         "score_realistic": {"score": s, "interval": {"low": s - 0.02, "high": s + 0.02}}})
+                for _ in items]
+
+
+def test_audited_interval_follows_the_minimum_over_seeds(make_cfg, tmp_path):
+    cfg = make_cfg("a", audit={"seeds": [0, 1, 2], "max_seed_spread": 0.2})
+    ev = Evaluator(cfg, _SeedSession({0: 1.2, 1: 1.1, 2: 1.0}), tmp_path / "ev")
+    ev._tier_b = "unavailable"
+    rec = {"id": "x", "_design": {}, "fitness": 1.2, "fitness_low": 1.19, "fitness_high": 1.21,
+           "realistic": {"score": 1.2, "low": 1.18, "high": 1.22}, "features": {"score_rel_width": 0.02 / 1.2}}
+    ev.audit([rec], {"x": ["random sample"]})
+    assert rec["audit"]["status"] == "pending", rec["audit"]
+    assert rec["fitness"] == pytest.approx(1.0)
+    assert (rec["fitness_low"], rec["fitness_high"]) == (pytest.approx(0.99), pytest.approx(1.01))
+    assert rec["features"]["score_rel_width"] == pytest.approx(0.02)
+    real = rec["realistic"]
+    assert (real["score"], real["low"], real["high"]) == (pytest.approx(1.0), pytest.approx(0.98), pytest.approx(1.02))

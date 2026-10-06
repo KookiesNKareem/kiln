@@ -128,4 +128,20 @@
       ],
     },
   ],
+  // Library tile quantization: rows each kernel issues per CTA tile, padded rows included (issued, not useful,
+  // MACs). Tile shapes are the kernels' compile-time traits as the profiler names them (same sessions).
+  tiles: [
+    // cuBLAS sees y^T = W x^T, so its tile N is the token dim: every decode GEMM runs a ...x64 tile
+    // (ampere_bf16_s16816gemm_bf16_128x64 / 64x64_sliced1x2 / 256x64 at b1, b8, b32; 64x64 for prefill's lm_head)
+    { op: "einsum", when: { tokens_max: 64 }, rows: ["tokens"], tile: 64 },
+    // prompt GEMMs: ampere_bf16_s16816gemm_bf16_256x128
+    { op: "einsum", rows: ["tokens"], tile: 128 },
+    // one query token per sequence: flash folds the query heads of each KV head into the query rows
+    // (seqlenq_ngroups_swapped), split-KV kernel traits <128, kBlockM 64, kBlockN 128> at b1 and b8 ...
+    { op: "attention", when: { tokens_per_seq_max: 1, tokens_max: 8 }, rows: ["tokens_per_seq", "query_heads_per_kv_head"], tile: 64 },
+    // ... flash_fwd_kernel traits <128, kBlockM 128, kBlockN 64> at b32
+    { op: "attention", when: { tokens_per_seq_max: 1 }, rows: ["tokens_per_seq", "query_heads_per_kv_head"], tile: 128 },
+    // prompt: flash_fwd_kernel <128, 128, 64>, query rows per sequence and head
+    { op: "attention", rows: ["tokens_per_seq"], tile: 128 },
+  ],
 }

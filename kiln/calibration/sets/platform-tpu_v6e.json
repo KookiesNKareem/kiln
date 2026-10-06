@@ -1,7 +1,7 @@
 {
   "schema": "kiln.calib/1",
   "id": "platform:tpu_v6e",
-  "version": 3,
+  "version": 4,
   "kind": "platform",
   "platform": "tpu_v6e",
   "parameters": [
@@ -22,8 +22,8 @@
         0.7375351089079912
       ],
       "range": {
-        "lower": 0.6684434499448131,
-        "upper": 0.7779066562069434,
+        "lower": 0.6631750530758782,
+        "upper": 0.7831750530758783,
         "basis": "single_device"
       },
       "pess_dir": "lower",
@@ -114,7 +114,7 @@
         2.500489422377787e-6
       ],
       "range": {
-        "lower": 2.135674988222811e-6,
+        "lower": 2.0735759159049818e-6,
         "upper": 2.702905051304003e-6,
         "basis": "single_device"
       },
@@ -411,5 +411,5 @@
     }
   ],
   "created": "2026-10-05",
-  "hash": "cal1-8499af1b90cf6d58df6f01423b19aaf4"
+  "hash": "cal1-0a29745eb2216903d8de986438673c85"
 }

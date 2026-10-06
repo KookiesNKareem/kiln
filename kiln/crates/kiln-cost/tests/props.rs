@@ -24,6 +24,7 @@ fn unit(rows: u32, cols: u32, buf: u64, rf: u64, dram_bw: f64) -> UnitTemplate {
         e_write_j_per_b: 1.1 * e,
         latency_cycles: 1,
         external: false,
+        partitions: vec![],
     };
     let p = |dir, b| MemPort { dir, bytes_per_cycle: b, serves: vec![], lanes: 1 };
     UnitTemplate {

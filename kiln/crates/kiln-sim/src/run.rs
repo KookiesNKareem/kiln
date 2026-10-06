@@ -288,7 +288,10 @@ fn op_times(prog: &Program, g: &TaskGraph, run: &RunOut) -> Vec<(String, f64)> {
 
 /// Heuristic mapping, refined by the seeded beam when `opts.search` is set; with the matching task graph.
 pub fn map_program(view: &HwView, prog: &Program, opts: &SimOptions, workload_hash: &str) -> Result<(Mapping, MapReport, TaskGraph), Diagnostic> {
-    let cost = opts.cost();
+    let base = opts.cost();
+    let rows = crate::stack::row_padding(prog, &opts.stack(view))?;
+    let padded = kiln_map::cost::TilePadded { inner: base.as_ref(), rows };
+    let cost: &dyn UnitCostModel = if padded.rows.iter().all(|&f| f <= 1.0) { base.as_ref() } else { &padded };
     let mo = MapOptions {
         seed: opts.seed,
         exec_model: opts.exec_model,
@@ -296,18 +299,18 @@ pub fn map_program(view: &HwView, prog: &Program, opts: &SimOptions, workload_ha
         fuse_elementwise: opts.stack(view).fuse_elementwise,
         ..MapOptions::default()
     };
-    let (m, report, g) = heuristic_lowered(prog, view, cost.as_ref(), &mo)?;
+    let (m, report, g) = heuristic_lowered(prog, view, cost, &mo)?;
     let Some(beam) = &opts.search else { return Ok((m, report, g)) };
     let params = opts.param_set(view).at(Corner::Central);
     let clocks = view.phys.clock_plan(&opts.clock);
     let eval = |m: &Mapping| -> Option<Score> {
-        let g = lower(prog, view, m, cost.as_ref()).ok()?;
+        let g = lower(prog, view, m, cost).ok()?;
         let ctx = Ctx { view, prog, graph: &g, clocks: &clocks, mid: mid_iteration(prog) };
         let (run, _) = ctx.run(&params);
         Some(Score { time_s: run.segs.iter().map(|s| s.time_est).sum(), op_times: op_times(prog, &g, &run) })
     };
     let out = beam.search(prog, view, m, &eval, opts.seed);
-    let g = lower(prog, view, &out.best, cost.as_ref())?;
+    let g = lower(prog, view, &out.best, cost)?;
     Ok((out.best, report, g))
 }
 

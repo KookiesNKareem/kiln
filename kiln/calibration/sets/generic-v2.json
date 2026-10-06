@@ -1,7 +1,7 @@
 {
   "schema": "kiln.calib/1",
   "id": "generic-v2",
-  "version": 5,
+  "version": 6,
   "kind": "generic",
   "parameters": [
     {
@@ -42,8 +42,8 @@
         0.9242149196198618
       ],
       "range": {
-        "lower": 0.8529334526506769,
-        "upper": 0.9515708926370616,
+        "lower": 0.8422521726438692,
+        "upper": 0.9622521726438693,
         "basis": "single_device"
       },
       "pess_dir": "lower",
@@ -79,8 +79,8 @@
         0.91650941340856
       ],
       "range": {
-        "lower": 0.8959805252348155,
-        "upper": 0.9233232887387745,
+        "lower": 0.8496519069867949,
+        "upper": 0.969651906986795,
         "basis": "single_device"
       },
       "pess_dir": "lower",
@@ -158,8 +158,8 @@
         9.450966802139488e-6
       ],
       "range": {
-        "lower": 3.4562368259890652e-6,
-        "upper": 8.926380442921258e-6,
+        "lower": 3.980823185207295e-6,
+        "upper": 9.450966802139488e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -195,8 +195,8 @@
         2.329276688109845e-6
       ],
       "range": {
-        "lower": 1.3038863597497414e-6,
-        "upper": 2.301048833709429e-6,
+        "lower": 1.3321142141501574e-6,
+        "upper": 2.329276688109845e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -254,7 +254,7 @@
       ],
       "range": {
         "lower": 1e-7,
-        "upper": 8.643056288996562e-7,
+        "upper": 9.941564690484163e-7,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -353,8 +353,8 @@
         1.7651110778931695e-6
       ],
       "range": {
-        "lower": 5.692502621008763e-7,
-        "upper": 2.2343613399940455e-6,
+        "lower": 1e-7,
+        "upper": 1.7651110778931695e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -453,8 +453,8 @@
         1.3978763537710957e-6
       ],
       "range": {
-        "lower": 1.0028424003965842e-6,
-        "upper": 1.4465142207810393e-6,
+        "lower": 9.542045333866406e-7,
+        "upper": 1.4040733163916793e-6,
         "basis": "single_device"
       },
       "pess_dir": "upper",
@@ -1075,21 +1075,21 @@
       {
         "name": "eta_res",
         "lower": 0.666464648541956,
-        "upper": 0.9515708926370616,
+        "upper": 0.969651906986795,
         "evidence": [
           {
             "device": "a100_40gb",
             "quantity": "eta_res {\"dram_kind\": \"hbm2\"} fit, bootstrap range",
-            "lower": 0.8529334526506769,
-            "upper": 0.9515708926370616,
+            "lower": 0.8422521726438692,
+            "upper": 0.9622521726438693,
             "n": 115,
             "source": "stage D on 115 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
           },
           {
             "device": "tpu_v5e",
             "quantity": "eta_res {\"dram_kind\": \"hbm2e\"} fit, bootstrap range",
-            "lower": 0.8959805252348155,
-            "upper": 0.9233232887387745,
+            "lower": 0.8496519069867949,
+            "upper": 0.969651906986795,
             "n": 119,
             "source": "stage D on 119 calib-micro fit records (tpuv5e_2026-10-05_micro.json)"
           },
@@ -1136,14 +1136,14 @@
       },
       {
         "name": "t_min_kernel",
-        "lower": 1.0237741207872098e-7,
-        "upper": 2.2343613399940455e-6,
+        "lower": 1e-7,
+        "upper": 1.7651110778931695e-6,
         "evidence": [
           {
             "device": "a100_40gb",
             "quantity": "t_min_kernel {\"exec_model\": \"host_launched\"} fit, bootstrap range",
-            "lower": 5.692502621008763e-7,
-            "upper": 2.2343613399940455e-6,
+            "lower": 1e-7,
+            "upper": 1.7651110778931695e-6,
             "n": 21,
             "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
           },
@@ -1176,13 +1176,13 @@
       {
         "name": "t_gap",
         "lower": 1e-7,
-        "upper": 8.926383595951278e-7,
+        "upper": 9.941564690484163e-7,
         "evidence": [
           {
             "device": "a100_40gb",
             "quantity": "t_gap {\"exec_model\": \"host_launched\"} fit, bootstrap range",
             "lower": 1e-7,
-            "upper": 8.643056288996562e-7,
+            "upper": 9.941564690484163e-7,
             "n": 21,
             "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
           },
@@ -1246,13 +1246,13 @@
       {
         "name": "t_sync",
         "lower": 1.0237741207872098e-7,
-        "upper": 1.4465142207810393e-6,
+        "upper": 1.4040733163916793e-6,
         "evidence": [
           {
             "device": "tpu_v5e",
             "quantity": "t_sync {\"exec_model\": \"static_dataflow\"} fit, bootstrap range",
-            "lower": 1.0028424003965842e-6,
-            "upper": 1.4465142207810393e-6,
+            "lower": 9.542045333866406e-7,
+            "upper": 1.4040733163916793e-6,
             "n": 15,
             "source": "stage L on 15 calib-micro fit records (tpuv5e_2026-10-05_micro.json)"
           },
@@ -1368,5 +1368,5 @@
     }
   ],
   "created": "2026-10-05",
-  "hash": "cal1-21b2d5c42f61aaa3a4d911489754f38c"
+  "hash": "cal1-9cd47610504bdb8e0621cc2e4cc8a9b5"
 }

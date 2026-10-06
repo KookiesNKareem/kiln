@@ -198,7 +198,8 @@ pub struct VizArgs {
     pub input: Option<PathBuf>,
     #[command(flatten)]
     pub data: VizData,
-    /// Start on this view (floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration).
+    /// Start on this view (floorplan, noc, timeline, roofline, bottleneck, compare, evolution, calibration,
+    /// design, wires).
     #[arg(long)]
     pub view: Option<String>,
     /// View state string (05 §4.2; JSON of the view spec).
@@ -255,9 +256,18 @@ pub struct RenderArgs {
     /// Phase id (default: all phases).
     #[arg(long)]
     pub phase: Option<String>,
-    /// Floorplan color mode: utilization, idle, energy, bytes, kind.
+    /// Floorplan color mode: utilization, idle, energy, bytes (runs), kind, area, power, density.
     #[arg(long)]
     pub color: Option<String>,
+    /// Floorplan wire color: auto, utilization, traffic, bandwidth, length, energy, latency.
+    #[arg(long)]
+    pub wire_color: Option<String>,
+    /// Floorplan without wires.
+    #[arg(long)]
+    pub no_wires: bool,
+    /// Floorplan of one stacked-die layer (others outlined); default: every layer side by side.
+    #[arg(long)]
+    pub layer: Option<u8>,
     /// Floorplan subtree (resource path).
     #[arg(long)]
     pub root: Option<String>,

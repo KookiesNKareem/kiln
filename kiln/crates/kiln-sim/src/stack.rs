@@ -36,6 +36,20 @@ pub fn attach(view: &HwView, prog: &Program, g: &mut TaskGraph, stack: &Stack) -
     Ok(())
 }
 
+/// Issued over useful MACs of each program node's contractions under the recipe's library tiles
+/// ([`Stack::row_padding`]).
+pub fn row_padding(prog: &Program, stack: &Stack) -> Result<Vec<f64>, Diagnostic> {
+    prog.nodes
+        .iter()
+        .map(|n| {
+            let info = |ts: &[usize]| -> Vec<TypeInfo> { ts.iter().map(|&t| prog.tensors[t].info()).collect() };
+            let (inputs, outputs) = (info(&n.inputs), info(&n.outputs));
+            let shape = NodeShape { op: &n.op_name, role: n.role.as_deref(), inputs: &inputs, outputs: &outputs, seqs: prog.seqs };
+            stack.row_padding(&shape).map_err(|e| e.at(n.path.clone()))
+        })
+        .collect()
+}
+
 /// Kernels one iteration (`None`: prologue and epilogue) issues: groups with modelled work, and stack extras.
 pub fn kernel_counts(g: &TaskGraph, iteration: Option<u32>) -> (usize, usize) {
     let groups = g.groups.iter().filter(|x| x.iteration == iteration && x.tasks.1 > x.tasks.0).count();

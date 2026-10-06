@@ -222,6 +222,11 @@ impl Scene {
         });
     }
 
+    /// Polyline with a hit id (wires).
+    pub fn polyline(&mut self, pts: Vec<[f32; 2]>, stroke: Stroke, hit: Hit) {
+        self.prims.push(Prim::Line { pts, stroke, hit });
+    }
+
     pub fn seg(&mut self, a: [f32; 2], b: [f32; 2], stroke: Stroke) {
         self.line(vec![a, b], stroke);
     }

@@ -349,8 +349,21 @@ fn substrate_outline_is_enforced() {
     };
     assert!(with(json!({ "type": "fixed", "w": "1mm", "h": "1mm" })));
     assert!(with(json!({ "type": "max_area", "area": "1mm2" })));
-    assert!(!with(json!({ "type": "fixed", "w": "200mm", "h": "200mm" })));
+    assert!(!with(json!({ "type": "fixed", "w": "80mm", "h": "80mm" })));
     assert!(!with(json!({ "type": "auto" })));
+}
+
+/// 04 §6.3: the package technology limit bounds the final outline, including a fixed substrate's enlargement.
+#[test]
+fn fixed_substrate_cannot_exceed_the_package_technology() {
+    let with = |kind: &str, side: &str| {
+        let mut v = mesh(json!("128b"), clk(1e9));
+        v["system"]["package"]["substrate"] = json!({ "kind": kind, "outline": { "type": "fixed", "w": side, "h": side } });
+        codes(&Phys::new(&model(&v))).contains(&"E-PHYS-PACKAGE-OVERFLOW".to_string())
+    };
+    assert!(!with("silicon_interposer", "50mm"), "2,500 mm^2 fits CoWoS-S");
+    assert!(with("silicon_interposer", "60mm"), "3,600 mm^2 exceeds CoWoS-S's 2,800 mm^2");
+    assert!(with("organic", "200mm"));
 }
 
 /// 04 §7.1: a pipelined on-die link clocks its flops every cycle; that clock load (width x stages, at the domain's

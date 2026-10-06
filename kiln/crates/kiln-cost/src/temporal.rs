@@ -199,62 +199,67 @@ impl Dfs<'_> {
         for l in 0..unit.levels.len() {
             let lv = &unit.levels[l];
             let n_inst: u64 = lv.instance_axes.iter().map(|&a| u64::from(unit.axes[a].size)).product::<u64>().max(1);
-            let cap = lv.capacity_bytes / n_inst;
-            let mut fixed = 0u64;
-            let mut users: Vec<(usize, usize)> = vec![];
-            for si in 0..ns {
-                for (j, _) in p.chains[si].iter().enumerate().filter(|&(_, &x)| x == l) {
-                    if j + 1 == p.chains[si].len() {
-                        fixed += self.full(si, j);
-                    } else {
-                        users.push((si, j));
-                    }
-                }
-            }
-            if fixed > cap {
-                return Err(infeasible(lv, fixed, cap, None));
-            }
-            let rem = cap - fixed;
-            if users.is_empty() {
-                continue;
-            }
-            let full: Vec<u64> = users.iter().map(|&(si, j)| (self.full(si, j) * mult[si][j]).max(1)).collect();
-            let n = users.len() as u64;
-            match share {
-                Share::Even => users.iter().for_each(|&(si, j)| budget[si][j] = rem / n),
-                Share::Proportional => {
-                    let tot: u128 = full.iter().map(|&x| u128::from(x)).sum();
-                    for (i, &(si, j)) in users.iter().enumerate() {
-                        budget[si][j] = (u128::from(rem) * u128::from(full[i]) / tot) as u64;
-                    }
-                }
-                Share::OutputHalf if !users.iter().any(|&(si, j)| p.streams[si].is_output && j + 2 == p.chains[si].len()) => {
-                    users.iter().for_each(|&(si, j)| budget[si][j] = rem / n)
-                }
-                Share::OutputHalf => {
-                    let ins = users.iter().filter(|u| !p.streams[u.0].is_output).count() as u64;
-                    let out_budget = if ins == 0 { rem } else { rem / 2 };
-                    let outs = users.iter().filter(|u| p.streams[u.0].is_output).count() as u64;
-                    for (i, &(si, j)) in users.iter().enumerate() {
-                        budget[si][j] = if p.streams[si].is_output {
-                            full[i].min(out_budget / outs)
+            let mut shares: Vec<(usize, u64)> = (0..ns).filter(|&si| p.chains[si].contains(&l)).map(|si| lv.share(p.streams[si].role)).collect();
+            shares.sort_unstable();
+            shares.dedup();
+            for (key, cap) in shares {
+                let cap = cap / n_inst;
+                let mut fixed = 0u64;
+                let mut users: Vec<(usize, usize)> = vec![];
+                for si in 0..ns {
+                    for (j, _) in p.chains[si].iter().enumerate().filter(|&(_, &x)| x == l && lv.share(p.streams[si].role).0 == key) {
+                        if j + 1 == p.chains[si].len() {
+                            fixed += self.full(si, j);
                         } else {
-                            (rem - out_budget) / ins
-                        };
+                            users.push((si, j));
+                        }
                     }
                 }
-                Share::OutputFirst => {
-                    let outs: Vec<usize> = (0..users.len()).filter(|&i| p.streams[users[i].0].is_output).collect();
-                    let mut left = rem;
-                    for &i in &outs {
-                        let g = full[i].min(left);
-                        budget[users[i].0][users[i].1] = g;
-                        left -= g;
+                if fixed > cap {
+                    return Err(infeasible(lv, fixed, cap, None));
+                }
+                let rem = cap - fixed;
+                if users.is_empty() {
+                    continue;
+                }
+                let full: Vec<u64> = users.iter().map(|&(si, j)| (self.full(si, j) * mult[si][j]).max(1)).collect();
+                let n = users.len() as u64;
+                match share {
+                    Share::Even => users.iter().for_each(|&(si, j)| budget[si][j] = rem / n),
+                    Share::Proportional => {
+                        let tot: u128 = full.iter().map(|&x| u128::from(x)).sum();
+                        for (i, &(si, j)) in users.iter().enumerate() {
+                            budget[si][j] = (u128::from(rem) * u128::from(full[i]) / tot) as u64;
+                        }
                     }
-                    let ins = (users.len() - outs.len()).max(1) as u64;
-                    for (i, &(si, j)) in users.iter().enumerate() {
-                        if !outs.contains(&i) {
-                            budget[si][j] = left / ins;
+                    Share::OutputHalf if !users.iter().any(|&(si, j)| p.streams[si].is_output && j + 2 == p.chains[si].len()) => {
+                        users.iter().for_each(|&(si, j)| budget[si][j] = rem / n)
+                    }
+                    Share::OutputHalf => {
+                        let ins = users.iter().filter(|u| !p.streams[u.0].is_output).count() as u64;
+                        let out_budget = if ins == 0 { rem } else { rem / 2 };
+                        let outs = users.iter().filter(|u| p.streams[u.0].is_output).count() as u64;
+                        for (i, &(si, j)) in users.iter().enumerate() {
+                            budget[si][j] = if p.streams[si].is_output {
+                                full[i].min(out_budget / outs)
+                            } else {
+                                (rem - out_budget) / ins
+                            };
+                        }
+                    }
+                    Share::OutputFirst => {
+                        let outs: Vec<usize> = (0..users.len()).filter(|&i| p.streams[users[i].0].is_output).collect();
+                        let mut left = rem;
+                        for &i in &outs {
+                            let g = full[i].min(left);
+                            budget[users[i].0][users[i].1] = g;
+                            left -= g;
+                        }
+                        let ins = (users.len() - outs.len()).max(1) as u64;
+                        for (i, &(si, j)) in users.iter().enumerate() {
+                            if !outs.contains(&i) {
+                                budget[si][j] = left / ins;
+                            }
                         }
                     }
                 }
@@ -879,7 +884,7 @@ fn os_items(p: &Prep, sc: &SpatialCtx) -> Option<(Vec<TemporalLoop>, OsTile)> {
     let j = chain.len() - 2;
     let lv = &p.unit.levels[chain[j]];
     let n_inst: u64 = lv.instance_axes.iter().map(|&a| u64::from(p.unit.axes[a].size)).product::<u64>().max(1);
-    let budget = lv.capacity_bytes / n_inst / 2;
+    let budget = lv.share(out.role).1 / n_inst / 2;
     let par: Vec<usize> = (0..nd).filter(|&d| out.relevant(d) && t[d] > 1).collect();
     if par.is_empty() {
         return None;

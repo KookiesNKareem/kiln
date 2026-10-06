@@ -93,3 +93,16 @@ fn phase_sum_error_fails_acceptance() {
         assert!(v.iter().any(|v| v.metric.contains("phase-sum") && !v.pass), "{v:?}");
     }
 }
+
+#[test]
+fn slope_significance_uses_student_t_with_n_minus_2_dof() {
+    // t = 2.83 clears the normal 2.58 but the two-sided p-value on 2 dof is 0.106.
+    let s = slope("x", &[0.0, 1.0, 2.0, 3.0], &[0.0, 0.0, 0.15, 0.15]);
+    assert!((s.t - 8f64.sqrt()).abs() < 1e-9 && s.effect > 0.05_f64.ln_1p());
+    assert!((s.p - 0.105_573).abs() < 1e-5, "{}", s.p);
+    assert!(!s.significant);
+    let x: Vec<f64> = (0..200).map(f64::from).collect();
+    let y: Vec<f64> = x.iter().enumerate().map(|(i, v)| 0.001 * v + if i % 2 == 0 { 0.02 } else { -0.02 }).collect();
+    let s = slope("x", &x, &y);
+    assert!(s.p < 0.01 && s.significant, "{s:?}");
+}

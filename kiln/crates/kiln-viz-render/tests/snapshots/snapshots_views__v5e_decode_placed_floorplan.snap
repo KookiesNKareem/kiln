@@ -1,0 +1,177 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "one(&run, &fp)"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Floorplan  tpu_v5e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">kiln-phys/m3 tier A placement, to scale | color: utilization | wires: link utilization | all phases</text>
+<rect x="137" y="76" width="448" height="448" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="0.75"/>
+<rect x="145.62" y="84.62" width="430.77" height="430.77" fill="#ffffff" stroke="#a0a4ac" stroke-width="1.25"/>
+<rect x="145.62" y="84.62" width="248.31" height="248.31" fill="#f6f6f8" stroke="#1c1e24" stroke-width="1.5" stroke-opacity="0.63"/>
+<rect x="162.78" y="102.87" width="146.37" height="203.06" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="0.75"/>
+<rect x="162.78" y="105.05" width="146.37" height="139.57" fill="#002d69" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="249.22" y="244.62" width="59.93" height="30.66" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="189.29" y="244.62" width="59.93" height="30.66" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="249.22" y="275.28" width="59.93" height="30.66" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="189.29" y="275.28" width="59.93" height="30.66" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="162.78" y="244.62" width="26.5" height="51.43" fill="#002a60" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="163.01" y="296.05" width="26.27" height="9.89" fill="#00224e" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="204.2" y="102.87" width="104.95" height="2.18" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="162.78" y="102.87" width="41.42" height="2.18" fill="#00224e" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="162.54" y="305.94" width="96.68" height="26.18" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="366.94" y="219.32" width="26.18" height="96.68" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="162.54" y="85.42" width="96.68" height="17.45" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="146.42" y="212.87" width="16.36" height="25.78" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="146.42" y="290.22" width="16.36" height="25.78" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="146.42" y="264.44" width="16.36" height="25.78" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="146.42" y="238.65" width="16.36" height="25.78" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="153.72" y="340.3" width="114.32" height="175.09" fill="#fce63a" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="401.3" y="210.5" width="175.09" height="114.32" fill="#fce63a" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="145.62" y="329.94" width="248.31" height="2.98" fill="#882255" fill-opacity="0.59"/>
+<rect x="390.94" y="84.62" width="2.98" height="248.31" fill="#882255" fill-opacity="0.59"/>
+<rect x="145.62" y="84.62" width="248.31" height="2.98" fill="#d55e00" fill-opacity="0.59"/>
+<rect x="145.62" y="84.62" width="2.98" height="248.31" fill="#d55e00" fill-opacity="0.59"/>
+<polyline points="199.42,218.41 154.6,218.41 154.6,303.11" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="199.42,218.41 154.6,218.41 154.6,277.33" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="199.42,218.41 154.6,218.41 154.6,251.55" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="199.42,218.41 154.6,218.41 154.6,225.76" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="199.42,218.41 210.88,218.41 210.88,94.15" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="199.42,218.41 256.68,218.41 256.68,103.96" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="183.49,103.96 176.03,103.96 176.03,270.34" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="256.68,103.96 162.9,103.96 162.9,300.99" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-opacity="0.55" stroke-dasharray="3"/>
+<polyline points="176.15,300.99 176.03,270.34" fill="none" stroke="#440154" stroke-width="2.64" stroke-opacity="0.88"/>
+<polyline points="279.19,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#460c5f" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="219.25,290.61 176.03,290.61 176.03,270.34" fill="none" stroke="#460c5f" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="279.19,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#460c5f" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="219.25,259.95 176.03,259.95 176.03,270.34" fill="none" stroke="#460c5f" stroke-width="2.87" stroke-opacity="0.88"/>
+<polyline points="235.97,174.84 176.03,174.84 176.03,270.34" fill="none" stroke="#471062" stroke-width="3" stroke-opacity="0.88"/>
+<polyline points="199.42,218.41 235.97,218.41 235.97,174.84" fill="none" stroke="#238b8d" stroke-width="2.19" stroke-opacity="0.88"/>
+<polyline points="210.88,319.03 210.88,427.84" fill="none" stroke="#b6dd2b" stroke-width="1.76" stroke-opacity="0.88"/>
+<polyline points="380.03,267.66 488.84,267.66" fill="none" stroke="#b6dd2b" stroke-width="1.76" stroke-opacity="0.88"/>
+<polygon points="199.42,214.91 202.92,218.41 199.42,221.91 195.92,218.41" fill="#777776" stroke="#1c1e24" stroke-width="0.75"/>
+<text x="141" y="87.31" font-size="10" text-anchor="start" fill="#6e727c">board</text>
+<text x="149.62" y="509.7" font-size="10" text-anchor="start" fill="#1c1e24">package chip  853 mm^2 (cowos_s)</text>
+<text x="149.62" y="79.93" font-size="10" text-anchor="start" fill="#1c1e24">die die  283 mm^2</text>
+<text x="235.97" y="178.48" font-size="11" text-anchor="middle" fill="#f5f5f8">vmem</text>
+<text x="279.19" y="263.6" font-size="11" text-anchor="middle" fill="#f5f5f8">mxu0</text>
+<text x="219.25" y="263.6" font-size="11" text-anchor="middle" fill="#f5f5f8">mxu1</text>
+<text x="279.19" y="294.25" font-size="11" text-anchor="middle" fill="#f5f5f8">mxu2</text>
+<text x="219.25" y="294.25" font-size="11" text-anchor="middle" fill="#f5f5f8">mxu3</text>
+<text x="210.88" y="322.5" font-size="10.47" text-anchor="middle" fill="#141418">hbm0_phy</text>
+<text x="210.88" y="96.8" font-size="8" text-anchor="middle" fill="#6e727c">pcie</text>
+<text x="210.88" y="431.49" font-size="11" text-anchor="middle" fill="#141418">hbm0</text>
+<text x="488.84" y="271.31" font-size="11" text-anchor="middle" fill="#141418">hbm1</text>
+<polyline points="16,536 89.75,536" fill="none" stroke="#1c1e24" stroke-width="1.25"/>
+<polyline points="16,532 16,540" fill="none" stroke="#1c1e24" stroke-width="1.25"/>
+<polyline points="89.75,532 89.75,540" fill="none" stroke="#1c1e24" stroke-width="1.25"/>
+<text x="95.75" y="539.31" font-size="10" text-anchor="start" fill="#1c1e24">5 mm</text>
+<text x="722" y="84.15" font-size="11" text-anchor="start" fill="#1c1e24">busy fraction</text>
+<rect x="722" y="92" width="14" height="5.19" fill="#fbe43c"/>
+<rect x="722" y="96.69" width="14" height="5.19" fill="#f4dc43"/>
+<rect x="722" y="101.38" width="14" height="5.19" fill="#ecd44b"/>
+<rect x="722" y="106.06" width="14" height="5.19" fill="#e3cd54"/>
+<rect x="722" y="110.75" width="14" height="5.19" fill="#dac65b"/>
+<rect x="722" y="115.44" width="14" height="5.19" fill="#d1bf60"/>
+<rect x="722" y="120.12" width="14" height="5.19" fill="#c9b865"/>
+<rect x="722" y="124.81" width="14" height="5.19" fill="#c0b16a"/>
+<rect x="722" y="129.5" width="14" height="5.19" fill="#b8ab6e"/>
+<rect x="722" y="134.19" width="14" height="5.19" fill="#afa471"/>
+<rect x="722" y="138.88" width="14" height="5.19" fill="#a79d73"/>
+<rect x="722" y="143.56" width="14" height="5.19" fill="#9f9775"/>
+<rect x="722" y="148.25" width="14" height="5.19" fill="#979177"/>
+<rect x="722" y="152.94" width="14" height="5.19" fill="#908b78"/>
+<rect x="722" y="157.62" width="14" height="5.19" fill="#888578"/>
+<rect x="722" y="162.31" width="14" height="5.19" fill="#817f78"/>
+<rect x="722" y="167" width="14" height="5.19" fill="#7a7977"/>
+<rect x="722" y="171.69" width="14" height="5.19" fill="#737374"/>
+<rect x="722" y="176.38" width="14" height="5.19" fill="#6c6d72"/>
+<rect x="722" y="181.06" width="14" height="5.19" fill="#656870"/>
+<rect x="722" y="185.75" width="14" height="5.19" fill="#5e626f"/>
+<rect x="722" y="190.44" width="14" height="5.19" fill="#575d6e"/>
+<rect x="722" y="195.12" width="14" height="5.19" fill="#4f576d"/>
+<rect x="722" y="199.81" width="14" height="5.19" fill="#47516c"/>
+<rect x="722" y="204.5" width="14" height="5.19" fill="#3f4b6c"/>
+<rect x="722" y="209.19" width="14" height="5.19" fill="#36466d"/>
+<rect x="722" y="213.88" width="14" height="5.19" fill="#2c406e"/>
+<rect x="722" y="218.56" width="14" height="5.19" fill="#203b6f"/>
+<rect x="722" y="223.25" width="14" height="5.19" fill="#14366e"/>
+<rect x="722" y="227.94" width="14" height="5.19" fill="#07316b"/>
+<rect x="722" y="232.62" width="14" height="5.19" fill="#002b63"/>
+<rect x="722" y="237.31" width="14" height="5.19" fill="#002555"/>
+<rect x="722" y="92" width="14" height="150" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<polyline points="736,242 740,242" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="245.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<polyline points="736,204.5 740,204.5" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="207.81" font-size="10" text-anchor="start" fill="#6e727c">25%</text>
+<polyline points="736,167 740,167" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="170.31" font-size="10" text-anchor="start" fill="#6e727c">50%</text>
+<polyline points="736,129.5 740,129.5" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="132.81" font-size="10" text-anchor="start" fill="#6e727c">75%</text>
+<polyline points="736,92 740,92" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="95.31" font-size="10" text-anchor="start" fill="#6e727c">100%</text>
+<text x="722" y="266.15" font-size="11" text-anchor="start" fill="#1c1e24">wires: link utilization</text>
+<rect x="722" y="274" width="14" height="3.94" fill="#f4e622"/>
+<rect x="722" y="277.44" width="14" height="3.94" fill="#e1e31c"/>
+<rect x="722" y="280.88" width="14" height="3.94" fill="#cde11f"/>
+<rect x="722" y="284.31" width="14" height="3.94" fill="#b8de2a"/>
+<rect x="722" y="287.75" width="14" height="3.94" fill="#a3da37"/>
+<rect x="722" y="291.19" width="14" height="3.94" fill="#8ed644"/>
+<rect x="722" y="294.62" width="14" height="3.94" fill="#7bd151"/>
+<rect x="722" y="298.06" width="14" height="3.94" fill="#68cc5c"/>
+<rect x="722" y="301.5" width="14" height="3.94" fill="#56c666"/>
+<rect x="722" y="304.94" width="14" height="3.94" fill="#47bf6f"/>
+<rect x="722" y="308.38" width="14" height="3.94" fill="#39b976"/>
+<rect x="722" y="311.81" width="14" height="3.94" fill="#2eb27d"/>
+<rect x="722" y="315.25" width="14" height="3.94" fill="#26ab82"/>
+<rect x="722" y="318.69" width="14" height="3.94" fill="#21a486"/>
+<rect x="722" y="322.12" width="14" height="3.94" fill="#209c89"/>
+<rect x="722" y="325.56" width="14" height="3.94" fill="#21958b"/>
+<rect x="722" y="329" width="14" height="3.94" fill="#228d8d"/>
+<rect x="722" y="332.44" width="14" height="3.94" fill="#25868e"/>
+<rect x="722" y="335.88" width="14" height="3.94" fill="#287e8e"/>
+<rect x="722" y="339.31" width="14" height="3.94" fill="#2b768e"/>
+<rect x="722" y="342.75" width="14" height="3.94" fill="#2e6e8e"/>
+<rect x="722" y="346.19" width="14" height="3.94" fill="#31678d"/>
+<rect x="722" y="349.62" width="14" height="3.94" fill="#355f8d"/>
+<rect x="722" y="353.06" width="14" height="3.94" fill="#39568c"/>
+<rect x="722" y="356.5" width="14" height="3.94" fill="#3d4e8a"/>
+<rect x="722" y="359.94" width="14" height="3.94" fill="#404587"/>
+<rect x="722" y="363.38" width="14" height="3.94" fill="#433b83"/>
+<rect x="722" y="366.81" width="14" height="3.94" fill="#46327e"/>
+<rect x="722" y="370.25" width="14" height="3.94" fill="#472877"/>
+<rect x="722" y="373.69" width="14" height="3.94" fill="#481d6e"/>
+<rect x="722" y="377.12" width="14" height="3.94" fill="#471265"/>
+<rect x="722" y="380.56" width="14" height="3.94" fill="#45075a"/>
+<rect x="722" y="274" width="14" height="110" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<polyline points="736,384 740,384" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="387.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<polyline points="736,356.5 740,356.5" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="359.81" font-size="10" text-anchor="start" fill="#6e727c">25%</text>
+<polyline points="736,329 740,329" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="332.31" font-size="10" text-anchor="start" fill="#6e727c">50%</text>
+<polyline points="736,301.5 740,301.5" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="304.81" font-size="10" text-anchor="start" fill="#6e727c">75%</text>
+<polyline points="736,274 740,274" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="742" y="277.31" font-size="10" text-anchor="start" fill="#6e727c">100%</text>
+<text x="722" y="404.31" font-size="10" text-anchor="start" fill="#6e727c">width ~ log bandwidth</text>
+<polyline points="722,416 736,416" fill="none" stroke="#6e727c" stroke-width="0.75" stroke-dasharray="3"/>
+<text x="742" y="419.31" font-size="10" text-anchor="start" fill="#6e727c">idle link</text>
+<rect x="722" y="436" width="14" height="5" fill="#882255" fill-opacity="0.59"/>
+<text x="742" y="441.31" font-size="10" text-anchor="start" fill="#1c1e24">HBM shoreline</text>
+<rect x="722" y="452" width="14" height="5" fill="#d55e00" fill-opacity="0.59"/>
+<text x="742" y="457.31" font-size="10" text-anchor="start" fill="#1c1e24">other PHY shoreline</text>
+<rect x="722" y="468" width="14" height="5" fill="#e69f00"/>
+<text x="742" y="473.31" font-size="10" text-anchor="start" fill="#1c1e24">router (site)</text>
+<rect x="722" y="480" width="14" height="12" fill="#00224e"/>
+<polyline points="722,488 726,492" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="722,484 730,492" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="722,480 734,492" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="726,480 736,490" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="730,480 736,486" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="734,480 736,482" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<text x="742" y="489.31" font-size="10" text-anchor="start" fill="#1c1e24">idle (0%)</text>
+<rect x="722" y="496" width="14" height="12" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<text x="742" y="505.31" font-size="10" text-anchor="start" fill="#1c1e24">no data</text>
+<text x="16" y="550.31" font-size="10" text-anchor="start" fill="#6e727c">18 blocks drawn of 28 placed | 17 wires drawn (42 links)</text>
+</svg>

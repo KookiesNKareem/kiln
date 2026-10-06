@@ -429,8 +429,8 @@ impl<'a> Fitter<'a> {
         Ok(DeviceFit { device: crate::records::device(&self.recs[0].device).expect("device"), records: self.recs.to_vec(), stages, clock, params: base, entries, residuals, failures, uncal_residuals })
     }
 
-    /// Mechanism-keyed set entries: fitted values with ranges from bootstrap CI and residual dispersion, frozen
-    /// priors with assumed bands, and telemetry operating points.
+    /// Mechanism-keyed set entries: fitted values with ranges spanning the bootstrap CI95, residual dispersion and
+    /// the plausible band's half-width (06 §3.2), frozen priors with assumed bands, and telemetry operating points.
     fn entries(&self, stages: &[StageOut], clock: Option<&ClockFit>) -> Vec<CalParam> {
         let mut out = vec![];
         let source = |s: &StageOut| format!("stage {} on {} calib-micro fit records ({})", s.stage, s.records.len(), self.recs[0].session);
@@ -448,8 +448,9 @@ impl<'a> Fitter<'a> {
                 let (lower, upper, basis) = if frozen {
                     assumed_band(f.name, v, reg.bounds)
                 } else {
-                    let half = (0.5 * (s.ci[j][1] - s.ci[j][0])).max(mad * v.abs());
-                    ((v - half).max(reg.bounds.0), (v + half).min(reg.bounds.1), "single_device".to_string())
+                    let band_half = reg.band.map_or(0.0, |(lo, hi)| 0.5 * (hi - lo));
+                    let half = (mad * v.abs()).max(band_half);
+                    ((v - half).min(s.ci[j][0]).max(reg.bounds.0), (v + half).max(s.ci[j][1]).min(reg.bounds.1), "single_device".to_string())
                 };
                 out.push(CalParam {
                     name: f.name.into(),

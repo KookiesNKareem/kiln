@@ -409,7 +409,9 @@ Recorded in full in 05 §12; the cross-section points:
 - `SimResult.ops` is empty at `trace: summary`; `kiln eval -o run.kiln` asks the engine for ops regardless.
 - Archive schema `kiln.archive/1` adopted the spellings `kiln_evo` already wrote (`schema`, `axes`,
   `descriptor_values`, `wall_time`, JSON-string `fitness_components`); 05 §3.9 lists both accepted forms.
-- Floorplans are an "unplaced" hierarchy layout until kiln-phys exposes placement rows (`BuildInput.floorplan`).
+- Floorplans use kiln-phys's placement since 2026-10-06 (trace schema 1.1, 05 §12): kiln-phys arranges dies
+  without compute-unit area, so units are filled in by area inside their placed parent; the unplaced hierarchy
+  layout remains only as the labelled fallback when kiln-phys fails. `kiln viz <design>` needs no simulation.
 
 
 ### F.7 Out-of-sample A100 check of the PyTorch stack recipe (2026-10-05)

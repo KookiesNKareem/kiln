@@ -162,3 +162,26 @@ fn unthrottled_telemetry_keeps_a_finite_clock_range() {
     assert!(fit.range.0.is_finite() && fit.range.1.is_finite(), "{:?}", fit.range);
     assert!(fit.range.0 <= 1.0 && fit.range.1 >= 1.0, "{:?}", fit.range);
 }
+
+#[test]
+fn fitted_ranges_hold_their_ci95_and_the_plausible_band_half_width() {
+    use kiln_sim::calib::{ParamStatus, registered};
+    for e in std::fs::read_dir(kiln_sim::calib::sets_dir()).unwrap() {
+        let path = e.unwrap().path();
+        if path.extension().is_none_or(|x| x != "json") {
+            continue;
+        }
+        let set = kiln_sim::CalibSet::load(&path).unwrap();
+        for p in set.parameters.iter().filter(|p| p.status == ParamStatus::Fit) {
+            let (r, at) = (&p.range, format!("{} {} {:?}: {:?}", path.display(), p.name, p.key, p.range));
+            let ci = p.ci95.unwrap();
+            assert!(r.lower <= ci[0].max(p.bounds[0]) && r.upper >= ci[1].min(p.bounds[1]), "{at} excludes CI95 {ci:?}");
+            if r.basis == "single_device"
+                && let Some((lo, hi)) = registered(&p.name).unwrap().band
+            {
+                let half = 0.5 * (hi - lo);
+                assert!(r.lower <= (p.value - half).max(p.bounds[0]) + 1e-12 && r.upper >= (p.value + half).min(p.bounds[1]) - 1e-12, "{at} narrower than the band half-width {half}");
+            }
+        }
+    }
+}

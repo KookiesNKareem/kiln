@@ -473,20 +473,21 @@ pub fn heuristic_lowered(
                         let keep: std::collections::BTreeSet<usize> = pre.iter().take(opts.prescreen_keep).map(|x| x.1).chain([0]).collect();
                         cands = cands.into_iter().enumerate().filter(|(ci, _)| keep.contains(ci)).map(|x| x.1).collect();
                     }
-                    let mut best: Option<(f64, usize)> = None;
+                    let mut best: Option<(f64, f64, usize)> = None;
                     let mut infeasible = None;
                     for (ci, c) in cands.iter().enumerate() {
                         let p = placement(op, set, c.clone(), units.len());
-                        // A candidate wins only below `b * (1 - 1e-12)`; its estimate is never below the one from
-                        // floor costs, so a floor estimate at or above that cannot win (the choice is unchanged).
-                        if let Some((b, _)) = best
+                        // A candidate wins below `b * (1 - 1e-12)`, or within `1e-12` of `b` on less summed resource load (ties
+                        // do not fall to candidate order, which hardware nothing uses could reorder); its estimate is
+                        // never below the one from floor costs, so a floor estimate above `b * (1 + 1e-12)` cannot win.
+                        if let Some((b, _, _)) = best
                             && opts.bound_candidates
                         {
                             l.floor = true;
                             let lb = l.lower_op(i, &p, units, false);
                             l.floor = false;
                             match lb {
-                                Ok(lb) if lb >= b * (1.0 - 1e-12) => continue,
+                                Ok(lb) if lb > b * (1.0 + 1e-12) => continue,
                                 Err(e) if UNMAPPABLE_CANDIDATE.contains(&e.code.as_str()) => continue,
                                 Err(e) => return Err(e),
                                 Ok(_) => {}
@@ -501,14 +502,14 @@ pub fn heuristic_lowered(
                             Err(e) => return Err(e),
                         };
                         report.candidates_scored += 1;
-                        if best.is_none_or(|(b, _)| est < b * (1.0 - 1e-12)) {
-                            best = Some((est, ci));
+                        if best.is_none_or(|(b, bl, _)| est < b * (1.0 - 1e-12) || (est <= b * (1.0 + 1e-12) && l.load < bl * (1.0 - 1e-9))) {
+                            best = Some((est, l.load, ci));
                         }
                     }
                     if let (None, Some(e)) = (best, infeasible) {
                         return Err(e);
                     }
-                    let c = cands.swap_remove(best.map_or(0, |b| b.1));
+                    let c = cands.swap_remove(best.map_or(0, |b| b.2));
                     memo.insert(sig, c.clone());
                     c
                 }

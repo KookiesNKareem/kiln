@@ -106,9 +106,15 @@ fn expect_out(ctx: &NodeCtx, i: usize, shape: &[u64]) -> Result<(), Diagnostic> 
     Ok(())
 }
 
-fn rows_cols(s: &[u64]) -> (u64, u64) {
+/// A loop extent of `n` elements; `E-WL-DIM-001` beyond `u64`.
+fn extent(ctx: &NodeCtx, n: u128) -> Result<u64, Diagnostic> {
+    u64::try_from(n).map_err(|_| err("E-WL-DIM-001", ctx, format!("loop extent {n} exceeds u64")))
+}
+
+/// Leading dims flattened into rows, and the last dim.
+fn rows_cols(ctx: &NodeCtx, s: &[u64]) -> Result<(u64, u64), Diagnostic> {
     let cols = s.last().copied().unwrap_or(1);
-    (s.iter().rev().skip(1).product(), cols)
+    Ok((extent(ctx, numel(&s[..s.len().saturating_sub(1)]))?, cols))
 }
 
 fn ceil_log2(k: u32) -> u16 {
@@ -926,7 +932,7 @@ fn rms_norm(ctx: &NodeCtx, a: &RmsNormAttrs) -> Out {
     let (nin, nout) = if a.fused_residual { (3, 2) } else { (2, 1) };
     arity(ctx, nin, nout)?;
     let x = &ctx.inputs[0].shape;
-    let (rows, d) = rows_cols(x);
+    let (rows, d) = rows_cols(ctx, x)?;
     if ctx.inputs[1].shape != [d] {
         return Err(shape_err(ctx, "norm weight", &[d], &ctx.inputs[1].shape));
     }
@@ -1012,7 +1018,7 @@ fn rms_norm(ctx: &NodeCtx, a: &RmsNormAttrs) -> Out {
 fn layer_norm(ctx: &NodeCtx) -> Out {
     arity(ctx, 3, 1)?;
     let x = &ctx.inputs[0].shape;
-    let (rows, d) = rows_cols(x);
+    let (rows, d) = rows_cols(ctx, x)?;
     for i in [1, 2] {
         if ctx.inputs[i].shape != [d] {
             return Err(shape_err(
@@ -1172,7 +1178,7 @@ fn softmax_op(ctx: &NodeCtx, a: &SoftmaxAttrs) -> Out {
         return Err(unsupported(ctx, "over a non-last axis"));
     }
     expect_out(ctx, 0, x)?;
-    let (rows, cols) = rows_cols(x);
+    let (rows, cols) = rows_cols(ctx, x)?;
     let scaled = a.scale.is_some_and(|s| s != 1.0);
     let mut kb = Kb::new(ctx);
     softmax_kernels(
@@ -1192,7 +1198,7 @@ fn gated_act(ctx: &NodeCtx, a: &GatedActAttrs) -> Out {
     let two = a.layout == GateLayout::TwoInputs;
     arity(ctx, if two { 2 } else { 1 }, 1)?;
     let x = &ctx.inputs[0].shape;
-    let (rows, c) = rows_cols(x);
+    let (rows, c) = rows_cols(ctx, x)?;
     let f = if two { c } else { c / 2 };
     if !two && c % 2 != 0 {
         return Err(err(
@@ -1401,7 +1407,7 @@ fn embedding(ctx: &NodeCtx) -> Out {
 fn logits_select(ctx: &NodeCtx, a: &LogitsSelectAttrs) -> Out {
     arity(ctx, 1, 1)?;
     let h = &ctx.inputs[0].shape;
-    let (t, d) = rows_cols(h);
+    let (t, d) = rows_cols(ctx, h)?;
     if t != ctx.seqs.tokens() {
         return Err(shape_err(
             ctx,
@@ -1608,11 +1614,11 @@ fn attention(ctx: &NodeCtx, a: &AttnAttrs) -> Out {
     let n = ctx.node;
     let qdt = ctx.inputs[0].dtype;
     let mut kb = Kb::new(ctx);
-    let sc = kb.temp("s", vec![p_attn as u64], qdt);
-    let mx = kb.temp("m", vec![rows as u64], ElemType::FP32);
-    let pr = kb.temp("p", vec![p_attn as u64], qdt);
-    let l = kb.temp("l", vec![rows as u64], ElemType::FP32);
-    let rl = kb.temp("rl", vec![rows as u64], ElemType::FP32);
+    let sc = kb.temp("s", vec![extent(ctx, p_attn)?], qdt);
+    let mx = kb.temp("m", vec![extent(ctx, rows)?], ElemType::FP32);
+    let pr = kb.temp("p", vec![extent(ctx, p_attn)?], qdt);
+    let l = kb.temp("l", vec![extent(ctx, rows)?], ElemType::FP32);
+    let rl = kb.temp("rl", vec![extent(ctx, rows)?], ElemType::FP32);
     let dom = |with_j: bool| {
         segmented(ctx.seqs, "s", |s| {
             if with_j {
@@ -1780,7 +1786,7 @@ fn topk_cmp(rows: u64, cols: u64, k: u32) -> (u128, ScalarBody) {
 
 fn top_k(ctx: &NodeCtx, a: &TopKAttrs) -> Out {
     arity(ctx, 1, 2)?;
-    let (rows, cols) = rows_cols(&ctx.inputs[0].shape);
+    let (rows, cols) = rows_cols(ctx, &ctx.inputs[0].shape)?;
     let k = u64::from(a.k);
     if k == 0 || k > cols {
         return Err(err(
@@ -1815,7 +1821,7 @@ fn moe_route(ctx: &NodeCtx, a: &MoeRouteAttrs) -> Out {
     if a.group_limited.is_some() {
         return Err(unsupported(ctx, "with group_limited routing"));
     }
-    let (t, e) = rows_cols(&ctx.inputs[0].shape);
+    let (t, e) = rows_cols(ctx, &ctx.inputs[0].shape)?;
     if e != u64::from(a.n_experts) || a.top_k == 0 || a.top_k > a.n_experts {
         return Err(err(
             "E-WL-SHAPE-001",
@@ -1937,7 +1943,7 @@ fn moe_route(ctx: &NodeCtx, a: &MoeRouteAttrs) -> Out {
 /// (overflow drops are not subtracted in M0).
 fn moe_dispatch(ctx: &NodeCtx, a: &MoeDispatchAttrs) -> Out {
     arity(ctx, 2, 1)?;
-    let (t, d) = rows_cols(&ctx.inputs[0].shape);
+    let (t, d) = rows_cols(ctx, &ctx.inputs[0].shape)?;
     let k = u64::from(a.top_k);
     if ctx.inputs[1].shape != [t, k] {
         return Err(shape_err(ctx, "routing idx", &[t, k], &ctx.inputs[1].shape));
@@ -2107,7 +2113,7 @@ fn grouped_einsum(ctx: &NodeCtx, a: &EinsumAttrs) -> Out {
 /// `ye, idx [T, k], wts [T, k]` → `[T, d]`: per (token, k) d mul + d add.
 fn moe_combine(ctx: &NodeCtx) -> Out {
     arity(ctx, 3, 1)?;
-    let (t, k) = rows_cols(&ctx.inputs[1].shape);
+    let (t, k) = rows_cols(ctx, &ctx.inputs[1].shape)?;
     let d = ctx.inputs[0].shape.last().copied().unwrap_or(0);
     if ctx.inputs[2].shape != [t, k] {
         return Err(shape_err(
@@ -2162,7 +2168,7 @@ fn moe_combine(ctx: &NodeCtx) -> Out {
 /// threshold (1 cmp) + draw scan. A temperature ≠ 1 adds 1 mul per logit for non-greedy strategies.
 fn sample(ctx: &NodeCtx, a: &SampleAttrs) -> Out {
     arity(ctx, 1, 1)?;
-    let (rows, v) = rows_cols(&ctx.inputs[0].shape);
+    let (rows, v) = rows_cols(ctx, &ctx.inputs[0].shape)?;
     expect_out(ctx, 0, &[rows])?;
     let n = ctx.node;
     let (logits, ids) = (&n.inputs[0], &n.outputs[0]);
@@ -2254,7 +2260,7 @@ fn sample(ctx: &NodeCtx, a: &SampleAttrs) -> Out {
 
 /// Elements per scale group of an output type: block size, per-row, or whole tensor.
 fn scale_group(ctx: &NodeCtx, et: &ElemType, shape: &[u64]) -> Result<Option<u64>, Diagnostic> {
-    let n = numel(shape) as u64;
+    let n = extent(ctx, numel(shape))?;
     Ok(match et.scaling {
         Scaling::None => None,
         Scaling::PerTensor { .. } => Some(n),
@@ -2298,19 +2304,20 @@ fn quantize(ctx: &NodeCtx, a: &QuantizeAttrs) -> Out {
     let n = ctx.node;
     let mut kb = Kb::new(ctx);
     let h = H::new(ctx).all_inputs().all_outputs();
+    // x / s (+ z): applying a scale costs the same whether it is estimated here or calibrated offline.
+    let apply = crate::convert::dequant_body(&out_t);
     let group = scale_group(ctx, &out_t, x)?
         .filter(|&g| g > 0 && a.amax_from == AmaxFrom::Dynamic);
     let Some(g) = group else {
-        let cast = ScalarBody { cvt: 1, ..Z };
         kb.push(
-            kernel(KernelClass::Map, &[("i", total as u64)], &[])
+            kernel(KernelClass::Map, &[("i", extent(ctx, total)?)], &[])
                 .rd(&n.inputs[0], ix(&["i"]))
                 .wr(&n.outputs[0], ix(&["i"]))
-                .body(cast),
+                .body(apply),
         );
-        return Ok((kb.done(), h.work(total, cast).h));
+        return Ok((kb.done(), h.work(total, apply).h));
     };
-    let groups = (total / u128::from(g)) as u64;
+    let groups = extent(ctx, total / u128::from(g))?;
     let amax = kb.temp("amax", vec![groups], ElemType::FP32);
     let scale = kb.temp("scale", vec![groups], ElemType::FP32);
     let dims = [("b", groups), ("i", g)];
@@ -2332,22 +2339,10 @@ fn quantize(ctx: &NodeCtx, a: &QuantizeAttrs) -> Out {
             .rd(&n.inputs[0], ix(&["b", "i"]))
             .rd(&scale, ix(&["b"]))
             .wr(&n.outputs[0], ix(&["b", "i"]))
-            .body(ScalarBody {
-                mul: 1,
-                cvt: 1,
-                ..Z
-            }),
+            .body(apply),
     );
     let h = h
-        .work(
-            total,
-            ScalarBody {
-                max: 1,
-                mul: 1,
-                cvt: 1,
-                ..Z
-            },
-        )
+        .work(total, apply + ScalarBody { max: 1, ..Z })
         .work(groups.into(), ScalarBody { cvt: 1, ..Z });
     Ok((kb.done(), h.h))
 }
@@ -2357,14 +2352,10 @@ fn dequantize(ctx: &NodeCtx) -> Out {
     let x = &ctx.inputs[0].shape;
     expect_out(ctx, 0, x)?;
     let total = numel(x);
-    let body = ScalarBody {
-        mul: 1,
-        cvt: 1,
-        ..Z
-    };
+    let body = crate::convert::dequant_body(&ctx.inputs[0].dtype);
     let mut kb = Kb::new(ctx);
     kb.push(
-        kernel(KernelClass::Map, &[("i", total as u64)], &[])
+        kernel(KernelClass::Map, &[("i", extent(ctx, total)?)], &[])
             .rd(&ctx.node.inputs[0], ix(&["i"]))
             .wr(&ctx.node.outputs[0], ix(&["i"]))
             .body(body),
@@ -2473,7 +2464,7 @@ fn collective(ctx: &NodeCtx, a: &CollectiveAttrs) -> Out {
             _ => ScalarBody { add: 1, ..Z },
         };
         kb.push(
-            kernel(KernelClass::Collective, &[("i", ops as u64)], &[])
+            kernel(KernelClass::Collective, &[("i", extent(ctx, ops)?)], &[])
                 .body(body)
                 .comb(Combiner::Sum),
         );
@@ -2486,7 +2477,7 @@ fn send_recv(ctx: &NodeCtx) -> Out {
     arity(ctx, 1, 1)?;
     let s = &ctx.inputs[0].shape;
     expect_out(ctx, 0, s)?;
-    let total = numel(s) as u64;
+    let total = extent(ctx, numel(s))?;
     let mut kb = Kb::new(ctx);
     kb.push(
         kernel(KernelClass::Collective, &[("i", total)], &[])

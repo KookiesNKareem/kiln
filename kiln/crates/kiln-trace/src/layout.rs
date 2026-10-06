@@ -107,11 +107,28 @@ pub fn unplaced_floorplan(t: &Trace) -> Vec<FloorplanRow> {
                 h_um: r.h,
                 poly: None,
                 rotation: 0,
+                source: 0,
+                block: block_of_kind(kinds[i]),
+                area_um2: None,
+                leak_w: None,
             })
         })
         .collect();
     out.sort_by_key(|r| r.resource);
     out
+}
+
+/// `floorplan.block` code of a resource kind (default enum order).
+pub fn block_of_kind(kind: &str) -> u8 {
+    match kind {
+        k if k.starts_with("unit_") || k == "nmp_unit" => 1,
+        "memory" | "bank" => 2,
+        "router" | "network" | "channel" => 3,
+        "port" => 4,
+        "mem_stack" => 5,
+        "sequencer" | "dma" => 6,
+        _ => 0,
+    }
 }
 
 fn postorder(rows: &[ResourceRow], children: &[Vec<u32>]) -> Vec<usize> {

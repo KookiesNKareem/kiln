@@ -565,16 +565,15 @@ fn merge(parts: Vec<EvalResult>, names: &[&str]) -> EvalResult {
     let (mut r, _) = it.next().expect("at least one workload member");
     for (p, name) in it {
         let preset = name.split(':').next().unwrap_or(name);
-        let rename = |id: &Id, taken: &EvalResult| {
-            if taken.phases.iter().any(|q| q.phase == *id) {
-                Id::new(format!("{preset}.{id}")).unwrap_or_else(|_| id.clone())
-            } else {
-                id.clone()
-            }
-        };
-        let mut map = BTreeMap::new();
+        let mut map: BTreeMap<String, Id> = BTreeMap::new();
         for ph in &p.phases {
-            map.insert(ph.phase.to_string(), rename(&ph.phase, &r));
+            let free = |c: &Id| !r.phases.iter().any(|q| q.phase == *c) && !map.values().any(|v| v == c);
+            let id = std::iter::once(ph.phase.to_string())
+                .chain((1..).map(|k| if k == 1 { format!("{preset}.{}", ph.phase) } else { format!("{preset}.{}.{k}", ph.phase) }))
+                .filter_map(|c| Id::new(c).ok())
+                .find(free)
+                .expect("a free phase id");
+            map.insert(ph.phase.to_string(), id);
         }
         let fix = |id: &mut Id| {
             if let Some(n) = map.get(id.as_str()) {
@@ -694,6 +693,17 @@ mod tests {
         let p = inputs::default_designs_dir().join(path);
         let text = std::fs::read_to_string(p).unwrap();
         DesignInput::Str(text.replacen("name: \"", &format!("name: \"{name}-"), 1))
+    }
+
+    #[test]
+    fn merged_phase_ids_stay_unique() {
+        let names = ["llama3_8b:decode_b1", "llama3_8b:decode_b1+weights=fp8_e4m3", "llama3_8b:decode_b1+weights=int4_g128", "llama3_8b:decode_b1+kv=fp8_e4m3"];
+        let parts = [100.0, 10.0, 1000.0, 1.0].iter().map(|&t| result_with(&[("decode_b1", t)], 800.0, 400.0)).collect();
+        let r = merge(parts, &names);
+        let ids: std::collections::BTreeSet<&str> = r.phases.iter().map(|p| p.phase.as_str()).collect();
+        assert_eq!(ids.len(), 4, "{ids:?}");
+        let tps: Vec<f64> = r.phases.iter().map(|p| p.tokens_per_s.central).collect();
+        assert_eq!(tps, [100.0, 10.0, 1000.0, 1.0]);
     }
 
     #[test]

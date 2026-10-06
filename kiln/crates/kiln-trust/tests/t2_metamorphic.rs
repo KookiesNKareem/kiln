@@ -205,6 +205,7 @@ fn m8_fp8_weights_halve_weight_bytes_only() {
 /// Tolerances are the corpus's; a listed pair is reported, not asserted. Any failure not listed fails the test,
 /// and a listed pair that passes is printed so the entry can be removed.
 const KNOWN: &[(&str, &str, &str)] = &[
+    ("M1", "v100_sxm2_32gb", "PyTorch stack: cuBLAS issues decode_b8's 8 token rows as 64-row tiles (8x useful MACs); at 2x HBM bandwidth that padded issue on V100's tensor cores binds part of the step: 0.66x, not 0.60x"),
     ("M1", "tpu_v4", "2x HBM bandwidth draws 190 W against the 192 W cap: the core clock throttles 1050 -> 893 MHz and the on-die links, which move a fixed width per core cycle, bind (0.60x, not 0.51x)"),
     ("M2", "h100_sxm5_80gb", "2x units stretch the die (04 §6.2: unit area stretches the arrangement, never shortens a wire): longer NoC/memory paths add wire latency (ratio 1.00004x)"),
     ("M3", "a100_sxm4_40gb", "2x tensor cores per SM: GEMM 0.81x, the SM's L1/LSU port (128 B/clk, unchanged) becomes the binding resource"),
@@ -215,6 +216,7 @@ const KNOWN: &[(&str, &str, &str)] = &[
     ("M5", "v100_sxm2_32gb", "decode_b8 draws 299.7 W against the 300 W cap: the idle unit's leakage throttles the core clock (memory-bound, time unchanged), and clock-tree and core switching power fall more than leakage rises (static 232.4 -> 230.7 W)"),
     ("M5", "tpu_v5e", "decode_b8 does not fit 16 GB of HBM: infeasible (E-MAP-CAP-001), not extrapolated"),
     ("M6", "tpu_v5e", "decode_b8 does not fit 16 GB of HBM: infeasible (E-MAP-CAP-001), not extrapolated"),
+    ("M8", "v100_sxm2_32gb", "PyTorch stack: with fp8 weights halving the weight stream, decode_b8's GEMMs padded to 64-row cuBLAS tiles (8x useful MACs) bind on V100's tensor cores part of the step: 0.64x, not 0.61x"),
     ("M8", "tpu_v6e", "fp8 weights: decode becomes MXU weight-load bound as well (gate_up: 1792 256x256 bf16 tiles x 256 cycles over 2 MXUs ~ 65 us vs 72 us of fp8 HBM reads; M/D/1 contention 13 us): 0.60x, not 0.52x"),
     ("M7", "*", "a split memory (L2 slices, vmem) changes chain grouping: capacity shares, stub SRAM energy per byte (steps at 8 MiB) and the vld p2p -> bus topology"),
 ];

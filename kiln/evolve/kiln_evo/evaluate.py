@@ -292,22 +292,33 @@ class Evaluator:
                 results[keys[i]] = d
         for r in recs:
             seed_fit, seed_low, failed = {}, {}, []
+            evals = [{"fitness_low": r.get("fitness_low") or 0.0, "fitness_high": r.get("fitness_high") or 0.0,
+                      "realistic": r.get("realistic")}]
             for s in seeds:
                 agg = self.aggregate({w: results[(r["id"], s, w)] for w in self.train}, self.train)
+                evals.append(agg)
                 if agg["status"] != "ok":
                     failed.append(f"seed {s}: status {agg['status']}")
                     seed_fit[s] = 0.0
                     continue
                 seed_fit[s], seed_low[s] = agg["fitness"], agg["fitness_low"]
-                if s == seeds[0]:
-                    r["fitness_low"], r["fitness_high"] = agg["fitness_low"], agg["fitness_high"]
-                    r["interval_method"] = acfg["interval"]
             vals = list(seed_fit.values())
             med = statistics.median(vals) if vals else 0.0
             spread = (max(vals) - min(vals)) / med if med > 0 else float("inf")
             if spread > acfg["max_seed_spread"]:
                 failed.append(f"seed spread {spread:.1%} > {acfg['max_seed_spread']:.0%}")
             audited = min([r["fitness"], *vals]) if vals else 0.0
+            # The audited score is a minimum over evaluations, so each interval endpoint is the same minimum.
+            r["fitness_low"] = min(e["fitness_low"] for e in evals)
+            r["fitness_high"] = min(e["fitness_high"] for e in evals)
+            r["interval_method"] = acfg["interval"]
+            reals = [e.get("realistic") for e in evals]
+            r["realistic"] = ({**reals[0], **{k: min(x[k] for x in reals) for k in ("score", "low", "high")}}
+                              if all(reals) else None)
+            if "features" in r:
+                r["features"] = {**r["features"],
+                                 "score_rel_width": (r["fitness_high"] - r["fitness_low"]) / audited if audited > 0
+                                 else 0.0}
             a = {"status": "failed" if failed else ("pending" if tier_b != "available" else "pending_tier_b_run"),
                  "triggers": reasons.get(r["id"], []), "reasons": failed, "seed_scores": seed_fit,
                  "seed_low": seed_low, "seed_spread": spread, "tier_b": tier_b, "fitness_before": r["fitness"],

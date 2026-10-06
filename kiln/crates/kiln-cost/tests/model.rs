@@ -27,6 +27,7 @@ fn level(name: &str, capacity: u64, ports: Vec<MemPort>, e_r: f64, e_w: f64) -> 
         e_write_j_per_b: e_w,
         latency_cycles: 0,
         external: false,
+        partitions: vec![],
     }
 }
 

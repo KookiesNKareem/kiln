@@ -11,7 +11,7 @@ use kiln_trace::archive::Archive;
 use kiln_trace::trace::{NONE_U32, Trace};
 use kiln_viz_render::scene::{self, HAlign, Hit, Prim, Scene, VAlign};
 use kiln_viz_render::theme::ThemeKind;
-use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec};
+use kiln_viz_render::views::{FloorColor, ViewKind, ViewSpec, WireColor};
 use kiln_viz_render::{Inputs, Selection};
 
 use crate::Data;
@@ -59,7 +59,11 @@ struct App {
 }
 
 impl App {
-    pub(crate) fn new(data: Data, spec: ViewSpec) -> Self {
+    pub(crate) fn new(data: Data, mut spec: ViewSpec) -> Self {
+        // A design without a run has no utilization: start on block kinds.
+        if spec.color.needs_run() && data.runs.first().is_some_and(|t| t.aggregates_resource.is_empty()) {
+            spec.color = FloorColor::Kind;
+        }
         #[cfg(target_arch = "wasm32")]
         let watch_rx = None;
         #[cfg(not(target_arch = "wasm32"))]
@@ -192,6 +196,9 @@ impl App {
                 self.state.spec.window = None;
             } else if c == 'o' || c == 'O' {
                 self.show_ops = !self.show_ops;
+            } else if c == 'l' || c == 'L' {
+                let layers = self.layers();
+                self.state.cycle_layer(&layers);
             } else if let Some(a) = AppState::key(c) {
                 self.state.apply(a, &phases);
             }
@@ -202,6 +209,20 @@ impl App {
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::S)) {
             self.save_png();
         }
+    }
+
+    /// Stacked-die layers of the first run's floorplan (empty for a single layer).
+    fn layers(&self) -> Vec<u8> {
+        let Some(t) = self.data.runs.first() else { return vec![] };
+        let mut l: Vec<u8> = t
+            .floorplan
+            .iter()
+            .filter(|f| t.resource_kind(&t.resources[f.resource as usize]) == "die")
+            .map(|f| f.layer)
+            .collect();
+        l.sort_unstable();
+        l.dedup();
+        if l.len() > 1 { l } else { vec![] }
     }
 
     fn save_png(&mut self) {
@@ -235,7 +256,7 @@ impl App {
                 if ui
                     .selectable_label(
                         self.state.spec.view == *v,
-                        format!("{} {}", k + 1, v.title()),
+                        format!("{} {}", (k + 1) % 10, v.title()),
                     )
                     .clicked()
                 {
@@ -269,6 +290,32 @@ impl App {
                             ui.selectable_value(&mut self.state.spec.color, c, c.name());
                         }
                     });
+                if self.state.spec.view == ViewKind::Floorplan {
+                    ui.checkbox(&mut self.state.spec.wires, "wires (W)");
+                    if self.state.spec.wires {
+                        egui::ComboBox::from_id_salt("wire_color")
+                            .selected_text(format!("wires: {}", self.state.spec.wire_color.name()))
+                            .show_ui(ui, |ui| {
+                                for c in WireColor::ALL {
+                                    ui.selectable_value(&mut self.state.spec.wire_color, c, c.name());
+                                }
+                            });
+                    }
+                    let layers = self.layers();
+                    if !layers.is_empty() {
+                        egui::ComboBox::from_id_salt("layer")
+                            .selected_text(match self.state.spec.layer {
+                                None => "layers: side by side (L)".to_string(),
+                                Some(l) => format!("layer {l} (L)"),
+                            })
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(&mut self.state.spec.layer, None, "side by side");
+                                for l in layers {
+                                    ui.selectable_value(&mut self.state.spec.layer, Some(l), format!("layer {l}"));
+                                }
+                            });
+                    }
+                }
                 if !self.state.crumbs.is_empty() {
                     if ui.button("up (U)").clicked() {
                         self.state.apply(Action::Up, &[]);
@@ -514,7 +561,7 @@ impl eframe::App for App {
                 ui.label(format!("issues: {errs} errors, {warns} warnings"));
                 ui.separator();
                 ui.label(format!(
-                    "zoom {:.1}x | R reset | 1-8 views | C color | U up | P phase | Esc clear",
+                    "zoom {:.1}x | R reset | 1-9, 0 views | C color | W wires | L layer | U up | P phase | Esc clear",
                     self.zoom
                 ));
                 ui.separator();
@@ -706,7 +753,25 @@ fn hover_text(h: Hit, d: &Data) -> String {
     let t = d.runs.first();
     match (h, t) {
         (Hit::Resource(r), Some(t)) => t.resources.get(r as usize).map_or_else(String::new, |x| {
-            format!("{} ({})", x.path, t.resource_kind(x))
+            let mut s = format!("{} ({})", x.path, t.resource_kind(x));
+            if let Some(f) = t.floorplan.iter().find(|f| f.resource == r) {
+                if let Some(a) = f.area_um2 {
+                    s.push_str(&format!("  {}", kiln_viz_render::views::floorplan::fmt_area(a)));
+                }
+                if let Some(w) = f.leak_w {
+                    s.push_str(&format!(", {:.3} W static", w));
+                }
+            }
+            if let Some(w) = t.wires.iter().find(|w| w.link == r) {
+                s.push_str(&format!(
+                    "  {:.2} mm, {}, {:.2} ns, {:.3} pJ/bit",
+                    w.length_um / 1000.0,
+                    kiln_viz_render::chart::fmt_bw(w.bw_bps),
+                    w.latency_s * 1e9,
+                    w.e_j_per_bit * 1e12
+                ));
+            }
+            s
         }),
         (Hit::Op(o), Some(t)) => t.ops.get(o as usize).map_or_else(String::new, |x| {
             format!("{} ({}, {})", x.path, t.op_kind(x), t.phase_name(x.phase))

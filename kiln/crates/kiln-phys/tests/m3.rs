@@ -302,3 +302,49 @@ fn vertical_links_fit_their_bond_pads() {
 fn from_value_lenient(v: Value) -> HwModel {
     check(Design::from_value(v).expect("typed"), Profile::Full, &Default::default()).model.expect("model")
 }
+
+/// 04 §6.3: a vertical link is charged its own bond's PHY energy, resolved like the bond-pad capacity check.
+#[test]
+fn vertical_link_energy_follows_the_bond_kind() {
+    let energies = |bond: &str| {
+        let mut v = canonical("ember");
+        visit(&mut v, &mut |o| {
+            if o.get("bond") == Some(&Value::from("hybrid")) {
+                o.insert("bond".into(), Value::from(bond));
+            }
+        });
+        let hw = from_value_lenient(v);
+        let ph = Phys::new(&hw);
+        let e: Vec<f64> = hw.channels.iter().enumerate().filter(|(_, c)| c.kind == kiln_ir::hw::model::ChannelKind::Vertical).map(|(i, _)| ph.link(i).energy_j_per_b).collect();
+        assert!(!e.is_empty());
+        e
+    };
+    for (bond, pj) in [("hybrid", 0.05), ("microbump", 0.15), ("tsv", 0.1)] {
+        for e in energies(bond) {
+            assert!((e - 8.0 * pj * 1e-12).abs() < 1e-18, "{bond}: {e}");
+        }
+    }
+}
+
+/// A declared PHY area is a floor on the derived PHY area, not an addition to it.
+#[test]
+fn declared_phy_area_is_not_added_twice() {
+    let mm2 = |area: Option<&str>| {
+        let mut v = canonical("a100_sxm4_40gb");
+        visit(&mut v, &mut |o| {
+            if let Some(a) = area
+                && o.get("id") == Some(&Value::from("phy"))
+            {
+                o.insert("power".into(), serde_json::json!({ "area": a }));
+            }
+        });
+        let hw = from_value(v);
+        let ph = Phys::new(&hw);
+        let r = ph.report().expect("report");
+        (r.dies.iter().map(|d| d.area_mm2).sum::<f64>(), r.dies.iter().map(|d| d.parts_mm2["phy"]).sum::<f64>())
+    };
+    let base = mm2(None).0;
+    assert!((mm2(Some("1mm2")).0 - base).abs() < 1e-9 * base, "a declaration below the derived area changes nothing");
+    let grow = mm2(Some("200mm2")).1 - mm2(Some("100mm2")).1;
+    assert!((grow - 6.0 * 100.0).abs() < 1e-6, "six HBM PHYs at their declared area: {grow}");
+}

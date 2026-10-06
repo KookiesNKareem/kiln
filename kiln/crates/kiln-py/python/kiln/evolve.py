@@ -335,12 +335,13 @@ def _kill_group(p: subprocess.Popen) -> None:
 
 
 def _supervise(p: subprocess.Popen, deadline: float, memory_bytes: int | None) -> tuple[bytes, str | None]:
-    """Drains `p.stderr` (keeping the last `_STDERR_KEEP` bytes) until EOF, kills the process group at the deadline
-    or the memory limit (when `memory_bytes` is given, by RSS polling), and stops draining `_DRAIN_S` after the
-    process ends even if an escaped descendant holds the pipe open. Returns (stderr tail, kill reason)."""
+    """Drains `p.stderr` (keeping the last `_STDERR_KEEP` bytes) until EOF and supervises the process until it
+    ends: kills the process group at the deadline or the memory limit (when `memory_bytes` is given, by RSS
+    polling), and stops draining `_DRAIN_S` after the process ends even if an escaped descendant holds the pipe
+    open. Returns (stderr tail, kill reason)."""
     fd = p.stderr.fileno()
     os.set_blocking(fd, False)
-    buf, killed, drain_until, next_rss = bytearray(), None, None, 0.0
+    buf, killed, drain_until, next_rss, eof = bytearray(), None, None, 0.0, False
     try:
         while True:
             now = time.monotonic()
@@ -355,17 +356,18 @@ def _supervise(p: subprocess.Popen, deadline: float, memory_bytes: int | None) -
                     _kill_group(p)
             if drain_until is None and (killed or p.poll() is not None):
                 drain_until = now + _DRAIN_S
-            limit = drain_until if drain_until is not None else deadline
-            if now >= limit and drain_until is not None:
+            if drain_until is not None and (eof or now >= drain_until):
                 break
-            ready, _, _ = select.select([fd], [], [], max(0.0, min(0.1, limit - now)))
+            limit = drain_until if drain_until is not None else deadline
+            ready, _, _ = select.select([] if eof else [fd], [], [], max(0.0, min(0.1, limit - now)))
             if ready:
                 try:
                     chunk = os.read(fd, 1 << 20)
                 except BlockingIOError:
                     continue
                 if not chunk:
-                    break
+                    eof = True
+                    continue
                 buf += chunk
                 if len(buf) > 2 * _STDERR_KEEP:
                     del buf[:-_STDERR_KEEP]

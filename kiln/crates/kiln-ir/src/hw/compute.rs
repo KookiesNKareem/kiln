@@ -433,9 +433,9 @@ impl CimSpec {
     /// Lossless ADC resolution for one analog conversion: `ceil(log2(parallel_rows * (2^cell_bits - 1) *
     /// (2^input_bits_per_cycle - 1) + 1))`.
     pub fn boundary_adc_bits(&self) -> u32 {
-        let levels = |b: u32| (1u64 << b.min(32)) - 1;
-        let max = u64::from(self.active_rows()) * levels(self.cell_bits) * levels(self.input_bits_per_cycle);
-        (max + 1).next_power_of_two().trailing_zeros()
+        let levels = |b: u32| (1u128 << b.min(32)) - 1;
+        let max = u128::from(self.active_rows()) * levels(self.cell_bits) * levels(self.input_bits_per_cycle);
+        u128::BITS - max.leading_zeros()
     }
 }
 
@@ -947,8 +947,12 @@ impl MemStack {
         self.channels.unwrap_or_else(|| self.kind.default_channels())
     }
 
-    pub fn pseudo_channels(&self) -> u32 {
-        self.channel_count() * self.pseudo_channels_per_channel.unwrap_or_else(|| self.kind.default_pcs_per_channel())
+    pub fn pseudo_channels(&self) -> u64 {
+        u64::from(self.channel_count()) * u64::from(self.pseudo_channels_per_channel.unwrap_or_else(|| self.kind.default_pcs_per_channel()))
+    }
+
+    pub fn banks_per_pseudo_channel(&self) -> u32 {
+        self.banks_per_pc.unwrap_or(16)
     }
 }
 

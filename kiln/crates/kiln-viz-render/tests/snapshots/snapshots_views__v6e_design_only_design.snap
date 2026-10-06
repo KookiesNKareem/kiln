@@ -1,0 +1,204 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "one(&v6e, &spec(ViewKind::Design))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Design  tpu_v6e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">tpu_v6e | tsmc_n5 | kiln-phys/m3 | exec static_dataflow | 1 chip(s) | hw1-7785c98eb122 | calibration phys-generic-2026-10-05</text>
+<text x="16" y="78.81" font-size="13" text-anchor="start" fill="#1c1e24">Peak compute (dense, all chips)</text>
+<polyline points="16,85 289.33,85" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="16" y="98.15" font-size="11" text-anchor="start" fill="#6e727c">int8*int8+int32</text>
+<text x="130.8" y="98.15" font-size="11" text-anchor="start" fill="#1c1e24">1.84 POP/s</text>
+<text x="16" y="113.15" font-size="11" text-anchor="start" fill="#6e727c">bf16*bf16+fp32</text>
+<text x="130.8" y="113.15" font-size="11" text-anchor="start" fill="#1c1e24">918 TFLOP/s</text>
+<text x="16" y="137.81" font-size="13" text-anchor="start" fill="#1c1e24">Vector / elementwise</text>
+<polyline points="16,144 289.33,144" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="16" y="157.15" font-size="11" text-anchor="start" fill="#6e727c">bf16:convert</text>
+<text x="130.8" y="157.15" font-size="11" text-anchor="start" fill="#1c1e24">10.8 Top/s</text>
+<text x="16" y="172.15" font-size="11" text-anchor="start" fill="#6e727c">bf16:elementwise</text>
+<text x="130.8" y="172.15" font-size="11" text-anchor="start" fill="#1c1e24">10.8 Top/s</text>
+<text x="16" y="187.15" font-size="11" text-anchor="start" fill="#6e727c">bf16:reduction</text>
+<text x="130.8" y="187.15" font-size="11" text-anchor="start" fill="#1c1e24">10.8 Top/s</text>
+<text x="16" y="202.15" font-size="11" text-anchor="start" fill="#6e727c">fp32:elementwise</text>
+<text x="130.8" y="202.15" font-size="11" text-anchor="start" fill="#1c1e24">5.38 Top/s</text>
+<text x="16" y="226.81" font-size="13" text-anchor="start" fill="#1c1e24">Clocks and V/f</text>
+<polyline points="16,233 289.33,233" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="16" y="245.73" font-size="10.5" text-anchor="start" fill="#6e727c">domain</text>
+<text x="152.67" y="245.73" font-size="10.5" text-anchor="end" fill="#6e727c">nominal</text>
+<text x="199.13" y="245.73" font-size="10.5" text-anchor="end" fill="#6e727c">base</text>
+<text x="248.33" y="245.73" font-size="10.5" text-anchor="end" fill="#6e727c">V/f range</text>
+<text x="289.33" y="245.73" font-size="10.5" text-anchor="end" fill="#6e727c">leak</text>
+<text x="16" y="259.73" font-size="10.5" text-anchor="start" fill="#1c1e24">core</text>
+<text x="152.67" y="259.73" font-size="10.5" text-anchor="end" fill="#1c1e24">3.5 GHz</text>
+<text x="199.13" y="259.73" font-size="10.5" text-anchor="end" fill="#1c1e24">-</text>
+<text x="248.33" y="259.73" font-size="10.5" text-anchor="end" fill="#1c1e24">0.55-0.9…</text>
+<text x="289.33" y="259.73" font-size="10.5" text-anchor="end" fill="#1c1e24">4.37 W</text>
+<text x="16" y="283.81" font-size="13" text-anchor="start" fill="#1c1e24">Validation</text>
+<polyline points="16,290 289.33,290" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="16" y="303.15" font-size="11" text-anchor="start" fill="#6e727c">reference profile</text>
+<text x="130.8" y="303.15" font-size="11" text-anchor="start" fill="#008c5a">valid, 0 warning(s)</text>
+<text x="16" y="318.15" font-size="11" text-anchor="start" fill="#6e727c">search profile</text>
+<text x="130.8" y="318.15" font-size="11" text-anchor="start" fill="#d53228">2 error(s), 0 warning(s)</text>
+<text x="16" y="333.15" font-size="11" text-anchor="start" fill="#6e727c">  E-IR-1102</text>
+<text x="130.8" y="333.15" font-size="11" text-anchor="start" fill="#6e727c">family 'tpu_v6e' set; platform cali…</text>
+<text x="16" y="348.15" font-size="11" text-anchor="start" fill="#6e727c">  E-IR-1106</text>
+<text x="130.8" y="348.15" font-size="11" text-anchor="start" fill="#6e727c">assumed (unpublished) power cap…</text>
+<text x="16" y="372.81" font-size="13" text-anchor="start" fill="#1c1e24">Physical findings (kiln-phys)</text>
+<polyline points="16,379 289.33,379" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="16" y="392.15" font-size="11" text-anchor="start" fill="#6e727c">E-PHYS</text>
+<text x="130.8" y="392.15" font-size="11" text-anchor="start" fill="#008c5a">none</text>
+<text x="313.33" y="78.81" font-size="13" text-anchor="start" fill="#1c1e24">Memory hierarchy (per chip)</text>
+<polyline points="313.33,85 586.67,85" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="313.33" y="97.73" font-size="10.5" text-anchor="start" fill="#6e727c">level</text>
+<text x="450" y="97.73" font-size="10.5" text-anchor="end" fill="#6e727c">kind</text>
+<text x="482.8" y="97.73" font-size="10.5" text-anchor="end" fill="#6e727c">count</text>
+<text x="532" y="97.73" font-size="10.5" text-anchor="end" fill="#6e727c">capacity</text>
+<text x="586.67" y="97.73" font-size="10.5" text-anchor="end" fill="#6e727c">bandwidth</text>
+<text x="313.33" y="111.73" font-size="10.5" text-anchor="start" fill="#1c1e24">L0 wreg</text>
+<text x="450" y="111.73" font-size="10.5" text-anchor="end" fill="#1c1e24">local</text>
+<text x="482.8" y="111.73" font-size="10.5" text-anchor="end" fill="#1c1e24">2</text>
+<text x="532" y="111.73" font-size="10.5" text-anchor="end" fill="#1c1e24">524 KB</text>
+<text x="586.67" y="111.73" font-size="10.5" text-anchor="end" fill="#1c1e24">0 B/s</text>
+<text x="313.33" y="125.73" font-size="10.5" text-anchor="start" fill="#1c1e24">L1 vreg</text>
+<text x="450" y="125.73" font-size="10.5" text-anchor="end" fill="#1c1e24">register file</text>
+<text x="482.8" y="125.73" font-size="10.5" text-anchor="end" fill="#1c1e24">4</text>
+<text x="532" y="125.73" font-size="10.5" text-anchor="end" fill="#1c1e24">18 MB</text>
+<text x="586.67" y="125.73" font-size="10.5" text-anchor="end" fill="#1c1e24">93.2 TB/s</text>
+<text x="313.33" y="139.73" font-size="10.5" text-anchor="start" fill="#1c1e24">L2 vmem</text>
+<text x="450" y="139.73" font-size="10.5" text-anchor="end" fill="#1c1e24">scratchpad</text>
+<text x="482.8" y="139.73" font-size="10.5" text-anchor="end" fill="#1c1e24">1</text>
+<text x="532" y="139.73" font-size="10.5" text-anchor="end" fill="#1c1e24">134 MB</text>
+<text x="586.67" y="139.73" font-size="10.5" text-anchor="end" fill="#1c1e24">57.3 TB/s</text>
+<text x="313.33" y="153.73" font-size="10.5" text-anchor="start" fill="#1c1e24">L3 hbm</text>
+<text x="450" y="153.73" font-size="10.5" text-anchor="end" fill="#1c1e24">hbm3</text>
+<text x="482.8" y="153.73" font-size="10.5" text-anchor="end" fill="#1c1e24">2</text>
+<text x="532" y="153.73" font-size="10.5" text-anchor="end" fill="#1c1e24">34.4 GB</text>
+<text x="586.67" y="153.73" font-size="10.5" text-anchor="end" fill="#1c1e24">1.64 TB/s</text>
+<text x="313.33" y="168.15" font-size="11" text-anchor="start" fill="#6e727c">on-chip total</text>
+<text x="428.13" y="168.15" font-size="11" text-anchor="start" fill="#1c1e24">153 MB</text>
+<text x="313.33" y="192.81" font-size="13" text-anchor="start" fill="#1c1e24">Off-chip memory</text>
+<polyline points="313.33,199 586.67,199" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="313.33" y="212.15" font-size="11" text-anchor="start" fill="#6e727c">stacks</text>
+<text x="428.13" y="212.15" font-size="11" text-anchor="start" fill="#1c1e24">2 x hbm3</text>
+<text x="313.33" y="227.15" font-size="11" text-anchor="start" fill="#6e727c">capacity</text>
+<text x="428.13" y="227.15" font-size="11" text-anchor="start" fill="#1c1e24">34.4 GB</text>
+<text x="313.33" y="242.15" font-size="11" text-anchor="start" fill="#6e727c">bandwidth</text>
+<text x="428.13" y="242.15" font-size="11" text-anchor="start" fill="#1c1e24">1.64 TB/s</text>
+<text x="313.33" y="257.15" font-size="11" text-anchor="start" fill="#6e727c">per stack</text>
+<text x="428.13" y="257.15" font-size="11" text-anchor="start" fill="#1c1e24">819 GB/s</text>
+<text x="313.33" y="281.81" font-size="13" text-anchor="start" fill="#1c1e24">Interconnect</text>
+<polyline points="313.33,288 586.67,288" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="313.33" y="300.73" font-size="10.5" text-anchor="start" fill="#6e727c">network</text>
+<text x="428.13" y="300.73" font-size="10.5" text-anchor="end" fill="#6e727c">topology</text>
+<text x="458.2" y="300.73" font-size="10.5" text-anchor="end" fill="#6e727c">ends</text>
+<text x="496.47" y="300.73" font-size="10.5" text-anchor="end" fill="#6e727c">routers</text>
+<text x="529.27" y="300.73" font-size="10.5" text-anchor="end" fill="#6e727c">links</text>
+<text x="586.67" y="300.73" font-size="10.5" text-anchor="end" fill="#6e727c">link bw</text>
+<text x="313.33" y="314.73" font-size="10.5" text-anchor="start" fill="#1c1e24">vld</text>
+<text x="428.13" y="314.73" font-size="10.5" text-anchor="end" fill="#1c1e24">p2p</text>
+<text x="458.2" y="314.73" font-size="10.5" text-anchor="end" fill="#1c1e24">2</text>
+<text x="496.47" y="314.73" font-size="10.5" text-anchor="end" fill="#1c1e24">0</text>
+<text x="529.27" y="314.73" font-size="10.5" text-anchor="end" fill="#1c1e24">2</text>
+<text x="586.67" y="314.73" font-size="10.5" text-anchor="end" fill="#1c1e24">43 TB/s</text>
+<text x="313.33" y="328.73" font-size="10.5" text-anchor="start" fill="#1c1e24">dma</text>
+<text x="428.13" y="328.73" font-size="10.5" text-anchor="end" fill="#1c1e24">crossbar</text>
+<text x="458.2" y="328.73" font-size="10.5" text-anchor="end" fill="#1c1e24">11</text>
+<text x="496.47" y="328.73" font-size="10.5" text-anchor="end" fill="#1c1e24">1</text>
+<text x="529.27" y="328.73" font-size="10.5" text-anchor="end" fill="#1c1e24">22</text>
+<text x="586.67" y="328.73" font-size="10.5" text-anchor="end" fill="#1c1e24">3.58 TB/s</text>
+<text x="313.33" y="343.15" font-size="11" text-anchor="start" fill="#6e727c">channels</text>
+<text x="428.13" y="343.15" font-size="11" text-anchor="start" fill="#1c1e24">feed 78, mem_port 8, noc_hop 24</text>
+<text x="610.67" y="78.81" font-size="13" text-anchor="start" fill="#1c1e24">Area</text>
+<polyline points="610.67,85 884,85" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="610.67" y="98.15" font-size="11" text-anchor="start" fill="#6e727c">package</text>
+<text x="725.47" y="98.15" font-size="11" text-anchor="start" fill="#1c1e24">922 mm^2 [776, 1238] (cowos_s)</text>
+<text x="610.67" y="113.15" font-size="11" text-anchor="start" fill="#6e727c">die (tsmc_n5, layer 0)</text>
+<text x="725.47" y="113.15" font-size="11" text-anchor="start" fill="#1c1e24">347 mm^2 [249, 562], outline 346</text>
+<rect x="610.67" y="121" width="66.13" height="14" fill="#009e73"/>
+<rect x="676.8" y="121" width="38.75" height="14" fill="#0072b2"/>
+<rect x="715.55" y="121" width="28.76" height="14" fill="#d55e00"/>
+<rect x="744.3" y="121" width="16.17" height="14" fill="#e69f00"/>
+<rect x="760.47" y="121" width="9.36" height="14" fill="#999999"/>
+<rect x="769.83" y="121" width="5.57" height="14" fill="#56b4e9"/>
+<rect x="775.4" y="121" width="3.99" height="14" fill="#66c5ab"/>
+<rect x="779.4" y="121" width="100.6" height="14" fill="#e2e4e9"/>
+<rect x="610.67" y="121" width="269.33" height="14" fill="none" stroke="#a0a4ac" stroke-width="0.75"/>
+<rect x="610.67" y="143" width="9" height="9" fill="#009e73"/>
+<text x="624.67" y="149.31" font-size="10" text-anchor="start" fill="#6e727c">sram</text>
+<text x="805.33" y="149.31" font-size="10" text-anchor="end" fill="#1c1e24">85.2 mm^2</text>
+<rect x="610.67" y="156" width="9" height="9" fill="#0072b2"/>
+<text x="624.67" y="162.31" font-size="10" text-anchor="start" fill="#6e727c">datapath</text>
+<text x="805.33" y="162.31" font-size="10" text-anchor="end" fill="#1c1e24">49.9 mm^2</text>
+<rect x="610.67" y="169" width="9" height="9" fill="#d55e00"/>
+<text x="624.67" y="175.31" font-size="10" text-anchor="start" fill="#6e727c">phy</text>
+<text x="805.33" y="175.31" font-size="10" text-anchor="end" fill="#1c1e24">37 mm^2</text>
+<rect x="610.67" y="182" width="9" height="9" fill="#e69f00"/>
+<text x="624.67" y="188.31" font-size="10" text-anchor="start" fill="#6e727c">noc</text>
+<text x="805.33" y="188.31" font-size="10" text-anchor="end" fill="#1c1e24">20.8 mm^2</text>
+<rect x="610.67" y="195" width="9" height="9" fill="#999999"/>
+<text x="624.67" y="201.31" font-size="10" text-anchor="start" fill="#6e727c">misc</text>
+<text x="805.33" y="201.31" font-size="10" text-anchor="end" fill="#1c1e24">12.1 mm^2</text>
+<rect x="610.67" y="208" width="9" height="9" fill="#56b4e9"/>
+<text x="624.67" y="214.31" font-size="10" text-anchor="start" fill="#6e727c">control</text>
+<text x="805.33" y="214.31" font-size="10" text-anchor="end" fill="#1c1e24">7.17 mm^2</text>
+<rect x="610.67" y="221" width="9" height="9" fill="#66c5ab"/>
+<text x="624.67" y="227.31" font-size="10" text-anchor="start" fill="#6e727c">rf</text>
+<text x="805.33" y="227.31" font-size="10" text-anchor="end" fill="#1c1e24">5.14 mm^2</text>
+<rect x="610.67" y="234" width="9" height="9" fill="#e2e4e9"/>
+<text x="624.67" y="240.31" font-size="10" text-anchor="start" fill="#6e727c">whitespace</text>
+<text x="805.33" y="240.31" font-size="10" text-anchor="end" fill="#1c1e24">130 mm^2</text>
+<text x="610.67" y="254.15" font-size="11" text-anchor="start" fill="#6e727c">transistors / SRAM</text>
+<text x="725.47" y="254.15" font-size="11" text-anchor="start" fill="#1c1e24">21.1 B / 146 MiB</text>
+<text x="610.67" y="269.15" font-size="11" text-anchor="start" fill="#6e727c">HBM shoreline</text>
+<text x="725.47" y="269.15" font-size="11" text-anchor="start" fill="#1c1e24">13 of 37.2 mm</text>
+<text x="610.67" y="293.81" font-size="13" text-anchor="start" fill="#1c1e24">Power estimate (nominal clocks)</text>
+<polyline points="610.67,300 884,300" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="610.67" y="313.15" font-size="11" text-anchor="start" fill="#6e727c">TDP</text>
+<text x="725.47" y="313.15" font-size="11" text-anchor="start" fill="#1c1e24">450 W (assumed, not enforced)</text>
+<text x="610.67" y="328.15" font-size="11" text-anchor="start" fill="#6e727c">static at 85 C</text>
+<text x="725.47" y="328.15" font-size="11" text-anchor="start" fill="#1c1e24">12.4 W</text>
+<text x="610.67" y="343.15" font-size="11" text-anchor="start" fill="#6e727c">all MACs + DRAM at p…</text>
+<text x="725.47" y="343.15" font-size="11" text-anchor="start" fill="#1c1e24">287 W board, 209 W chip, Tj 96 C</text>
+<rect x="610.67" y="351" width="8.72" height="14" fill="#999999"/>
+<rect x="619.39" y="351" width="21.17" height="14" fill="#332288"/>
+<rect x="640.56" y="351" width="16.93" height="14" fill="#56b4e9"/>
+<rect x="657.49" y="351" width="71.85" height="14" fill="#0072b2"/>
+<rect x="729.34" y="351" width="3.85" height="14" fill="#d55e00"/>
+<rect x="733.18" y="351" width="26.96" height="14" fill="#882255"/>
+<rect x="760.14" y="351" width="5.87" height="14" fill="#44aa99"/>
+<rect x="766.01" y="351" width="13.19" height="14" fill="#cc79a7"/>
+<rect x="610.67" y="351" width="269.33" height="14" fill="none" stroke="#a0a4ac" stroke-width="0.75"/>
+<polyline points="874.72,348 874.72,368" fill="none" stroke="#d53228" stroke-width="2"/>
+<text x="874.72" y="374.9" font-size="9.5" text-anchor="middle" fill="#d53228">TDP</text>
+<rect x="610.67" y="383" width="9" height="9" fill="#999999"/>
+<text x="624.67" y="389.31" font-size="10" text-anchor="start" fill="#6e727c">static</text>
+<text x="805.33" y="389.31" font-size="10" text-anchor="end" fill="#1c1e24">14.9 W</text>
+<rect x="610.67" y="396" width="9" height="9" fill="#332288"/>
+<text x="624.67" y="402.31" font-size="10" text-anchor="start" fill="#6e727c">clock tree</text>
+<text x="805.33" y="402.31" font-size="10" text-anchor="end" fill="#1c1e24">36.1 W</text>
+<rect x="610.67" y="409" width="9" height="9" fill="#56b4e9"/>
+<text x="624.67" y="415.31" font-size="10" text-anchor="start" fill="#6e727c">control logic</text>
+<text x="805.33" y="415.31" font-size="10" text-anchor="end" fill="#1c1e24">28.9 W</text>
+<rect x="610.67" y="422" width="9" height="9" fill="#0072b2"/>
+<text x="624.67" y="428.31" font-size="10" text-anchor="start" fill="#6e727c">MAC datapath</text>
+<text x="805.33" y="428.31" font-size="10" text-anchor="end" fill="#1c1e24">122 W</text>
+<rect x="610.67" y="435" width="9" height="9" fill="#d55e00"/>
+<text x="624.67" y="441.31" font-size="10" text-anchor="start" fill="#6e727c">DRAM/IO PHY</text>
+<text x="805.33" y="441.31" font-size="10" text-anchor="end" fill="#1c1e24">6.55 W</text>
+<rect x="610.67" y="448" width="9" height="9" fill="#882255"/>
+<text x="624.67" y="454.31" font-size="10" text-anchor="start" fill="#6e727c">DRAM</text>
+<text x="805.33" y="454.31" font-size="10" text-anchor="end" fill="#1c1e24">45.9 W</text>
+<rect x="610.67" y="461" width="9" height="9" fill="#44aa99"/>
+<text x="624.67" y="467.31" font-size="10" text-anchor="start" fill="#6e727c">board fixed</text>
+<text x="805.33" y="467.31" font-size="10" text-anchor="end" fill="#1c1e24">10 W</text>
+<rect x="610.67" y="474" width="9" height="9" fill="#cc79a7"/>
+<text x="624.67" y="480.31" font-size="10" text-anchor="start" fill="#6e727c">VR loss</text>
+<text x="805.33" y="480.31" font-size="10" text-anchor="end" fill="#1c1e24">22.5 W</text>
+<text x="610.67" y="494.15" font-size="11" text-anchor="start" fill="#6e727c">idle (no activity)</text>
+<text x="725.47" y="494.15" font-size="11" text-anchor="start" fill="#1c1e24">32.7 W</text>
+<text x="610.67" y="509.15" font-size="11" text-anchor="start" fill="#6e727c">note</text>
+<text x="725.47" y="509.15" font-size="11" text-anchor="start" fill="#6e727c">estimate excludes on-chip SRAM a…</text>
+<text x="610.67" y="524.15" font-size="11" text-anchor="start" fill="#6e727c">Tj max / q max</text>
+<text x="725.47" y="524.15" font-size="11" text-anchor="start" fill="#1c1e24">95 C / 1 W/mm^2</text>
+</svg>

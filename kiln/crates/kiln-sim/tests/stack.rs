@@ -90,3 +90,23 @@ fn unused_cache_slots_do_not_change_the_recipe() {
     assert!(one.iter().any(|k| k == "memset"), "{one:?}");
     assert_eq!(kernels(64), one);
 }
+
+#[test]
+fn library_tiles_pad_issued_macs_under_the_realistic_stack_only() {
+    let p = reference("a100_sxm4_40gb.json5");
+    let m = kiln_wl::zoo::workload("llama3_8b:decode_b32").unwrap();
+    let issue = |stack: &str| {
+        let o = SimOptions { trace: kiln_trace::TraceLevel::Ops, ..opts(Some(stack)) };
+        let (r, _) = kiln_sim::simulate_member(&p, &m, &o).unwrap();
+        let ratio = |part: &str| {
+            let (u, i) = r.central.ops.iter().filter(|o| o.op.as_str().contains(part) && o.macs_useful > 0).fold((0u64, 0u64), |a, o| (a.0 + o.macs_useful, a.1 + o.macs_issued));
+            i as f64 / u as f64
+        };
+        (ratio(".attn."), ratio(".qkv."), r.central.energy.padding_j)
+    };
+    let (torch, ideal) = (issue("pytorch_cuda_graph_sdpa"), issue("kiln_ideal"));
+    // flash_fwd's 128-row query tiles hold the 4 query heads of a KV head; cuBLAS tiles 32 tokens 64 wide.
+    assert!((torch.0 - 32.0).abs() < 1e-6 && (torch.1 - 2.0).abs() < 1e-6, "{torch:?}");
+    assert!(ideal.0 < 32.0 && ideal.1 <= 2.0, "kiln_ideal issues on the array's own granule only: {ideal:?}");
+    assert!(torch.2 > ideal.2, "padded MACs cost energy: {torch:?} vs {ideal:?}");
+}

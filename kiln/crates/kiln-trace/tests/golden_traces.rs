@@ -4,13 +4,13 @@
 use std::path::Path;
 
 use kiln_trace::check::check_trace;
-use kiln_trace::container::{read_kiln, verify_members, write_kiln};
+use kiln_trace::container::{TRACE_SCHEMA_VERSION, read_kiln, verify_members, write_kiln};
 use kiln_trace::perfetto::export_perfetto;
 
 #[test]
 fn goldens_open_validate_and_round_trip() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/trace");
-    let mut n = 0;
+    let (mut n, mut current) = (0, 0);
     for e in std::fs::read_dir(&dir).unwrap() {
         let p = e.unwrap().path();
         if p.extension().is_none_or(|x| x != "kiln") {
@@ -27,13 +27,22 @@ fn goldens_open_validate_and_round_trip() {
         let diags = check_trace(&t);
         assert!(diags.is_empty(), "{}: {diags:?}", p.display());
         assert!(!t.resources.is_empty() && !t.phases.is_empty() && !t.floorplan.is_empty());
-        assert_eq!(
-            write_kiln(&t),
-            bytes,
-            "{}: rewrite is byte-identical",
-            p.display()
-        );
+        // Older minor versions are read through the migration path; only current ones rewrite identically.
+        if t.manifest.schema_version == TRACE_SCHEMA_VERSION {
+            assert_eq!(
+                write_kiln(&t),
+                bytes,
+                "{}: rewrite is byte-identical",
+                p.display()
+            );
+            assert!(
+                !t.wires.is_empty() && t.floorplan.iter().any(|f| f.source != 0),
+                "{}: placed floorplan and wires",
+                p.display()
+            );
+            current += 1;
+        }
         assert!(!export_perfetto(&t).is_empty());
     }
-    assert!(n >= 3);
+    assert!(n >= 6 && current >= 3);
 }

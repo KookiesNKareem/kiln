@@ -109,6 +109,18 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
             .at(format!("{p}.power.avg_w")),
         );
     }
+    if r.power.peak_windowed_w < r.power.avg_w * (1.0 - SUM_REL_TOL) {
+        out.push(
+            Diagnostic::error(
+                "E-TRACE-POWER",
+                format!(
+                    "peak windowed power {} W below average power {} W",
+                    r.power.peak_windowed_w, r.power.avg_w
+                ),
+            )
+            .at(format!("{p}.power.peak_windowed_w")),
+        );
+    }
     if r.makespan_s < r.t_a0_s * (1.0 - SUM_REL_TOL) {
         out.push(
             Diagnostic::error(
@@ -377,6 +389,16 @@ pub fn check_trace(t: &crate::trace::Trace) -> Vec<Diagnostic> {
             ));
             continue;
         }
+        let res = &t.resources[s.resource as usize];
+        if s.lane >= res.lanes {
+            out.push(bad(
+                "E-TRACE-REF",
+                format!(
+                    "span on lane {} of {}, which declares {} lanes",
+                    s.lane, res.path, res.lanes
+                ),
+            ));
+        }
         if s.dur < 0 || s.t_start < 0 {
             out.push(bad(
                 "E-TRACE-SPAN",
@@ -576,6 +598,39 @@ pub fn check_trace(t: &crate::trace::Trace) -> Vec<Diagnostic> {
             ));
         }
     }
+    let res_ok = |r: u32| r == crate::trace::NONE_U32 || r < nres;
+    for (k, w) in t.wires.iter().enumerate() {
+        let finite = w.polyline.iter().all(|x| x.is_finite())
+            && [w.length_um, w.bw_bps, w.latency_s, w.e_j_per_bit]
+                .iter()
+                .all(|x| x.is_finite() && *x >= 0.0);
+        if !res_ok(w.link)
+            || w.src >= nres
+            || w.dst >= nres
+            || w.polyline.len() < 4
+            || w.polyline.len() % 2 != 0
+            || !finite
+        {
+            out.push(bad(
+                "E-TRACE-FLOORPLAN",
+                format!("bad wire row {k} (link {})", w.link),
+            ));
+        }
+    }
+    for (k, g) in t.package_geometry.iter().enumerate() {
+        if g.resource.is_some_and(|r| r >= nres)
+            || ![g.x_um, g.y_um, g.w_um, g.h_um]
+                .iter()
+                .all(|x| x.is_finite())
+            || g.w_um < 0.0
+            || g.h_um < 0.0
+        {
+            out.push(bad(
+                "E-TRACE-FLOORPLAN",
+                format!("bad package_geometry row {k}"),
+            ));
+        }
+    }
     let h = &t.manifest.headline;
     for (name, i) in [
         ("latency_s", &h.latency_s),
@@ -750,6 +805,32 @@ pub fn check_result(r: &EvalResult) -> Vec<Diagnostic> {
             .hint("any invariant failure sets status = floor_violation (06 §6.3)"),
         );
     }
+    if let Some(ph) = &r.physical {
+        let die = ph
+            .die_mm2
+            .iter()
+            .map(|(k, i)| (format!("physical.die_mm2[{k}]"), i));
+        let rest = [
+            ("package_mm2", &ph.package_mm2),
+            ("peak_power_w", &ph.peak_power_w),
+            ("power_density_max_w_mm2", &ph.power_density_max_w_mm2),
+        ]
+        .map(|(n, i)| (format!("physical.{n}"), i));
+        for (path, i) in die.chain(rest) {
+            interval(&mut out, &path, i);
+            nonneg(&mut out, &path, i.low);
+        }
+        for (name, x) in [
+            ("hbm_shoreline_used_mm", ph.hbm_shoreline_used_mm),
+            ("hbm_shoreline_available_mm", ph.hbm_shoreline_available_mm),
+            ("tdp_w", ph.tdp_w),
+        ] {
+            quantity(&mut out, &format!("physical.{name}"), x);
+        }
+        for (k, x) in ph.margins_central.iter().chain(&ph.margins_pessimistic) {
+            finite(&mut out, &format!("physical.margins[{k}]"), *x);
+        }
+    }
     for s in &r.sim {
         out.extend(check_sim(s));
     }
@@ -818,7 +899,7 @@ pub(crate) mod tests {
             energy: energy.clone(),
             power: PowerSummary {
                 avg_w: energy.total_j / makespan,
-                peak_windowed_w: 400.0,
+                peak_windowed_w: energy.total_j / makespan,
                 cap_w: Some(400.0),
                 throttled: false,
             },
@@ -1126,6 +1207,77 @@ pub(crate) mod tests {
         assert!(codes(&check_trace(&t)).contains(&"E-TRACE-SPAN"));
         let t = span_trace(i64::MAX, &[(i64::MAX - 20, i64::MAX), (i64::MAX - 10, 1)]);
         assert!(codes(&check_trace(&t)).contains(&"E-TRACE-SPAN"));
+    }
+
+    #[test]
+    fn spans_stay_within_their_resource_lanes() {
+        let mut t = span_trace(10, &[(0, 10), (0, 10)]);
+        t.spans[1].lane = 1;
+        assert!(codes(&check_trace(&t)).contains(&"E-TRACE-REF"));
+        t.resources[0].lanes = 2;
+        assert!(check_trace(&t).is_empty());
+    }
+
+    #[test]
+    fn peak_power_is_at_least_average_power() {
+        let mut s = sim(Corner::Central, 1.0);
+        s.power.peak_windowed_w = 0.0;
+        assert!(codes(&check_sim(&s)).contains(&"E-TRACE-POWER"));
+        s.power.peak_windowed_w = s.power.avg_w * (1.0 - 1e-12);
+        assert!(check_sim(&s).is_empty());
+    }
+
+    #[test]
+    fn physical_summary_is_validated() {
+        let physical = || crate::result::PhysicalSummary {
+            die_mm2: BTreeMap::from([(
+                "chip0".into(),
+                Interval::new(700.0, 800.0, 900.0).unwrap(),
+            )]),
+            package_mm2: Interval::new(2000.0, 2100.0, 2200.0).unwrap(),
+            peak_power_w: Interval::new(300.0, 400.0, 450.0).unwrap(),
+            power_density_max_w_mm2: Interval::new(0.5, 0.6, 0.7).unwrap(),
+            hbm_shoreline_used_mm: 40.0,
+            hbm_shoreline_available_mm: 60.0,
+            tdp_w: 400.0,
+            node: "tsmc_n7".into(),
+            margins_central: BTreeMap::from([("power".into(), -0.1)]),
+            margins_pessimistic: BTreeMap::new(),
+        };
+        let mut r = result();
+        r.physical = Some(physical());
+        assert_eq!(check_result(&r), vec![]);
+        let bad = |f: fn(&mut crate::result::PhysicalSummary), code: &str| {
+            let mut r = result();
+            let mut p = physical();
+            f(&mut p);
+            r.physical = Some(p);
+            assert!(
+                codes(&check_result(&r)).contains(&code),
+                "{code}: {:?}",
+                check_result(&r)
+            );
+        };
+        bad(
+            |p| p.package_mm2 = Interval::point(-1.0),
+            "E-TRACE-NEGATIVE",
+        );
+        bad(
+            |p| p.die_mm2.get_mut("chip0").unwrap().low = 1000.0,
+            "E-TRACE-INTERVAL",
+        );
+        bad(|p| p.peak_power_w.central = f64::NAN, "E-TRACE-INTERVAL");
+        bad(
+            |p| p.power_density_max_w_mm2 = Interval::point(-0.1),
+            "E-TRACE-NEGATIVE",
+        );
+        bad(|p| p.hbm_shoreline_used_mm = f64::NAN, "E-TRACE-NUMBER");
+        bad(|p| p.hbm_shoreline_available_mm = -1.0, "E-TRACE-NEGATIVE");
+        bad(|p| p.tdp_w = f64::INFINITY, "E-TRACE-NUMBER");
+        bad(
+            |p| _ = p.margins_pessimistic.insert("area".into(), f64::NAN),
+            "E-TRACE-NUMBER",
+        );
     }
 
     #[test]
