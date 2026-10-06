@@ -1,0 +1,59 @@
+# Design-search campaign: beat the simulated A100-40GB on Llama-3-8B decode at matched envelope (06 §6.4).
+#
+#   python -m kiln_evo models  kiln/evolve/campaigns/a100_decode.yaml   # live model catalog of the provider
+#   python -m kiln_evo run     kiln/evolve/campaigns/a100_decode.yaml
+#   python -m kiln_evo status  kiln/evolve/campaigns/a100_decode.yaml
+#   python -m kiln_evo report  kiln/evolve/campaigns/a100_decode.yaml [--json]
+#   python -m kiln_evo resume  kiln/evolve/campaigns/a100_decode.yaml   # after a stop or crash; budget may grow
+#
+# BEFORE RUNNING, the owner fills the `llm` block (the loop refuses to start while any FILL_ME / null remains):
+#   1. backend: `anthropic` (Messages API) or `openai` (any OpenAI-compatible /chat/completions endpoint:
+#      OpenAI, OpenRouter, a vLLM server, ...).
+#   2. model: run `python -m kiln_evo models <this file>` (needs the API key in the env) and copy an id from the
+#      provider's LIVE catalog. Do not type a model id from memory.
+#   3. price_usd_per_mtok: USD per million input / output tokens for exactly that model, read from the provider's
+#      current pricing page (catalog APIs do not return prices). These drive the hard dollar stop below.
+#   4. api_key_env: the environment variable holding the key; base_url for `openai` (e.g. https://.../v1).
+#   5. budget.max_usd / max_evals / max_wall_s: the campaign stops at whichever comes first; a call whose worst
+#      case (prompt + max_tokens) would cross max_usd is never sent.
+name: a100_decode_v1
+mode: evolve
+out_dir: ../runs/a100_decode_v1
+calibration: generic-v1
+baseline: a100_40gb
+fitness:
+  kind: matched_envelope        # explicit_envelope | perf_per_watt | perf_per_area | pareto | baseline_relative
+  interval_basis: central       # or `low` for pessimistic search
+  aggregation: geomean
+envelope: null                  # e.g. {die_mm2: 826, power_w: 400, node: tsmc_n7} with kind explicit_envelope
+options: {profile: search, interval: sensitivity, stack: kiln_ideal}
+workloads:
+  train: [llama3_8b:decode_b1, llama3_8b:decode_b8, llama3_8b:decode_b32]
+  screen: [llama3_8b:decode_b8]
+  heldout: [llama3_8b:decode_b1_kv32768, gptj_6b:decode_b8, llama3_8b:prefill_b1]   # never shown to the LLM
+descriptors:                    # 06 §6.3 fixed ranges; flops_per_tile = compute granularity (derived)
+  - {name: machine_balance, bins: 8}
+  - {name: onchip_bytes, bins: 8}
+  - {name: flops_per_tile, bins: 6}
+  - {name: memory_levels, bins: 4}
+cascade: {prune_ratio: 0.5}
+audit: {suspicion_ratio: 1.15, random_rate: 0.02, seeds: [0, 1, 2], on_new_elite: true, max_seed_spread: 0.10}
+heldout: {every_generations: 5, top_k: 10, overfit_gap: -0.25}
+llm:
+  backend: anthropic            # anthropic | openai | mock
+  model: FILL_ME                # id from the provider's live catalog (see step 2)
+  base_url: null                # required for openai; anthropic defaults to https://api.anthropic.com/v1
+  api_key_env: ANTHROPIC_API_KEY
+  price_usd_per_mtok: {input: null, output: null}   # from the provider's pricing page (see step 3)
+  max_tokens: 8192
+  temperature: 0.8
+operators: {parametric: 0.3, llm_diff: 0.5, llm_full: 0.2}
+selection: {exploit: 0.3, tournament: 3, inspirations: 3, failures_shown: 3}
+budget: {max_evals: 2000, max_usd: null, max_wall_s: 43200}
+islands: {count: 4, migration_interval: 5, migrants: 2}
+batch: {children_per_island: 8}
+seeds:
+  - {name: a100, program: "kiln_evo:seeds/a100.py"}
+  - {name: a100_sram_heavy, program: "kiln_evo:seeds/a100.py", params: {tpc_per_gpc: 4, l2_slice_kib: 2048, l1_kib: 256}}
+  - {name: a100_lean_wide_hbm, program: "kiln_evo:seeds/a100.py", params: {sm_per_tpc: 1, hbm_enabled: 6, hbm_pin_gbps: 2.0}}
+  - {name: tpu_v4, program: "kiln_evo:seeds/tpu_v4.py"}

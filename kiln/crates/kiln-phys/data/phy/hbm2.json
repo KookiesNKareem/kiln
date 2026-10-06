@@ -1,0 +1,38 @@
+{
+ "schema": "kiln.phys.phy/1",
+ "id": "hbm2",
+ "unit": "stack",
+ "shoreline_mm": {
+  "v": 6.0,
+  "q": "asm",
+  "c": "M",
+  "src": "jedec_hbm2e"
+ },
+ "e_pj_per_bit": {
+  "v": 0.6,
+  "q": "asm",
+  "c": "L",
+  "src": "jedec_hbm2e"
+ },
+ "area_mm2_n7": {
+  "v": 12.0,
+  "q": "asm",
+  "c": "L",
+  "src": "jedec_hbm2e",
+  "note": "area per unit at N7; other nodes scale with sqrt(a_GE ratio) (analog/IO-dominated)"
+ },
+ "latency_ns": {
+  "v": 0.0,
+  "q": "asm",
+  "c": "L",
+  "src": "jedec_hbm2e"
+ },
+ "leak_w": {
+  "v": 0.6,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "PHY bias/leakage per unit (0.05 W/mm2 of PHY)"
+ },
+ "note": "HBM2/2E PHY incl. controller, 1024 data bits"
+}

@@ -1,0 +1,38 @@
+{
+ "schema": "kiln.phys.phy/1",
+ "id": "pcie",
+ "unit": "lane",
+ "shoreline_mm": {
+  "v": 0.375,
+  "q": "asm",
+  "c": "L",
+  "src": "pcie_spec"
+ },
+ "e_pj_per_bit": {
+  "v": 5.5,
+  "q": "asm",
+  "c": "L",
+  "src": "pcie_spec"
+ },
+ "area_mm2_n7": {
+  "v": 0.5,
+  "q": "asm",
+  "c": "L",
+  "src": "pcie_spec",
+  "note": "area per unit at N7; other nodes scale with sqrt(a_GE ratio) (analog/IO-dominated)"
+ },
+ "latency_ns": {
+  "v": 500.0,
+  "q": "asm",
+  "c": "L",
+  "src": "pcie_spec"
+ },
+ "leak_w": {
+  "v": 0.025,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "PHY bias/leakage per unit (0.05 W/mm2 of PHY)"
+ },
+ "note": "PCIe Gen4/5 lane: x16 = 6 mm shoreline, 8 mm2"
+}

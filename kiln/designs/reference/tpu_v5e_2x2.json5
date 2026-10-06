@@ -1,0 +1,38 @@
+// Four-chip TPU v5e slice (2x2) with ICI (01 §20.4).
+{
+  schema: "kiln.hw/1.0",
+  name: "tpu-v5e-2x2",
+  exec_model: "static_dataflow",                       // 01 §2: XLA compiles the step to one static program per chip
+  imports: { v5e: "tpu_v5e.json5" },
+  meta: {
+    citations: {
+      v5e: "Google Cloud TPU v5e docs (slice shapes, 8 chips per host)",
+      sbook: "JAX scaling book, How to Think About TPUs (v5e HBM 8.2e11 B/s)",
+    },
+    // Not in 01's example: the reference profile requires peak and off-chip claims (4 x the v5e figures).
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 788e12, rel_tol: 0.01, source: "v5e" },
+      { metric: "offchip_bw", scope: "", value: 3276e9, rel_tol: 0.01, source: "sbook" },
+    ],
+  },
+  tech: "tsmc_n5",                                     // assumed
+  system: {
+    hosts: [ { id: "host", mem_capacity: "192GiB", mem_bandwidth: "200GB/s",   // assumed host
+               launch_overhead: "20us" } ],                                 // assumed; 06 calibrates
+    boards: [ {
+      id: "tray",
+      packages: [ { id: "chip", count: 4, layout: { grid: [2, 2] }, use: "v5e.v5e_chip" } ],
+      networks: [ {
+        id: "ici",
+        topology: { type: "torus", dims: [2, 2] },      // pub:v5e 2D torus; 2x2 wrap assumed
+        endpoints: [ { select: "chip*", at: "layout", ports: "die.ici*" } ],
+        link: { phys: { type: "serdes", protocol: "ici_like", lanes: 4, lane_rate_bits_per_s: "100Gbps" } },
+        router: { pipeline: 8 },                        // assumed ICI hop latency in core cycles
+        routing: "default",                             // dimension order + dateline (2 VCs default on torus)
+        features: { multicast: false, broadcast: false, in_network_reduce: [] },  // assumed
+      } ],
+      host_links: [ { host: "/host", to: "chip*.die.pcie",
+                      link: { phys: { type: "serdes", protocol: "pcie", lanes: 16, lane_rate_bits_per_s: "16Gbps" } } } ],
+    } ],
+  },
+}

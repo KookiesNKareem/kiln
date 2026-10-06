@@ -1,0 +1,131 @@
+// PyTorch eager ops captured in one CUDA graph, attention through F.scaled_dot_product_attention (flash).
+// Structure only: which kernels the stack issues per workload node and the bytes each moves. No times here;
+// every kernel is charged t_min_kernel / t_gap and its traffic at the calibrated DRAM (or on-chip) terms.
+//
+// Derived from (a) the op sequence of calibration/gpu_bench.py (rmsnorm, rope, decode_layer, prefill_layer)
+// under PyTorch semantics (each eager op is one kernel and materializes its result), and (b) the profiler
+// kernel breakdown of the A100 sequence sessions (calibration/measurements/a100_2026-10-05_seq*.json,
+// modes.*.kernels): 45 kernels per layer at decode b1/b8, 43 at decode b32 and prefill b1, plus 11 outside
+// the layers (embedding, final norm, lm_head, argmax). Where the profiler shows a library heuristic switching
+// kernels with shape (flash split-KV, cuBLAS split-K), the rule's condition brackets the measured points.
+//
+// The `primary` kernel of a rule is the one kiln's lowering of the node already models (its compute and
+// traffic come from the mapped task graph); every other kernel is charged on top. A node with no rule is one
+// primary kernel.
+{
+  schema: "kiln.stack/1",
+  id: "pytorch_cuda_graph_sdpa",
+  exec_model: "host_launched",
+  description: "PyTorch eager ops in a CUDA graph, SDPA (flash) attention: RMSNorm, RoPE, KV append and SiLU*mul unfused",
+  sources: [
+    "calibration/gpu_bench.py (rmsnorm, rope, decode_layer, prefill_layer)",
+    "calibration/measurements/a100_2026-10-05_seq_r2.json modes.graph.kernels / modes.eager.kernels",
+  ],
+  // Unfused intermediates whose largest access is at most this fraction of the shared on-chip level (L2) are
+  // served from it; larger ones round-trip DRAM. Same rule as the mapper's activation homes (03 §3.4).
+  onchip_fraction: 0.25,
+  rules: [
+    {
+      // xf = x.float(); xf.pow(2).mean(-1, keepdim) + eps; rsqrt; xf * r; .to(bf16); * w
+      // profiler: direct_copy, pow, mean reduce, add (float), rsqrt, mul (float), bfloat16_copy, mul (bf16): 65 each
+      op: "rms_norm",
+      kernels: [
+        { name: "to_fp32", reads: [{ of: "in0" }], writes: [{ of: "in0", dtype: "fp32" }] },
+        { name: "pow", reads: [{ of: "in0", dtype: "fp32" }], writes: [{ of: "in0", dtype: "fp32" }] },
+        { name: "mean", reads: [{ of: "in0", dtype: "fp32" }], writes: [{ of: "in0", dtype: "fp32", rows: true }] },
+        { name: "add_eps", reads: [{ of: "in0", dtype: "fp32", rows: true }], writes: [{ of: "in0", dtype: "fp32", rows: true }] },
+        { name: "rsqrt", reads: [{ of: "in0", dtype: "fp32", rows: true }], writes: [{ of: "in0", dtype: "fp32", rows: true }] },
+        { name: "mul_rstd", reads: [{ of: "in0", dtype: "fp32" }, { of: "in0", dtype: "fp32", rows: true }], writes: [{ of: "in0", dtype: "fp32" }] },
+        { name: "to_bf16", reads: [{ of: "in0", dtype: "fp32" }], writes: [{ of: "in0" }] },
+        { name: "mul_weight", primary: true },
+      ],
+    },
+    {
+      // per tensor (q, then k): x1*cos, x2*sin, sub, x2*cos, x1*sin, add, cat (7 kernels; the halves are
+      // strided views, so every product materializes a half-size tensor)
+      // profiler: elementwise mul (bf16, strided) 8 per layer, add/sub 4 per layer (+2 residual), cat 2 per layer
+      op: "rope",
+      kernels: [
+        { name: "q_mul", count: 4, reads: [{ of: "in0", frac: 0.5 }], writes: [{ of: "in0", frac: 0.5 }] },
+        { name: "q_addsub", count: 2, reads: [{ of: "in0" }], writes: [{ of: "in0", frac: 0.5 }] },
+        { name: "q_cat", primary: true },
+        { name: "k_mul", count: 4, reads: [{ of: "in1", frac: 0.5 }], writes: [{ of: "in1", frac: 0.5 }] },
+        { name: "k_addsub", count: 2, reads: [{ of: "in1" }], writes: [{ of: "in1", frac: 0.5 }] },
+        // its copy of k is part of the primary's traffic (kiln's rope reads q and k and writes both)
+        { name: "k_cat" },
+      ],
+    },
+    {
+      // kc[:, :, pos] = k; vc[:, :, pos] = v (decode) or kc[0].copy_(k.T) (prefill): one copy kernel each
+      op: "kv_append",
+      kernels: [
+        { name: "copy_k", primary: true },
+        // its bytes are part of the primary's traffic (kiln's kv_append writes both caches)
+        { name: "copy_v" },
+      ],
+    },
+    {
+      // one query token per sequence, few sequences: flash_fwd_splitkv_kernel + flash_fwd_splitkv_combine_kernel
+      // (flash splits KV when sequences x KV heads leave SMs idle; profiler: split at b1 and b8, not at b32)
+      op: "attention",
+      when: { tokens_per_seq_max: 1, tokens_max: 8 },
+      kernels: [
+        { name: "flash_splitkv", primary: true },
+        { name: "splitkv_combine", reads: [{ of: "out0", dtype: "fp32" }], writes: [{ of: "out0" }] },
+      ],
+    },
+    {
+      // one query token per sequence, many sequences: flash_fwd_kernel alone (decode b32)
+      op: "attention",
+      when: { tokens_per_seq_max: 1 },
+      kernels: [{ name: "flash_fwd", primary: true }],
+    },
+    {
+      // prompt: flash_fwd_kernel and one device memset per call (profiler: Memset (Device) 32 per step)
+      op: "attention",
+      kernels: [
+        { name: "flash_fwd", primary: true },
+        { name: "memset", kind: "memset" },
+      ],
+    },
+    {
+      // F.silu(g) * u: silu kernel (g has the output's shape), then the mul (the primary: reads silu(g) and u,
+      // writes m)
+      op: "gated_act",
+      kernels: [
+        { name: "silu", reads: [{ of: "out0" }], writes: [{ of: "out0" }] },
+        { name: "mul", primary: true },
+      ],
+    },
+    {
+      // the model keeps w_gate and w_up apart: F.linear(h, wg) and F.linear(h, wu) are two GEMMs over the
+      // bytes kiln's fused gate_up node already moves
+      op: "einsum",
+      roles: ["mlp.gate_up"],
+      kernels: [
+        { name: "gate", primary: true },
+        { name: "up" },
+      ],
+    },
+    {
+      // cuBLAS split-K on the 64x64 GEMMs at few rows (cublasLt::splitKreduce_kernel: 2 per layer at decode b1
+      // and b8, 1 at b32, none at prefill): attn.o splits up to 8 rows, mlp.down (K = 14336) up to 32
+      op: "einsum",
+      roles: ["attn.o"],
+      when: { tokens_max: 8 },
+      kernels: [
+        { name: "gemm", primary: true },
+        { name: "splitk_reduce", reads: [{ of: "out0", dtype: "fp32" }], writes: [{ of: "out0" }] },
+      ],
+    },
+    {
+      op: "einsum",
+      roles: ["mlp.down"],
+      when: { tokens_max: 32 },
+      kernels: [
+        { name: "gemm", primary: true },
+        { name: "splitk_reduce", reads: [{ of: "out0", dtype: "fp32" }], writes: [{ of: "out0" }] },
+      ],
+    },
+  ],
+}

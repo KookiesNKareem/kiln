@@ -1,0 +1,25 @@
+[package]
+name = "kiln-trace"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-ir = { path = "../kiln-ir" }
+serde.workspace = true
+serde_json = { workspace = true, features = ["float_roundtrip"] }
+thiserror.workspace = true
+sha2.workspace = true
+hex.workspace = true
+arrow-schema.workspace = true
+arrow-array.workspace = true
+arrow-ipc.workspace = true
+prost.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,221 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v5 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:12:25", "n_runs": 60}
+{'test': 'read_reduce', 'gib': 0.5, 'bytes': 536870912, 'median_s': 0.0009471399999938512, 'min_s': 0.0009186300000010306, 'gbps_median': 566.8337436952144, 'gbps_best': 584.4256251150057}
+{'test': 'copy_scale', 'gib': 0.5, 'bytes': 1073741824, 'median_s': 0.0018838800000366973, 'min_s': 0.0018534199999749035, 'gbps_median': 569.9629615363419, 'gbps_best': 579.3300083168085}
+{'test': 'read_reduce', 'gib': 1, 'bytes': 1073741824, 'median_s': 0.0016489394999723572, 'min_s': 0.0016286499999864645, 'gbps_median': 651.1711460717631, 'gbps_best': 659.2833475632725}
+{'test': 'copy_scale', 'gib': 1, 'bytes': 2147483648, 'median_s': 0.003524499999997488, 'min_s': 0.0035066500000198175, 'gbps_median': 609.3016450564705, 'gbps_best': 612.4031905059996}
+{'test': 'read_reduce', 'gib': 2, 'bytes': 2147483648, 'median_s': 0.003101899500023819, 'min_s': 0.003082269999993059, 'gbps_median': 692.3124517681858, 'gbps_best': 696.7214578881266}
+{'test': 'copy_scale', 'gib': 2, 'bytes': 4294967296, 'median_s': 0.006813844499987454, 'min_s': 0.00676064999998971, 'gbps_median': 630.3295145652221, 'gbps_best': 635.28910622596}
+{'test': 'read_reduce', 'gib': 4, 'bytes': 4294967296, 'median_s': 0.005993384500015964, 'min_s': 0.005923300000006293, 'gbps_median': 716.6180137430796, 'gbps_best': 725.0970398250024}
+{'test': 'copy_scale', 'gib': 4, 'bytes': 8589934592, 'median_s': 0.013401564500014729, 'min_s': 0.013295969000012064, 'gbps_median': 640.9650598622691, 'gbps_best': 646.0555520242417}
+peak 4096 186.56012767554338 {'m': 4096, 'n': 4096, 'k': 4096, 'batch': 1, 'weight': True, 'flops': 137438953472, 'bytes': 100663296, 'single_median_s': 0.0009636549999925137, 'single_min_s': 0.0009306400000355097, 'pipelined_s': 0.000723862800000082, 'loop_s': 0.0007367005757576849, 'loop_info': {'K1': 10, 'K2': 43, 'R': 8, 't_K1': 0.007799550000015643, 't_K2': 0.03211066900001924}, 'tflops': 186.56012767554338, 'gbps': 136.64071851236088}
+peak 8192 185.3666678475367 {'m': 8192, 'n': 8192, 'k': 8192, 'batch': 1, 'weight': True, 'flops': 1099511627776, 'bytes': 402653184, 'single_median_s': 0.006212424500006364, 'single_min_s': 0.006120829999986199, 'pipelined_s': 0.005888514533333477, 'loop_s': 0.005931549833330034, 'loop_info': {'K1': 2, 'K2': 8, 'R': 2, 't_K1': 0.012467039999989993, 't_K2': 0.048056338999970194}, 'tflops': 185.3666678475367, 'gbps': 67.88330121369752}
+peak 16384 190.47573284234696 {'m': 16384, 'n': 16384, 'k': 16384, 'batch': 1, 'weight': True, 'flops': 8796093022208, 'bytes': 1610612736, 'single_median_s': 0.046649018499977046, 'single_min_s': 0.046525078999991365, 'pipelined_s': 0.046179599316666514, 'tflops': 190.47573284234696, 'gbps': 34.87714834759771}
+Traceback (most recent call last):
+  File "/content/tpu_bench.py", line 170, in <module>
+    r.update(name=o["name"], phase=o["phase"], op=o["op"], count=o["count"], tokens=o["tokens"])
+                  ~^^^^^^^^
+KeyError: 'name'
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v5 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:13:55", "n_runs": 60}
+prefill_b1/qkv single=726.5us pipe=546.3us loop=554.2us tflops=186.0 gbps=167
+prefill_b1/attn_score single=186.9us pipe=58.2us loop=25.6us tflops=168.1 gbps=1416
+prefill_b1/attn_av single=167.3us pipe=46.9us loop=49.2us tflops=87.3 gbps=735
+prefill_b1/o_proj single=588.5us pipe=366.4us loop=370.5us tflops=185.5 gbps=181
+prefill_b1/ffn_gate_up single=1457.2us pipe=1261.2us loop=1285.9us tflops=187.0 gbps=150
+prefill_b1/ffn_down single=1462.4us pipe=1255.4us loop=1274.9us tflops=188.7 gbps=151
+prefill_b1/lm_head single=1689.1us pipe=1458.4us loop=1464.6us tflops=0.7 gbps=718
+decode_b1/qkv single=271.3us pipe=72.6us loop=69.6us tflops=0.7 gbps=723
+https://symbolize.stripped_domain/r/?trace=7dce0eb250fc,7dce64bcb32f,7dce0ea9d544,7dce0eb27c33,7dce0e77df70,7dce0e6e9b97,7dce0b524156,7dce05b496d3,7dce05b6754b,7dce05b680d9,7dce021e302d,7dce021dda9f,7dce021dc2e2,7dce058c13b7,7dce0219727e,7dce0213628c,7dce021276ee,7dce5ced737e,7dce5ced7751,7dce59951d94,7dce5994cd13,7dce5982105f,7dce59822f9c,7dce59830e87,7dce598df0f0,7dce598df9ab,570202,447695,570202,7dce598d623c,7dce63490df2,7dce6348fb72,7dce63492f22&map= 
+*** SIGTERM received by PID 2182 (TID 2182) on cpu 22 from PID 3318; stack trace: ***
+PC: @     0x7dce0eb250fc  (unknown)  (unknown)
+    @     0x7dce0ea9abc5       1904  (unknown)
+    @     0x7dce64bcb330  (unknown)  (unknown)
+    @     0x7dce0ea9d545         64  (unknown)
+    @     0x7dce0eb27c34        128  (unknown)
+    @     0x7dce0e77df71        352  (unknown)
+    @     0x7dce0e6e9b98        144  (unknown)
+    @     0x7dce0b524157        448  (unknown)
+    @     0x7dce05b496d4       2912  (unknown)
+    @     0x7dce05b6754c       6160  (unknown)
+    @     0x7dce05b680da        944  (unknown)
+    @     0x7dce021e302e       1152  (unknown)
+    @     0x7dce021ddaa0       2080  (unknown)
+    @     0x7dce021dc2e3       5296  (unknown)
+    @     0x7dce058c13b8       4608  (unknown)
+    @     0x7dce0219727f       4576  (unknown)
+    @     0x7dce0213628d       2256  (unknown)
+    @     0x7dce021276ef       5088  (unknown)
+    @     0x7dce5ced737f        640  xla::InitializeArgsAndCompile()
+    @     0x7dce5ced7752        224  xla::PjRtCApiClient::CompileAndLoad()
+    @     0x7dce59951d95       4320  xla::ifrt::PjRtLoadedExecutable::Create()
+    @     0x7dce5994cd14       2464  xla::ifrt::PjRtCompiler::CompileAndLoad()
+    @     0x7dce59821060        336  jax::PyClient::CompileAndLoadIfrtProgram()
+    @     0x7dce59822f9d       2544  jax::PyClient::CompileAndLoad()
+    @     0x7dce59830e88       4960  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7dce598df0f1        416  nanobind::detail::nb_func_vectorcall_complex()
+    @     0x7dce598df9ac        128  nanobind::detail::nb_bound_method_vectorcall()
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x447696        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7dce598d623d         80  nanobind::detail::obj_vectorcall()
+    @     0x7dce63490df3        288  nanobind::detail::api<>::operator()<>()
+    @     0x7dce6348fb73        544  jax::WeakrefLRUCache::Call()
+    @     0x7dce63492f23        144  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7dce598df0f1        384  nanobind::detail::nb_func_vectorcall_complex()
+    @           0x64bc17         96  (unknown)
+    @           0x69a8fa        144  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x445e04        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7dce5ce64343       2272  jax::(anonymous namespace)::PjitFunction::Call()
+    @     0x7dce5ce6294f        160  PjitFunction_tp_vectorcall
+    @           0x65b632         96  (unknown)
+    @           0x697537         48  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x445e04        432  (unknown)
+    @           0x64d82a        112  PyEval_EvalCode
+    @           0x689ad2         48  (unknown)
+    @           0x686c8e         96  (unknown)
+    @           0x68380b         96  (unknown)
+    @           0x6830d4        128  (unknown)
+    @           0x682ec5         64  (unknown)
+    @           0x681920        288  Py_RunMain
+    @           0x63c9bd         48  Py_BytesMain
+    @     0x7dce64bb01ca        160  (unknown)
+    @     0x7dce64bb028b         96  __libc_start_main
+    @           0x63be55  (unknown)  _start
+https://symbolize.stripped_domain/r/?trace=7dce0eb250fc,7dce0ea9abc4,7dce64bcb32f,7dce0ea9d544,7dce0eb27c33,7dce0e77df70,7dce0e6e9b97,7dce0b524156,7dce05b496d3,7dce05b6754b,7dce05b680d9,7dce021e302d,7dce021dda9f,7dce021dc2e2,7dce058c13b7,7dce0219727e,7dce0213628c,7dce021276ee,7dce5ced737e,7dce5ced7751,7dce59951d94,7dce5994cd13,7dce5982105f,7dce59822f9c,7dce59830e87,7dce598df0f0,7dce598df9ab,570202,447695,570202,7dce598d623c,7dce63490df2,7dce6348fb72,7dce63492f22,7dce598df0f0,64bc16,69a8f9,56e212,445e03,570202,7dce5ce64342,7dce5ce6294e,65b631,697536,56e212,570202,445e03,64d829,689ad1,686c8d,68380a,6830d3,682ec4,68191f,63c9bc,7dce64bb01c9,7dce64bb028a,63be54&map= 
+E1005 03:15:44.161045    2182 coredump_hook.cc:247] RAW: Remote crash gathering disabled for SIGTERM.
+E1005 03:15:44.193134    2182 process_state.cc:808] RAW: Raising signal 15 with default behavior
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v5 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:15:47", "n_runs": 60}
+prefill_b1/qkv single=728.4us pipe=546.9us loop=579.7us tflops=177.8 gbps=159
+prefill_b1/attn_score single=262.9us pipe=75.2us loop=59.1us tflops=72.7 gbps=612
+prefill_b1/attn_av single=218.2us pipe=91.3us loop=49.4us tflops=86.9 gbps=732
+prefill_b1/o_proj single=567.6us pipe=366.3us loop=386.3us tflops=177.9 gbps=174
+prefill_b1/ffn_gate_up single=1476.1us pipe=1261.3us loop=1377.1us tflops=174.7 gbps=140
+prefill_b1/ffn_down single=1482.7us pipe=1255.3us loop=1281.4us tflops=187.7 gbps=151
+prefill_b1/lm_head single=1704.4us pipe=1458.7us loop=1454.7us tflops=0.7 gbps=722
+decode_b1/qkv single=304.0us pipe=83.6us loop=69.8us tflops=0.7 gbps=721
+decode_b1/attn_score single=122.4us pipe=47.3us loop=7.5us tflops=2.2 gbps=578
+decode_b1/attn_av single=122.8us pipe=45.5us loop=7.6us tflops=2.2 gbps=569
+decode_b1/o_proj single=237.2us pipe=73.7us loop=47.1us tflops=0.7 gbps=713
+decode_b1/ffn_gate_up single=354.5us pipe=160.3us loop=159.5us tflops=0.7 gbps=737
+decode_b1/ffn_down single=373.3us pipe=160.5us loop=158.9us tflops=0.7 gbps=739
+decode_b1/lm_head single=1685.4us pipe=1458.3us loop=1454.2us tflops=0.7 gbps=723
+decode_b8/qkv single=145.0us pipe=46.4us loop=69.4us tflops=5.8 gbps=728
+decode_b8/attn_score single=137.0us pipe=45.1us loop=49.4us tflops=2.7 gbps=702
+decode_b8/attn_av single=142.3us pipe=67.9us loop=47.9us tflops=2.8 gbps=723
+decode_b8/o_proj single=150.5us pipe=63.3us loop=46.7us tflops=5.7 gbps=721
+decode_b8/ffn_gate_up single=243.9us pipe=92.2us loop=159.6us tflops=5.9 gbps=738
+decode_b8/ffn_down single=221.5us pipe=75.2us loop=158.9us tflops=5.9 gbps=741
+decode_b8/lm_head single=1632.8us pipe=1397.1us loop=1390.8us tflops=6.0 gbps=757
+decode_b32/qkv single=198.9us pipe=73.2us loop=68.8us tflops=23.4 gbps=741
+decode_b32/attn_score single=427.9us pipe=191.4us loop=181.0us tflops=3.0 gbps=766
+decode_b32/attn_av single=384.9us pipe=183.2us loop=185.9us tflops=2.9 gbps=746
+decode_b32/o_proj single=184.1us pipe=72.4us loop=47.0us tflops=22.8 gbps=725
+decode_b32/ffn_gate_up single=218.4us pipe=62.1us loop=158.6us tflops=23.7 gbps=748
+decode_b32/ffn_down single=155.0us pipe=44.7us loop=159.4us tflops=23.6 gbps=744
+decode_b32/lm_head single=1609.4us pipe=1407.3us loop=1400.8us tflops=24.0 gbps=756
+smoke/gemm_1024 single=134.4us pipe=44.9us loop=18.6us tflops=115.7 gbps=339
+smoke/gemm_16_8192 single=334.4us pipe=182.5us loop=182.1us tflops=11.8 gbps=740
+gemm/gemm_1024_1024_1024 single=141.2us pipe=46.1us loop=18.6us tflops=115.6 gbps=339
+gemm/gemm_4096_4096_4096 single=913.6us pipe=723.7us loop=780.4us tflops=176.1 gbps=129
+gemm/gemm_16_8192_8192 single=367.8us pipe=182.7us loop=182.0us tflops=11.8 gbps=740
+sweep 256 256 256 single=174.2us loop=1.7us tflops=19.6 gbps=230
+sweep 512 512 512 single=154.8us loop=3.9us tflops=68.1 gbps=399
+sweep 1024 1024 1024 single=197.2us loop=18.6us tflops=115.6 gbps=339
+sweep 2048 2048 2048 single=296.6us loop=105.0us tflops=163.7 gbps=240
+sweep 4096 4096 4096 single=927.8us loop=779.2us tflops=176.4 gbps=129
+sweep 8192 8192 8192 single=6148.3us loop=6108.6us tflops=180.0 gbps=66
+sweep 1 4096 4096 single=226.5us loop=47.1us tflops=0.7 gbps=713
+sweep 8 4096 4096 single=161.4us loop=46.7us tflops=5.8 gbps=722
+sweep 16 4096 4096 single=152.5us loop=46.8us tflops=11.5 gbps=723
+sweep 32 4096 4096 single=138.5us loop=47.1us tflops=22.8 gbps=723
+sweep 64 4096 4096 single=153.4us loop=47.8us tflops=45.0 gbps=725
+sweep 128 4096 4096 single=165.9us loop=50.0us tflops=85.8 gbps=713
+sweep 256 4096 4096 single=165.9us loop=58.4us tflops=147.0 gbps=646
+sweep 1 8192 8192 single=407.4us loop=180.7us tflops=0.7 gbps=743
+sweep 8 8192 8192 single=352.8us loop=180.5us tflops=5.9 gbps=745
+sweep 16 8192 8192 single=370.4us loop=182.1us tflops=11.8 gbps=740
+sweep 32 8192 8192 single=371.1us loop=182.7us tflops=23.5 gbps=740
+sweep 64 8192 8192 single=386.8us loop=183.6us tflops=46.8 gbps=742
+sweep 128 8192 8192 single=372.3us loop=193.7us tflops=88.7 gbps=715
+sweep 256 8192 8192 single=391.1us loop=214.1us tflops=160.5 gbps=666
+sweep 1 14336 14336 single=755.8us loop=550.9us tflops=0.7 gbps=746
+sweep 8 14336 14336 single=752.6us loop=547.0us tflops=6.0 gbps=752
+sweep 16 14336 14336 single=766.5us loop=548.8us tflops=12.0 gbps=751
+sweep 32 14336 14336 single=738.4us loop=547.8us tflops=24.0 gbps=754
+sweep 64 14336 14336 single=757.6us loop=548.5us tflops=48.0 gbps=756
+sweep 128 14336 14336 single=751.4us loop=551.1us tflops=95.5 gbps=759
+sweep 256 14336 14336 single=810.3us loop=587.6us tflops=179.1 gbps=724
+DONE
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v5 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:23:11", "n_runs": 60}
+prefill_b1/qkv single=755.9us pipe=547.2us loop=581.2us rot=614.3us tflops=177.4 gbps=159
+prefill_b1/attn_score single=226.7us pipe=58.4us loop=59.4us rot=72.9us tflops=72.4 gbps=609
+prefill_b1/attn_av single=170.9us pipe=72.7us loop=49.4us rot=73.0us tflops=86.9 gbps=732
+prefill_b1/o_proj single=591.5us pipe=366.5us loop=385.8us rot=411.4us tflops=178.1 gbps=174
+prefill_b1/ffn_gate_up single=1504.1us pipe=1261.8us loop=1375.1us rot=1416.6us tflops=174.9 gbps=140
+prefill_b1/ffn_down single=1488.4us pipe=1255.9us loop=1282.7us rot=1411.6us tflops=187.5 gbps=150
+prefill_b1/lm_head single=1682.4us pipe=1458.5us loop=1465.0us rot=1459.1us tflops=0.7 gbps=720
+decode_b1/qkv single=258.5us pipe=72.3us loop=70.1us rot=72.0us tflops=0.7 gbps=718
+decode_b1/attn_score single=147.1us pipe=57.6us loop=7.5us rot=64.8us tflops=2.2 gbps=576
+decode_b1/attn_av single=145.1us pipe=58.3us loop=7.6us rot=49.6us tflops=2.2 gbps=567
+decode_b1/o_proj single=219.4us pipe=70.7us loop=47.2us rot=63.2us tflops=0.7 gbps=711
+decode_b1/ffn_gate_up single=373.0us pipe=160.9us loop=159.5us rot=160.9us tflops=0.7 gbps=736
+decode_b1/ffn_down single=375.6us pipe=161.5us loop=159.2us rot=161.7us tflops=0.7 gbps=738
+decode_b1/lm_head single=1687.1us pipe=1458.5us loop=1461.0us rot=1459.1us tflops=0.7 gbps=720
+decode_b8/qkv single=179.8us pipe=60.6us loop=69.8us rot=87.7us tflops=5.8 gbps=723
+decode_b8/attn_score single=190.7us pipe=60.9us loop=49.6us rot=59.7us tflops=2.7 gbps=699
+decode_b8/attn_av single=144.3us pipe=58.8us loop=47.8us rot=55.1us tflops=2.8 gbps=725
+decode_b8/o_proj single=185.7us pipe=45.6us loop=46.7us rot=71.6us tflops=5.7 gbps=721
+decode_b8/ffn_gate_up single=226.3us pipe=71.7us loop=160.3us rot=198.0us tflops=5.9 gbps=735
+decode_b8/ffn_down single=230.3us pipe=68.3us loop=158.6us rot=197.8us tflops=5.9 gbps=742
+decode_b8/lm_head single=1627.2us pipe=1397.1us loop=1400.0us rot=1397.0us tflops=6.0 gbps=754
+decode_b32/qkv single=212.1us pipe=46.2us loop=69.2us rot=88.4us tflops=23.3 gbps=736
+decode_b32/attn_score single=403.8us pipe=191.8us loop=180.7us rot=192.8us tflops=3.0 gbps=768
+decode_b32/attn_av single=403.2us pipe=183.6us loop=186.1us rot=189.6us tflops=2.9 gbps=745
+decode_b32/o_proj single=184.4us pipe=60.8us loop=47.0us rot=67.5us tflops=22.9 gbps=726
+decode_b32/ffn_gate_up single=227.4us pipe=58.0us loop=158.0us rot=200.5us tflops=23.8 gbps=751
+decode_b32/ffn_down single=191.3us pipe=58.0us loop=159.4us rot=196.2us tflops=23.6 gbps=744
+decode_b32/lm_head single=1648.2us pipe=1407.6us loop=1395.2us rot=1407.5us tflops=24.1 gbps=759
+smoke/gemm_1024 single=151.9us pipe=59.6us loop=18.6us rot=57.6us tflops=115.4 gbps=338
+smoke/gemm_16_8192 single=378.7us pipe=182.7us loop=182.1us rot=183.7us tflops=11.8 gbps=740
+gemm/gemm_1024_1024_1024 single=170.7us pipe=60.0us loop=18.6us rot=61.6us tflops=115.3 gbps=338
+gemm/gemm_4096_4096_4096 single=953.0us pipe=723.7us loop=780.9us rot=768.5us tflops=178.8 gbps=131
+gemm/gemm_16_8192_8192 single=386.3us pipe=183.0us loop=182.3us rot=183.5us tflops=11.8 gbps=739
+sweep 256 256 256 single=155.6us rot=55.6us loop=1.7us tflops=19.7 gbps=231
+sweep 512 512 512 single=162.7us rot=57.0us loop=3.9us tflops=68.4 gbps=401
+sweep 1024 1024 1024 single=170.2us rot=69.0us loop=18.6us tflops=115.5 gbps=338
+sweep 2048 2048 2048 single=273.7us rot=106.4us loop=105.4us tflops=163.1 gbps=239
+sweep 4096 4096 4096 single=925.6us rot=768.7us loop=780.6us tflops=178.8 gbps=131
+sweep 8192 8192 8192 single=6210.9us rot=5890.2us loop=6107.7us tflops=186.7 gbps=68
+sweep 1 4096 4096 single=230.8us rot=58.3us loop=47.1us tflops=0.7 gbps=712
+sweep 8 4096 4096 single=159.9us rot=63.3us loop=46.4us tflops=5.8 gbps=726
+sweep 16 4096 4096 single=144.5us rot=71.9us loop=46.7us tflops=11.5 gbps=724
+sweep 32 4096 4096 single=148.8us rot=84.3us loop=47.1us tflops=22.8 gbps=723
+sweep 64 4096 4096 single=183.4us rot=70.2us loop=48.0us tflops=44.8 gbps=721
+sweep 128 4096 4096 single=171.2us rot=75.0us loop=49.9us tflops=86.0 gbps=714
+sweep 256 4096 4096 single=166.7us rot=95.8us loop=57.6us tflops=149.1 gbps=655
+sweep 1 8192 8192 single=366.4us rot=182.9us loop=180.3us tflops=0.7 gbps=745
+sweep 8 8192 8192 single=363.9us rot=183.1us loop=181.1us tflops=5.9 gbps=742
+sweep 16 8192 8192 single=359.8us rot=183.5us loop=180.7us tflops=11.9 gbps=746
+sweep 32 8192 8192 single=361.7us rot=184.1us loop=181.1us tflops=23.7 gbps=747
+sweep 64 8192 8192 single=380.8us rot=186.2us loop=182.4us tflops=47.1 gbps=747
+sweep 128 8192 8192 single=412.0us rot=191.2us loop=193.2us tflops=89.8 gbps=724
+sweep 256 8192 8192 single=399.4us rot=209.3us loop=213.9us tflops=164.1 gbps=681
+sweep 1 14336 14336 single=758.3us rot=549.6us loop=548.0us tflops=0.8 gbps=750
+sweep 8 14336 14336 single=777.3us rot=549.9us loop=548.9us tflops=6.0 gbps=750
+sweep 16 14336 14336 single=756.3us rot=550.8us loop=549.8us tflops=12.0 gbps=749
+sweep 32 14336 14336 single=760.0us rot=552.5us loop=550.3us tflops=23.9 gbps=750
+sweep 64 14336 14336 single=784.1us rot=555.9us loop=550.0us tflops=47.8 gbps=754
+sweep 128 14336 14336 single=788.9us rot=562.7us loop=549.6us tflops=95.7 gbps=761
+sweep 256 14336 14336 single=815.4us rot=605.5us loop=583.6us tflops=180.3 gbps=729
+DONE

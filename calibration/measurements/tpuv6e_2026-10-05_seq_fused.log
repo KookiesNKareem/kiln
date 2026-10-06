@@ -1,0 +1,98 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:90: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+17:39:07 sanity start {'gemm_8192^3': {'loop_s': 0.0018654251578984833, 'cv': 0.0014383096421186944, 'tflops': 589.416103412408, 'gbps': 215.85062380825488}, 'copy_1GiB': {'loop_s': 0.0036267250000037166, 'cv': 0.010163936039398998, 'tflops': None, 'gbps': 592.1275111837261}}
+17:39:07 plan {'decode_b1': 32, 'decode_b8': 32, 'decode_b32': 32, 'prefill_b1': 32} impls ['einsum_f32', 'einsum_bf16sm', 'dpa_xla', 'pallas_paged_ps64_pb16', 'pallas_paged_ps128_pb8', 'pallas_ragged_ps128', 'pallas_flash_b128', 'pallas_flash_b512', 'pallas_flash_b1024', 'pallas_flash_b2048', 'pallas_splash_b512', 'pallas_splash_b1024', 'pallas_splash_b2048'] phases ['decode_b1', 'decode_b8', 'decode_b32', 'prefill_b1']
+17:39:10 check decode_b1/einsum_f32 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0022869822569191456, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:10 check decode_b1/einsum_bf16sm {'max_abs_err': 0.0006339363753795624, 'rel_rms_err': 0.004336463287472725, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:10 check decode_b1/dpa_xla {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0022869822569191456, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:12 check decode_b1/pallas_paged_ps64_pb16 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0026415372267365456, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:13 check decode_b1/pallas_paged_ps128_pb8 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0026415372267365456, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:14 check decode_b1/pallas_ragged_ps128 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0022138413041830063, 'ref_rms': 0.03799900785088539, 'ok': True}
+17:39:36 check decode_b8/einsum_f32 {'max_abs_err': 0.0009954515844583511, 'rel_rms_err': 0.004428624175488949, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:39:37 check decode_b8/einsum_bf16sm {'max_abs_err': 0.0016074106097221375, 'rel_rms_err': 0.00465894490480423, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:39:37 check decode_b8/dpa_xla {'max_abs_err': 0.00047670304775238037, 'rel_rms_err': 0.0016400293679907918, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:39:38 check decode_b8/pallas_paged_ps64_pb16 {'max_abs_err': 0.0005992799997329712, 'rel_rms_err': 0.0031142139341682196, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:39:38 check decode_b8/pallas_paged_ps128_pb8 {'max_abs_err': 0.0005992799997329712, 'rel_rms_err': 0.0031142139341682196, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:39:39 check decode_b8/pallas_ragged_ps128 {'max_abs_err': 0.0005220770835876465, 'rel_rms_err': 0.002717322437092662, 'ref_rms': 0.03800087794661522, 'ok': True}
+17:40:33 check decode_b32/einsum_f32 {'max_abs_err': 0.0034221410751342773, 'rel_rms_err': 0.004529861733317375, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:34 check decode_b32/einsum_bf16sm {'max_abs_err': 0.0016607791185379028, 'rel_rms_err': 0.004724904429167509, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:34 check decode_b32/dpa_xla {'max_abs_err': 0.0004842132329940796, 'rel_rms_err': 0.0016524108359590173, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:35 check decode_b32/pallas_paged_ps64_pb16 {'max_abs_err': 0.0007546842098236084, 'rel_rms_err': 0.0031050806865096092, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:36 check decode_b32/pallas_paged_ps128_pb8 {'max_abs_err': 0.0007546842098236084, 'rel_rms_err': 0.0031050806865096092, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:37 check decode_b32/pallas_ragged_ps128 {'max_abs_err': 0.0006091445684432983, 'rel_rms_err': 0.0027044762391597033, 'ref_rms': 0.03794902190566063, 'ok': True}
+17:40:44 check prefill_b1/einsum_f32 {'max_abs_err': 0.0077724456787109375, 'rel_rms_err': 0.00160789315123111, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:45 check prefill_b1/einsum_bf16sm {'max_abs_err': 0.019500732421875, 'rel_rms_err': 0.00424939813092351, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:47 check prefill_b1/dpa_xla {'max_abs_err': 0.0077724456787109375, 'rel_rms_err': 0.0016078890766948462, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:51 check prefill_b1/pallas_ragged_ps128 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.0025738265831023455, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:51 check prefill_b1/pallas_flash_b128 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.00256477203220129, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:51 check prefill_b1/pallas_flash_b512 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.002573159756138921, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:52 check prefill_b1/pallas_flash_b1024 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.002573159756138921, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:56 check prefill_b1/pallas_flash_b2048 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.002573165809735656, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:56 check prefill_b1/pallas_splash_b512 {'max_abs_err': 0.013785600662231445, 'rel_rms_err': 0.002945889253169298, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:40:57 check prefill_b1/pallas_splash_b1024 {'max_abs_err': 0.013785600662231445, 'rel_rms_err': 0.002945889253169298, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:41:01 check prefill_b1/pallas_splash_b2048 {'max_abs_err': 0.013785600662231445, 'rel_rms_err': 0.002945889253169298, 'ref_rms': 0.09276580810546875, 'ok': True}
+17:41:43 weights 32 layers in 41.5s
+17:41:45 seq/decode_b1/step0                          best=    945.25us single=    896.7us loop_cv=0.002     0.0TF       0GB/s ok
+17:41:48 seq/decode_b8/step0                          best=    946.67us single=    916.1us loop_cv=0.004     0.0TF       0GB/s ok
+17:41:50 seq/decode_b32/step0                         best=    949.36us single=    906.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:41:53 seq/prefill_b1/step0                         best=    979.65us single=   1132.6us loop_cv=0.001     0.0TF       0GB/s ok
+17:42:03 seq/decode_b1/step                           best=  13792.21us single=  13969.7us loop_cv=0.002     0.0TF       0GB/s ok
+17:42:04 seq/decode_b1/layer1                         best=    400.58us single=    616.5us loop_cv=0.005     0.0TF       0GB/s ok
+17:42:13 seq/decode_b1/step/einsum_bf16sm             best=  13812.43us single=  14007.4us loop_cv=0.003     0.0TF       0GB/s ok
+17:42:15 seq/decode_b1/layer1/einsum_bf16sm           best=    398.88us single=    604.2us loop_cv=0.002     0.0TF       0GB/s ok
+17:42:24 seq/decode_b1/step/dpa_xla                   best=  13754.13us single=  14009.7us loop_cv=0.005     0.0TF       0GB/s ok
+17:42:26 seq/decode_b1/layer1/dpa_xla                 best=    391.71us single=    575.4us loop_cv=0.003     0.0TF       0GB/s ok
+17:42:39 seq/decode_b1/step/pallas_paged_ps64_pb16    best=  13988.72us single=  14006.2us loop_cv=0.003     0.0TF       0GB/s ok
+17:42:41 seq/decode_b1/layer1/pallas_paged_ps64_pb16  best=    398.83us single=    594.9us loop_cv=0.002     0.0TF       0GB/s ok
+17:42:54 seq/decode_b1/step/pallas_paged_ps128_pb8    best=  13977.57us single=  13790.4us loop_cv=0.003     0.0TF       0GB/s ok
+17:42:56 seq/decode_b1/layer1/pallas_paged_ps128_pb8  best=    396.60us single=    549.9us loop_cv=0.003     0.0TF       0GB/s ok
+17:43:07 seq/decode_b1/step/pallas_ragged_ps128       best=  13959.85us single=  13691.5us loop_cv=0.005     0.0TF       0GB/s ok
+17:43:09 seq/decode_b1/layer1/pallas_ragged_ps128     best=    399.43us single=    579.0us loop_cv=0.003     0.0TF       0GB/s ok
+17:43:46 seq/decode_b8/step                           best=  15554.48us single=  15333.2us loop_cv=0.002     0.0TF       0GB/s ok
+17:43:49 seq/decode_b8/layer1                         best=    477.31us single=    692.6us loop_cv=0.003     0.0TF       0GB/s ok
+17:43:58 seq/decode_b8/step/einsum_bf16sm             best=  15527.81us single=  15344.0us loop_cv=0.004     0.0TF       0GB/s ok
+17:44:00 seq/decode_b8/layer1/einsum_bf16sm           best=    476.47us single=    650.6us loop_cv=0.002     0.0TF       0GB/s ok
+17:44:10 seq/decode_b8/step/dpa_xla                   best=  15522.62us single=  15304.6us loop_cv=0.004     0.0TF       0GB/s ok
+17:44:13 seq/decode_b8/layer1/dpa_xla                 best=    392.28us single=    658.1us loop_cv=0.001     0.0TF       0GB/s ok
+17:44:52 seq/decode_b8/step/pallas_paged_ps64_pb16    best=  17432.43us single=  16089.3us loop_cv=0.000     0.0TF       0GB/s ok
+17:44:55 seq/decode_b8/layer1/pallas_paged_ps64_pb16  best=    568.41us single=    713.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:45:34 seq/decode_b8/step/pallas_paged_ps128_pb8    best=  17148.73us single=  16049.1us loop_cv=0.001     0.0TF       0GB/s ok
+17:45:37 seq/decode_b8/layer1/pallas_paged_ps128_pb8  best=    559.41us single=    686.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:46:14 seq/decode_b8/step/pallas_ragged_ps128       best=  15561.45us single=  15384.5us loop_cv=0.003     0.0TF       0GB/s ok
+17:46:16 seq/decode_b8/layer1/pallas_ragged_ps128     best=    452.13us single=    653.0us loop_cv=0.002     0.0TF       0GB/s ok
+17:46:55 seq/decode_b32/step                          best=  21333.85us single=  21364.1us loop_cv=0.005     0.0TF       0GB/s ok
+17:47:00 seq/decode_b32/layer1                        best=    636.07us single=    766.9us loop_cv=0.002     0.0TF       0GB/s ok
+17:47:09 seq/decode_b32/step/einsum_bf16sm            best=  21396.08us single=  21224.1us loop_cv=0.004     0.0TF       0GB/s ok
+17:47:12 seq/decode_b32/layer1/einsum_bf16sm          best=    635.62us single=    737.8us loop_cv=0.002     0.0TF       0GB/s ok
+17:47:22 seq/decode_b32/step/dpa_xla                  best=  21245.34us single=  21297.4us loop_cv=0.001     0.0TF       0GB/s ok
+17:47:26 seq/decode_b32/layer1/dpa_xla                best=    562.85us single=    740.2us loop_cv=0.004     0.0TF       0GB/s ok
+17:48:19 seq/decode_b32/step/pallas_paged_ps64_pb16   best=  36989.87us single=  25992.4us loop_cv=0.001     0.0TF       0GB/s ok
+17:48:22 seq/decode_b32/layer1/pallas_paged_ps64_pb16 best=   1137.73us single=   1047.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:49:04 seq/decode_b32/step/pallas_paged_ps128_pb8   best=  37868.64us single=  26913.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:49:07 seq/decode_b32/layer1/pallas_paged_ps128_pb8 best=   1166.52us single=   1078.3us loop_cv=0.000     0.0TF       0GB/s ok
+17:49:57 seq/decode_b32/step/pallas_ragged_ps128      best=  21401.54us single=  21394.1us loop_cv=0.002     0.0TF       0GB/s ok
+17:50:01 seq/decode_b32/layer1/pallas_ragged_ps128    best=    636.73us single=    810.1us loop_cv=0.002     0.0TF       0GB/s ok
+17:50:15 seq/prefill_b1/step                          best=  67159.33us single=  68978.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:50:21 seq/prefill_b1/layer1                        best=   2083.93us single=   2458.3us loop_cv=0.000     0.0TF       0GB/s ok
+17:50:38 seq/prefill_b1/step/einsum_bf16sm            best=  63074.73us single=  64896.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:50:46 seq/prefill_b1/layer1/einsum_bf16sm          best=   1940.10us single=   2353.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:51:03 seq/prefill_b1/step/dpa_xla                  best=  77529.48us single=  82474.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:51:09 seq/prefill_b1/layer1/dpa_xla                best=   2404.45us single=   2824.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:51:27 seq/prefill_b1/step/pallas_ragged_ps128      best=  55304.26us single=  56505.3us loop_cv=0.000     0.0TF       0GB/s ok
+17:51:37 seq/prefill_b1/layer1/pallas_ragged_ps128    best=   1710.66us single=   2072.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:51:55 seq/prefill_b1/step/pallas_flash_b128        best= 125529.77us single= 124082.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:52:04 seq/prefill_b1/layer1/pallas_flash_b128      best=   3882.92us single=   4097.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:52:17 seq/prefill_b1/step/pallas_flash_b512        best=  53342.19us single=  54493.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:52:25 seq/prefill_b1/layer1/pallas_flash_b512      best=   1696.54us single=   2067.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:52:38 seq/prefill_b1/step/pallas_flash_b1024       best=  51948.13us single=  53520.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:52:46 seq/prefill_b1/layer1/pallas_flash_b1024     best=   1651.70us single=   1992.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:01 seq/prefill_b1/step/pallas_flash_b2048       best=  52575.44us single=  54390.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:11 seq/prefill_b1/layer1/pallas_flash_b2048     best=   1664.34us single=   1989.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:25 seq/prefill_b1/step/pallas_splash_b512       best=  52108.00us single=  53638.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:32 seq/prefill_b1/layer1/pallas_splash_b512     best=   1610.72us single=   2004.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:46 seq/prefill_b1/step/pallas_splash_b1024      best=  50371.11us single=  51840.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:53:53 seq/prefill_b1/layer1/pallas_splash_b1024    best=   1558.39us single=   1985.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:54:10 seq/prefill_b1/step/pallas_splash_b2048      best=  51774.26us single=  53320.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:54:20 seq/prefill_b1/layer1/pallas_splash_b2048    best=   1600.76us single=   2004.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:54:24 sanity end {'gemm_8192^3': {'loop_s': 0.0018639029999935463, 'cv': 0.0017790754057166148, 'tflops': 589.8974505539221, 'gbps': 216.0268983962117}, 'copy_1GiB': {'loop_s': 0.003606169764720214, 'cv': 0.005939374284317868, 'tflops': None, 'gbps': 595.502649101328}}
+17:54:24 DONE

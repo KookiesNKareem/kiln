@@ -1,0 +1,97 @@
+// Google TPU v5e, single chip (01 §20.2). Exposes `v5e_chip` as a template for tpu_v6e and tpu_v5e_2x2.
+{
+  schema: "kiln.hw/1.0",
+  name: "tpu-v5e",
+  exec_model: "static_dataflow",                       // 01 §2: XLA compiles the step to one static program
+  family: "tpu_v5e",                                   // 06 platform key
+  meta: {
+    citations: {
+      v5e: "Google Cloud TPU v5e docs, docs.cloud.google.com/tpu/docs/v5e (accessed 2026-10-04)",
+      sysarch: "Google Cloud TPU system architecture page (MXU 128x128 before v6e, 256x256 on v6e)",
+      pallas: "JAX Pallas TPU docs (VMEM 128 MiB, vreg shape (8,128) x 32-bit)",
+      sbook: "JAX scaling book, How to Think About TPUs, jax-ml.github.io/scaling-book/tpus (v5e HBM 8.2e11 B/s; accessed 2026-10-04)",
+      v4i: "Jouppi et al., Ten Lessons From Three Generations Shaped Google's TPUv4i, ISCA 2021, Table 1: TDP chip/system 175/275 W",
+      v4: "Jouppi et al., TPU v4, ISCA 2023 (arXiv 2304.01433), Table 4: TDP N.A.; idle, min/mean/max power 90, 121/170/192 W",
+    },
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 197e12, rel_tol: 0.01, source: "v5e" },
+      { metric: "peak_ops.int8", scope: "", value: 393e12, rel_tol: 0.01, source: "v5e" },
+      { metric: "offchip_bw", scope: "", value: 819e9, rel_tol: 0.01, source: "sbook" },  // v5e docs: 800 GiBps (assumed 819e9)
+    ],
+  },
+  tech: "tsmc_n5",                                    // assumed (unpublished)
+  params: {
+    mxu_edge: 128, n_mxu: 4, clk: "1500MHz",          // pub:sysarch, pub:v5e; clk derived
+    vmem_cap: "128MiB",                               // pub:pallas
+    vmem_rd_ports: 3,                                 // assumed: 3 vreg loads/cycle (~18 TB/s, cf. harness 19.5 TB/s)
+    hbm_kind: "hbm2e", hbm_cap: "8GiB", hbm_pin: "3.2Gbps", n_hbm: 2,   // 2 stacks assumed; 16 GB pub
+    ici_lanes: 4, ici_lane_rate: "100Gbps",           // derived: 50 GB/s/dir/port from 400 GB/s bidir / 4 ports; lane split assumed
+    tdp: "200W", tdp_lo: "120W", tdp_hi: "250W",      // assumed: Google publishes no v5e power (01 §12 `assumed`, 04 §8.1); range
+                                                      // from same-class published chips: TPUv4i TDP 175 W (pub:v4i), TPU v4
+                                                      // measured max 192 W (pub:v4); never enforced
+    vpu_precisions: ["fp32@1", "int32@1"],            // assumed: no bf16 VALU on v5e
+  },
+
+  templates: {
+    tensorcore: { kind: "cluster", body: {
+      units: [
+        { id: "mxu", count: "=n_mxu", kind: "matrix",
+          geometry: { systolic: { rows: "=mxu_edge", cols: "=mxu_edge" } },
+          dataflow: "weight_stationary",               // pub (TPU MXUs are weight-stationary systolic arrays)
+          precisions: ["bf16*bf16+fp32", "int8*int8+int32@2"],
+          local: [ { id: "wreg", holds: "b", capacity: "= 2 * mxu_edge * mxu_edge * 2", double_buffered: true } ], // assumed
+          accumulate_in: "feed",                       // assumed: partial sums popped to vregs (MRB modelled as feed latency)
+          feeds: { a: "vreg", b: "vreg", o: "vreg" } },
+        { id: "vpu", kind: "vector", lanes: 128, sublanes: 8,   // pub:pallas (8,128)
+          precisions: "=vpu_precisions", feeds: { any: "vreg" } },
+        { id: "eup", kind: "special", lanes: 128,               // transcendental unit; width assumed
+          functions: ["exp", "log", "recip", "rsqrt", "tanh", "sigmoid"],
+          precisions: ["fp32@1"], feeds: { any: "vreg" } },
+        { id: "spu", kind: "scalar", issue_width: 2, controls: ["mxu", "vpu", "eup"], // assumed width
+          precisions: ["int32@1", "fp32@1"], feeds: { any: "smem" } },
+      ],
+      memories: [
+        { id: "vreg", kind: "register_file", capacity: "128KiB", // 32 vregs x 4 KiB: count assumed, shape pub:pallas
+          banks: 32, word_bits: 32768,
+          ports: [ { dir: "read", count: 4, width_bits: 32768 }, { dir: "write", count: 2, width_bits: 32768 } ] }, // assumed
+        { id: "vmem", kind: "scratchpad", capacity: "=vmem_cap", banks: 32, word_bits: 32768, // banks assumed
+          ports: [ { dir: "read", count: "=vmem_rd_ports", width_bits: 32768 }, { dir: "write", count: 1, width_bits: 32768 } ] },
+        { id: "smem", kind: "scratchpad", capacity: "1MiB", word_bits: 32,  // assumed
+          ports: [ { dir: "rw", count: 2, width_bits: 32 } ] },
+      ],
+      networks: [
+        { id: "vld", topology: "p2p", endpoints: ["vmem", "vreg"],
+          link: { width_bits: "= vmem_rd_ports * 32768" } },          // vld/vst path
+      ],
+    } },
+
+    v5e_chip: { kind: "package", body: {
+      substrate: { kind: "silicon_interposer" },                 // assumed
+      power: { cap: "=tdp", policy: "dvfs", assumed: { lo: "=tdp_lo", hi: "=tdp_hi", basis: "unpublished; TPUv4i 175 W TDP and TPU v4 192 W measured max bracket a same-class chip" } },
+      dies: [ {
+        id: "die",
+        clocks: [ { id: "core", freq: "=clk" } ],                 // no V/F published: fixed clock
+        default_clock: "core",
+        clusters: [ { id: "tc", use: "tensorcore" } ],
+        networks: [
+          { id: "dma", topology: "crossbar", endpoints: ["tc.vmem", "tc.smem"],
+            link: { width_bits: 8192 } },                         // assumed: wider than HBM (819 GB/s needs > 4368 b at 1.5 GHz), so HBM is the limiter
+        ],
+        ports: [
+          { id: "ici", count: 4, kind: "serdes", internal: "dma",  // 4 ports pub:v5e
+            link: { phys: { type: "serdes", protocol: "ici_like", lanes: "=ici_lanes", lane_rate_bits_per_s: "=ici_lane_rate" } } },
+          { id: "pcie", kind: "pcie", internal: "dma",
+            link: { phys: { type: "serdes", protocol: "pcie", lanes: 16, lane_rate_bits_per_s: "16Gbps" } } }, // assumed Gen4 x16
+        ],
+        floorplan: { outline: { type: "auto" } },                 // die size unpublished: placer sizes it
+      } ],
+      mem_stacks: [ {
+        id: "hbm", count: "=n_hbm", kind: "=hbm_kind", capacity: "=hbm_cap",
+        io_width_bits: 1024, pin_rate_bits_per_s: "=hbm_pin",
+        attach: { network: "die.dma" },                           // synthesizes hbm{i}_mc + hbm{i}_phy on the die
+      } ],
+    } },
+  },
+
+  system: { package: { id: "chip", use: "v5e_chip" } },
+}

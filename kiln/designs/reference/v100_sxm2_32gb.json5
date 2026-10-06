@@ -1,0 +1,140 @@
+// NVIDIA V100-SXM2-32GB, T1 backtest design (06 §12.1): published specs only, no measurements, no platform key.
+// Tags: pub:<src> = published, derived = arithmetic from published values, assumed = modelling choice.
+{
+  schema: "kiln.hw/1.0",
+  name: "v100-sxm2-32gb",
+  exec_model: "host_launched",                         // 01 §2: kernels launched by the host (CUDA graphs still launch per kernel)
+  meta: {
+    description: "NVIDIA Tesla V100-SXM2-32GB. GV100 die, 80 of 84 SMs active.",
+    citations: {
+      wp: "NVIDIA Tesla V100 GPU Architecture whitepaper WP-08608-001 (2017): GV100 6 GPCs x 7 TPCs x 2 SMs = 84 SMs, 80 on V100; 8 tensor cores/SM; 64 FP32, 32 FP64 per SM; 6144 KB L2; 128 KB L1/SMEM per SM; 8 x 512-bit memory controllers; 4 HBM2 stacks; 815 mm2, TSMC 12 nm FFN; 6 NVLink2 links",
+      ds: "NVIDIA Tesla V100 datasheet, images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf (SXM2: 125 TFLOPS tensor, 15.7 TFLOPS FP32, 7.8 TFLOPS FP64, 32 GB HBM2, 900 GB/s, 300 GB/s NVLink, 300 W)",
+      cuda: "CUDA C++ Programming Guide: arithmetic-instruction throughput table (CC 7.0), shared memory carveouts (CC 7.0)",
+      ptx: "PTX ISA, mma.sync / wmma.mma (sm_70): A, B and C are register fragments read by each instruction",
+    },
+    claims: [
+      { metric: "peak_ops.fp16", scope: "", value: 125e12, rel_tol: 0.01, source: "ds" },
+      { metric: "offchip_bw", scope: "", value: 900e9, rel_tol: 0.01, source: "ds" },
+      { metric: "offchip_bytes", scope: "", value: 34359738368, rel_tol: 0.0, source: "ds" },
+      { metric: "onchip_bytes.cache", scope: "board.gpu.gv100.l2.slice*", value: 6291456, rel_tol: 0.0, source: "wp" },
+      { metric: "die_area", scope: "board.gpu.gv100", value: 815, rel_tol: 0.01, source: "wp" },
+    ],
+  },
+  tech: "tsmc_n12",                                    // pub:wp 12 nm FFN
+  clocks: [
+    { id: "gpc_clk", freq: "1530MHz", base: "1290MHz" }, // boost pub:ds/wp; base pub:wp; no V/F published
+    { id: "hbm_clk", freq: "877MHz" },                 // pub:wp 877 MHz DDR -> 1.754 Gb/s pins
+  ],
+  power: [ { id: "board_tdp", members: "board.gpu", cap: "300W", policy: "dvfs", clocks: ["gpc_clk"] } ], // pub:ds
+
+  templates: {
+    smsp: { kind: "cluster", body: {
+      units: [
+        { id: "tc", count: 2, kind: "matrix",           // 8 TCs/SM = 2 per SMSP pub:wp
+          geometry: { mma: { m: 4, n: 4, k: 4 } },      // 4x4x4 = 64 FMA/clk per TC pub:wp
+          dataflow: "output_stationary",
+          accumulate_in: "feed",
+          operand_run: { a: 1, b: 1 },                  // HMMA (PTX mma.sync on sm_70) re-reads its A/B registers every instruction pub:ptx
+          precisions: [ "fp16*fp16+fp32", "fp16*fp16+fp16" ],   // pub:wp (no bf16, tf32, int8 tensor ops on Volta)
+          feeds: { a: "rf", b: "rf", c: "rf", o: "rf" } },
+        { id: "alu", kind: "vector", lanes: 16,         // 64 FP32/SM pub:wp
+          precisions: ["fp32@1", "int32@1", "fp64@0.5", "fp16@2"], // 64 INT32, 32 FP64 per SM pub:wp; fp16x2 packed pub:cuda
+          feeds: { any: "rf" } },
+        { id: "sfu", kind: "special", lanes: 4,         // 16/SM/clk pub:cuda
+          functions: ["exp2", "log2", "rsqrt", "recip", "sqrt", "sin", "cos"],
+          precisions: ["fp32@1"], feeds: { any: "rf" } },
+      ],
+      memories: [
+        { id: "rf", kind: "register_file", capacity: "64KiB",   // 256 KB/SM pub:wp
+          banks: 4, word_bits: 32,                               // assumed
+          ports: [ { dir: "read", count: 3, width_bits: 1024 },  // assumed, as A100
+                   { dir: "write", count: 1, width_bits: 1024 } ] },
+      ],
+    } },
+
+    sm: { kind: "cluster", body: {
+      clusters: [ { id: "smsp", count: 4, use: "smsp" } ],      // pub:wp
+      memories: [
+        { id: "l1", kind: "scratchpad", capacity: "128KiB",     // pub:wp combined L1/SMEM
+          banks: 32, word_bits: 32,                              // pub:cuda
+          ports: [ { dir: "rw", width_bits: 1024 } ],            // 128 B/clk: 32 banks x 4 B pub:cuda
+          operands: { policy: "carveout", options: [             // pub:cuda CC 7.0 SMEM carveouts
+            { scratch: "0KiB",  cache: "128KiB" }, { scratch: "8KiB",  cache: "120KiB" },
+            { scratch: "16KiB", cache: "112KiB" }, { scratch: "32KiB", cache: "96KiB" },
+            { scratch: "64KiB", cache: "64KiB" },  { scratch: "96KiB", cache: "32KiB" } ] },
+          cache: { line: "128B", sectors: 4, ways: 4 },          // ways assumed
+          backing: "l2.slice*" },
+      ],
+      networks: [
+        { id: "lsu", topology: "bus", endpoints: ["smsp*.rf", "l1"], link: "1024b" },
+      ],
+    } },
+  },
+
+  system: { package: {
+    id: "gpu",
+    substrate: { kind: "silicon_interposer" },                   // pub:wp CoWoS
+    dies: [ {
+      id: "gv100",
+      default_clock: "gpc_clk",
+      floorplan: {
+        outline: { type: "fixed", w: "25.5mm", h: "32.0mm" },    // area pub:wp 815 mm2; aspect assumed
+        shoreline: [
+          { id: "hbm_w", count: 2, edge: "w", kind: "hbm" },     // 4 HBM2 sites pub:wp; 2 per side assumed
+          { id: "hbm_e", count: 2, edge: "e", kind: "hbm" },
+          { id: "nvl",   count: 6, edge: "s", kind: "serdes" },  // 6 NVLink2 pub:wp; edge assumed
+          { id: "pcie_site", edge: "n", kind: "pcie" },
+        ],
+      },
+      clusters: [
+        { id: "gpc", count: 6, layout: { grid: [2, 3] }, placement: { mode: "array" },  // 6 GPCs pub:wp; arrangement assumed
+          disabled: ["gpc0_0.tpc6", "gpc1_2.tpc6"],              // -> 40 TPCs, 80 SMs pub:wp; which ones: assumed
+          clusters: [ { id: "tpc", count: 7, clusters: [ { id: "sm", count: 2, use: "sm" } ] } ] },
+        { id: "l2",
+          memories: [ {
+            id: "slice", count: 64, kind: "cache",               // 6144 KB pub:wp; 64 x 96 KiB slicing assumed
+            capacity: "96KiB", banks: 4, word_bits: 256,         // assumed
+            ports: [ { dir: "read", width_bits: 256 }, { dir: "write", width_bits: 256 } ], // assumed 32 B/clk/slice (3.1 TB/s read)
+            cache: { line: "128B", sectors: 4, ways: 16 },       // ways assumed
+          } ] },
+        { id: "hbm_if", count: 4,                                // one interface per HBM2 stack
+          blocks: [
+            { id: "mc", count: 2, kind: { type: "mem_controller",  // 8 x 512-bit controllers pub:wp
+                serves: "/board.gpu.hbm{^i}", width_bits: 512, endpoint_of: ["fabric"] } },
+            { id: "phy", kind: { type: "phy", for_kind: "hbm", lanes: 1024 } },
+          ] },
+      ],
+      networks: [ {
+        id: "fabric",                                            // SM <-> L2 crossbar: one router, assumed
+        topology: { type: "custom", routers: 1, edges: [] },
+        router: { radix: 256, pipeline: 4 },                     // assumed
+        link: { width_bits: 512 },                               // assumed 64 B/clk per endpoint port
+        endpoints: [
+          { select: "gpc*.tpc*.sm*.l1", at: { router: [0] } },
+          { select: "l2.slice*", at: { router: [0] } },
+          // Controller side: a 512-bit DDR interface moves 1024 b per hbm_clk (112 GB/s), derived; the L2 slices sit
+          // in front of their memory partitions, so the SM-side port width does not cap HBM.
+          { select: "hbm_if*.mc*", at: { router: [0] }, port: { width_bits: 1024, clock: "hbm_clk" } },
+        ],
+      } ],
+      blocks: [
+        { id: "uncore", kind: { type: "misc" }, footprint: { area: "60mm2" } }, // frontend, copy engines, hub: assumed area
+      ],
+      ports: [
+        { id: "nvlink", count: 6, kind: "serdes", internal: "fabric",
+          link: { phys: { type: "serdes", protocol: "nvlink_like", lanes: 8, lane_rate_bits_per_s: "25Gbps" } } },
+          // 8 lanes x 25 Gb/s = 25 GB/s/dir per link, 6 links = 300 GB/s bidirectional pub:ds
+        { id: "pcie", kind: "pcie", internal: "fabric",
+          link: { phys: { type: "serdes", protocol: "pcie", lanes: 16, lane_rate_bits_per_s: "8Gbps" } } }, // Gen3 x16 pub:ds
+      ],
+    } ],
+    mem_stacks: [ {
+      id: "hbm", count: 4,                                       // pub:wp
+      kind: "hbm2", capacity: "8GiB", dies_high: 8,              // 32 GB / 4 pub:ds; 8-high assumed
+      io_width_bits: 1024, pin_rate_bits_per_s: "1.754Gbps",     // 4096-bit bus pub:wp; 877 MHz DDR pub:wp
+      clock: "hbm_clk",
+      attach: { phys: ["/board.gpu.gv100.hbm_if{i}.phy"] },
+    } ],
+    address_map: [ { id: "global", targets: "gv100.hbm_if*.mc*", granule: "512B" } ], // granule assumed
+  } },
+}

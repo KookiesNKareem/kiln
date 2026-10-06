@@ -1,0 +1,33 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+23:15:46    1.3s gemm  733.5 TF  read   1028 GB/s
+23:15:50    5.4s gemm  732.8 TF  read   1140 GB/s
+23:15:54    9.6s gemm  732.9 TF  read   1115 GB/s
+23:15:58   13.7s gemm  733.0 TF  read   1117 GB/s
+23:16:03   17.9s gemm  733.1 TF  read   1060 GB/s
+23:16:07   22.0s gemm  733.0 TF  read   1145 GB/s
+23:16:11   26.2s gemm  732.7 TF  read   1104 GB/s
+23:16:15   30.3s gemm  734.3 TF  read   1142 GB/s
+23:16:19   34.5s gemm  733.2 TF  read   1040 GB/s
+23:16:23   38.6s gemm  733.6 TF  read   1062 GB/s
+23:16:27   42.8s gemm  733.4 TF  read   1160 GB/s
+23:16:32   46.9s gemm  733.5 TF  read   1164 GB/s
+23:16:36   51.1s gemm  733.8 TF  read   1142 GB/s
+23:16:40   55.2s gemm  731.6 TF  read   1124 GB/s
+23:16:44   59.4s gemm  732.2 TF  read   1042 GB/s
+23:16:48   63.6s gemm  732.5 TF  read   1135 GB/s
+23:16:52   67.7s gemm  732.8 TF  read   1129 GB/s
+23:16:57   71.9s gemm  732.0 TF  read   1152 GB/s
+23:17:01   76.0s gemm  732.7 TF  read   1073 GB/s
+23:17:05   80.2s gemm  732.1 TF  read   1131 GB/s
+23:17:09   84.3s gemm  733.8 TF  read   1061 GB/s
+23:17:13   88.5s gemm  732.0 TF  read   1129 GB/s
+23:17:17   92.6s gemm  733.0 TF  read   1129 GB/s
+23:17:21   96.8s gemm  732.8 TF  read   1130 GB/s
+23:17:26  100.9s gemm  732.1 TF  read   1113 GB/s
+23:17:30  105.1s gemm  731.4 TF  read   1099 GB/s
+23:17:34  109.2s gemm  733.9 TF  read   1118 GB/s
+23:17:38  113.4s gemm  732.7 TF  read   1128 GB/s
+23:17:42  117.5s gemm  732.8 TF  read   1099 GB/s
+23:17:46  121.7s gemm  731.8 TF  read   1133 GB/s
+23:17:50  125.8s gemm  733.9 TF  read   1153 GB/s

@@ -1,0 +1,44 @@
+22:29:24 sanity start {'gemm_8192^3': 265.3, 'copy_1GiB': 1376.1}
+22:29:24 gptj weights 28 layers in 0.2s, alloc 11.53 GiB
+/usr/local/lib/python3.13/dist-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+  _warn_once(
+22:29:30 seq_oos/gptj_6b/decode_b1/step                 12921.86us cv=0.000     0.0TF       0GB/s ok
+22:29:30 seq_oos/gptj_6b/decode_b1/layer1                 503.79us cv=0.002     0.0TF       0GB/s ok
+22:29:31 seq_oos/gptj_6b/decode_b1/layer_x28            12573.57us cv=0.001     0.0TF       0GB/s ok
+22:29:32 seq_oos/gptj_6b/decode_b8/step                 18067.04us cv=0.000     0.0TF       0GB/s ok
+22:29:32 seq_oos/gptj_6b/decode_b8/layer1                 638.10us cv=0.002     0.0TF       0GB/s ok
+22:29:33 seq_oos/gptj_6b/decode_b8/layer_x28            17712.13us cv=0.000     0.0TF       0GB/s ok
+22:29:33 seq_oos/gptj_6b/decode_b32/step                     nanus cv=0.000     0.0TF       0GB/s rejected
+22:29:35 seq_oos/gptj_6b/decode_b32_kv1024/step         24628.11us cv=0.000     0.0TF       0GB/s ok
+22:29:35 seq_oos/gptj_6b/decode_b32_kv1024/layer1         874.56us cv=0.002     0.0TF       0GB/s ok
+22:29:36 seq_oos/gptj_6b/decode_b32_kv1024/layer_x28    24343.50us cv=0.000     0.0TF       0GB/s ok
+22:29:46 seq_oos/gptj_6b/prefill_b1/step               143157.35us cv=0.003     0.0TF       0GB/s ok
+22:29:47 seq_oos/gptj_6b/prefill_b1/layer1               5112.88us cv=0.003     0.0TF       0GB/s ok
+22:29:53 seq_oos/gptj_6b/prefill_b1/layer_x28          142743.55us cv=0.000     0.0TF       0GB/s ok
+22:29:53 llama2-70b weights 4 layers in 0.0s, alloc 7.73 GiB
+22:29:53 seq_oos/llama2_70b/decode_b1/step_l1            1971.46us cv=0.005     0.0TF       0GB/s ok
+22:29:54 seq_oos/llama2_70b/decode_b1/step_l2            3169.52us cv=0.001     0.0TF       0GB/s ok
+22:29:54 seq_oos/llama2_70b/decode_b1/step_l4            5914.53us cv=0.001     0.0TF       0GB/s ok
+22:29:55 seq_oos/llama2_70b/decode_b1/layer1             1374.78us cv=0.002     0.0TF       0GB/s ok
+22:29:55 seq_oos/llama2_70b/decode_b1/layers2            2747.18us cv=0.001     0.0TF       0GB/s ok
+22:29:57 seq_oos/llama2_70b/decode_b1/layer_x8          10959.22us cv=0.001     0.0TF       0GB/s ok
+22:29:57 seq_oos/llama2_70b/decode_b8/step_l1            1875.02us cv=0.001     0.0TF       0GB/s ok
+22:29:57 seq_oos/llama2_70b/decode_b8/step_l2            3318.98us cv=0.001     0.0TF       0GB/s ok
+22:29:58 seq_oos/llama2_70b/decode_b8/step_l4            6206.59us cv=0.001     0.0TF       0GB/s ok
+22:29:59 seq_oos/llama2_70b/decode_b8/layer1             1449.02us cv=0.002     0.0TF       0GB/s ok
+22:29:59 seq_oos/llama2_70b/decode_b8/layers2            2892.19us cv=0.001     0.0TF       0GB/s ok
+22:30:01 seq_oos/llama2_70b/decode_b8/layer_x8          11548.99us cv=0.001     0.0TF       0GB/s ok
+22:30:01 seq_oos/llama2_70b/decode_b32/step_l1           2292.24us cv=0.002     0.0TF       0GB/s ok
+22:30:01 seq_oos/llama2_70b/decode_b32/step_l2           4118.06us cv=0.001     0.0TF       0GB/s ok
+22:30:02 seq_oos/llama2_70b/decode_b32/step_l4           7735.04us cv=0.001     0.0TF       0GB/s ok
+22:30:03 seq_oos/llama2_70b/decode_b32/layer1            1817.78us cv=0.001     0.0TF       0GB/s ok
+22:30:04 seq_oos/llama2_70b/decode_b32/layers2           3642.69us cv=0.001     0.0TF       0GB/s ok
+22:30:05 seq_oos/llama2_70b/decode_b32/layer_x8         14488.66us cv=0.000     0.0TF       0GB/s ok
+22:30:07 seq_oos/llama2_70b/prefill_b1/step_l1          16238.78us cv=0.005     0.0TF       0GB/s ok
+22:30:11 seq_oos/llama2_70b/prefill_b1/step_l2          32031.60us cv=0.008     0.0TF       0GB/s ok
+22:30:18 seq_oos/llama2_70b/prefill_b1/step_l4          63933.09us cv=0.005     0.0TF       0GB/s ok
+22:30:22 seq_oos/llama2_70b/prefill_b1/layer1           15931.97us cv=0.006     0.0TF       0GB/s ok
+22:30:28 seq_oos/llama2_70b/prefill_b1/layers2          31855.92us cv=0.005     0.0TF       0GB/s ok
+22:30:43 seq_oos/llama2_70b/prefill_b1/layer_x8        127431.55us cv=0.004     0.0TF       0GB/s ok
+22:30:44 sanity end {'gemm_8192^3': 265.2, 'copy_1GiB': 1376.6}
+22:30:44 DONE

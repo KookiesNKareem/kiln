@@ -1,0 +1,368 @@
+{
+  "schema": "kiln.hw/1.0",
+  "name": "a100-40gb",
+  "meta": {
+    "description": "NVIDIA A100-SXM4-40GB (the Colab A100): as a100 but 40 GiB HBM2 at 1555 GB/s.",
+    "authors": [],
+    "citations": {
+      "harness": "harness/designs (a100_40gb): kiln.hw/0 design, migrated by v0_to_v1"
+    },
+    "claims": [],
+    "notes": {}
+  },
+  "tech": "tsmc_n7",
+  "exec_model": "host_launched",
+  "clocks": [
+    {
+      "id": "core",
+      "freq": 1410000000,
+      "vf": []
+    }
+  ],
+  "power": [],
+  "system": {
+    "hosts": [],
+    "boards": [
+      {
+        "id": "board",
+        "vary": [],
+        "disabled": [],
+        "harvest_power": "gated",
+        "packages": [
+          {
+            "id": "chip",
+            "vary": [],
+            "disabled": [],
+            "harvest_power": "gated",
+            "dies": [
+              {
+                "id": "die",
+                "vary": [],
+                "disabled": [],
+                "harvest_power": "gated",
+                "role": "compute",
+                "clusters": [
+                  {
+                    "id": "l2_part",
+                    "count": 4,
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "clusters": [],
+                    "units": [
+                      {
+                        "id": "sm_cluster",
+                        "count": 4,
+                        "vary": [],
+                        "disabled": [],
+                        "harvest_power": "gated",
+                        "geometry": {
+                          "systolic": {
+                            "rows": 72,
+                            "cols": 96
+                          }
+                        },
+                        "dataflow": "weight_stationary",
+                        "sparsity": [],
+                        "accumulate_in": "local",
+                        "kind": "matrix",
+                        "precisions": [
+                          {
+                            "a": "bf16",
+                            "b": "bf16",
+                            "acc": "fp32",
+                            "rate": 1
+                          }
+                        ],
+                        "feeds": {
+                          "any": {
+                            "from": "l2",
+                            "width_bits": 27648,
+                            "via": "l2_xbar"
+                          }
+                        },
+                        "local": [
+                          {
+                            "id": "buf",
+                            "holds": "any",
+                            "capacity": 3096576,
+                            "double_buffered": false
+                          }
+                        ],
+                        "pipeline": {
+                          "issue_overhead": 0
+                        },
+                        "placement": {
+                          "mode": "auto"
+                        },
+                        "power": {
+                          "energy_per_op": {}
+                        }
+                      },
+                      {
+                        "id": "cuda_cores",
+                        "vary": [],
+                        "disabled": [],
+                        "harvest_power": "gated",
+                        "lanes": 64,
+                        "sublanes": 27,
+                        "class_rates": {},
+                        "reduce_tree": false,
+                        "kind": "vector",
+                        "precisions": [
+                          {
+                            "dtype": "fp32",
+                            "rate": 1
+                          }
+                        ],
+                        "feeds": {
+                          "any": {
+                            "from": "cuda_cores_rf"
+                          }
+                        },
+                        "local": [
+                          {
+                            "id": "buf",
+                            "holds": "any",
+                            "capacity": 2097152,
+                            "double_buffered": false
+                          }
+                        ],
+                        "pipeline": {
+                          "issue_overhead": 0
+                        },
+                        "placement": {
+                          "mode": "auto"
+                        },
+                        "power": {
+                          "energy_per_op": {}
+                        }
+                      }
+                    ],
+                    "memories": [
+                      {
+                        "id": "l2",
+                        "vary": [],
+                        "disabled": [],
+                        "harvest_power": "gated",
+                        "kind": "scratchpad",
+                        "capacity": 10485760,
+                        "word_bits": 32,
+                        "banks": 1,
+                        "ports": [
+                          {
+                            "dir": "rw",
+                            "count": 1,
+                            "width_bits": 40960,
+                            "per_bank": false
+                          }
+                        ],
+                        "operands": {
+                          "policy": "unified"
+                        },
+                        "implementation": "auto",
+                        "power_gated": false,
+                        "shared_rf": false,
+                        "placement": {
+                          "mode": "auto"
+                        },
+                        "overrides": {
+                          "bandwidth": 7219200000000,
+                          "source": "harness"
+                        }
+                      },
+                      {
+                        "id": "cuda_cores_rf",
+                        "vary": [],
+                        "disabled": [],
+                        "harvest_power": "gated",
+                        "kind": "register_file",
+                        "capacity": 262144,
+                        "word_bits": 32,
+                        "banks": 1,
+                        "ports": [
+                          {
+                            "dir": "rw",
+                            "count": 1,
+                            "width_bits": 52131,
+                            "per_bank": false
+                          }
+                        ],
+                        "operands": {
+                          "policy": "unified"
+                        },
+                        "implementation": "auto",
+                        "power_gated": false,
+                        "shared_rf": false,
+                        "placement": {
+                          "mode": "auto"
+                        },
+                        "overrides": {
+                          "bandwidth": 9188088750000,
+                          "source": "harness"
+                        }
+                      }
+                    ],
+                    "networks": [],
+                    "blocks": [],
+                    "placement": {
+                      "mode": "auto"
+                    }
+                  }
+                ],
+                "units": [],
+                "memories": [],
+                "networks": [
+                  {
+                    "id": "l2_xbar",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "topology": {
+                      "type": "bus",
+                      "arbitration": "round_robin"
+                    },
+                    "endpoints": [
+                      {
+                        "select": "l2_part*.sm_cluster*",
+                        "at": "auto"
+                      },
+                      {
+                        "select": "l2_part*.cuda_cores_rf*",
+                        "at": "auto"
+                      },
+                      {
+                        "select": "l2_part*.l2",
+                        "at": "auto"
+                      }
+                    ],
+                    "router": {
+                      "power": {
+                        "energy_per_op": {}
+                      }
+                    },
+                    "link": {
+                      "width_bits": 40960,
+                      "full_duplex": true,
+                      "count": 1,
+                      "phys": {
+                        "type": "on_die",
+                        "metal": "auto",
+                        "swing": "full"
+                      },
+                      "bandwidth": 7219200000000,
+                      "source": "harness"
+                    },
+                    "routing": "default",
+                    "features": {
+                      "multicast": false,
+                      "broadcast": false,
+                      "in_network_reduce": [],
+                      "ordered": false
+                    }
+                  },
+                  {
+                    "id": "offchip",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "topology": {
+                      "type": "bus",
+                      "arbitration": "round_robin"
+                    },
+                    "endpoints": [
+                      {
+                        "select": "l2_part*.l2",
+                        "at": "auto"
+                      }
+                    ],
+                    "router": {
+                      "power": {
+                        "energy_per_op": {}
+                      }
+                    },
+                    "link": {
+                      "width_bits": 8823,
+                      "full_duplex": true,
+                      "count": 1,
+                      "phys": {
+                        "type": "on_die",
+                        "metal": "auto",
+                        "swing": "full"
+                      }
+                    },
+                    "routing": "default",
+                    "features": {
+                      "multicast": false,
+                      "broadcast": false,
+                      "in_network_reduce": [],
+                      "ordered": false
+                    }
+                  }
+                ],
+                "blocks": [],
+                "ports": [],
+                "clocks": [],
+                "default_clock": "core",
+                "floorplan": {
+                  "outline": {
+                    "type": "auto"
+                  },
+                  "shoreline": [],
+                  "keepouts": []
+                },
+                "placement": {
+                  "mode": "auto"
+                },
+                "stitched": false,
+                "power": {
+                  "energy_per_op": {}
+                }
+              }
+            ],
+            "mem_stacks": [
+              {
+                "id": "hbm",
+                "count": 5,
+                "vary": [],
+                "disabled": [],
+                "harvest_power": "gated",
+                "kind": "hbm2",
+                "capacity": 8589934592,
+                "io_width_bits": 1024,
+                "pin_rate_bits_per_s": 2429687500,
+                "attach": {
+                  "network": "die.offchip"
+                },
+                "site": {
+                  "mode": "auto"
+                },
+                "overrides": {
+                  "bandwidth": 311000000000,
+                  "source": "harness"
+                }
+              }
+            ],
+            "links": [],
+            "networks": [],
+            "ports": [],
+            "substrate": {
+              "kind": "organic",
+              "outline": {
+                "type": "auto"
+              },
+              "sites": []
+            },
+            "layers": [],
+            "address_map": []
+          }
+        ],
+        "switches": [],
+        "networks": [],
+        "host_links": []
+      }
+    ],
+    "switches": [],
+    "networks": []
+  }
+}

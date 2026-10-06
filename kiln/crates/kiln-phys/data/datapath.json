@@ -1,0 +1,497 @@
+{
+ "schema": "kiln.phys.datapath/1",
+ "node_nm": {
+  "v": 45.0,
+  "q": "pub",
+  "c": "H",
+  "src": "horowitz_isscc2014"
+ },
+ "vdd_v": {
+  "v": 0.9,
+  "q": "pub",
+  "c": "H",
+  "src": "horowitz_isscc2014"
+ },
+ "anchors": {
+  "int8_add": {
+   "e_pj": {
+    "v": 0.03,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 36.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "int32_add": {
+   "e_pj": {
+    "v": 0.1,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 137.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "int8_mult": {
+   "e_pj": {
+    "v": 0.2,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 282.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "int32_mult": {
+   "e_pj": {
+    "v": 3.1,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 3495.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "fp16_add": {
+   "e_pj": {
+    "v": 0.4,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 1360.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "fp32_add": {
+   "e_pj": {
+    "v": 0.9,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 4184.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "fp16_mult": {
+   "e_pj": {
+    "v": 1.1,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 1640.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  },
+  "fp32_mult": {
+   "e_pj": {
+    "v": 3.7,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   },
+   "a_um2": {
+    "v": 7700.0,
+    "q": "pub",
+    "c": "H",
+    "src": "horowitz_isscc2014"
+   }
+  }
+ },
+ "coeffs": {
+  "a_pp_small_um2": {
+   "v": 4.4,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "int8 mult 282 um2 / 64 bit^2 (operands <= 12 bits)"
+  },
+  "a_pp_large_um2": {
+   "v": 3.4,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "int32 mult 3495 um2 / 1024 bit^2 (Booth/Wallace)"
+  },
+  "e_pp_fj": {
+   "v": 3.1,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "int8 mult 0.2 pJ / 64 bit^2"
+  },
+  "a_add_um2": {
+   "v": 4.3,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "int32 add 137 um2 / 32 bits"
+  },
+  "e_add_fj": {
+   "v": 3.1,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "int32 add 0.1 pJ / 32 bits"
+  },
+  "a_mux_um2": {
+   "v": 1.2,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "per bit-stage of a shifter / mux tree"
+  },
+  "e_mux_fj": {
+   "v": 1.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "per bit-stage"
+  },
+  "a_cmp_um2": {
+   "v": 4.3,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "per compared bit"
+  },
+  "a_ff_um2": {
+   "v": 6.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "pipeline/operand flop per bit"
+  },
+  "e_ff_fj": {
+   "v": 8.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "per bit per cycle incl. local clock"
+  },
+  "guard_bits": {
+   "v": 3.0,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "alignment guard bits"
+  },
+  "fp_mult_exp": {
+   "v": 1.0,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "fp multiplier area/energy scale with M_a*M_b relative to fp16 (11x11): fp32 7700/1640 = 4.7 at 576/121 = 4.8"
+  },
+  "fp_add_exp": {
+   "v": 1.62,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "fp adder area scales as (total bits/16)^1.62: 4184/1360 = 3.08 at 2x width"
+  },
+  "fp_add_e_exp": {
+   "v": 1.17,
+   "q": "der",
+   "c": "M",
+   "src": "horowitz_isscc2014",
+   "note": "fp adder energy scales as (total bits/16)^1.17: 0.9/0.4 = 2.25 at 2x width"
+  },
+  "alpha_dp": {
+   "v": 0.5,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "datapath activity factor"
+  },
+  "a_ge45_um2": {
+   "v": 0.798,
+   "q": "pub",
+   "c": "H",
+   "src": "nangate45",
+   "note": "NAND2_X1 area at 45 nm"
+  },
+  "s_45_n7": {
+   "v": 0.14,
+   "q": "asm",
+   "c": "M",
+   "src": "stillmaker_2017",
+   "note": "energy 45 nm -> N7 (C V^2: 0.69 from voltage, ~0.2 from capacitance)"
+  },
+  "mm_area": {
+   "v": 0.08,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    0.0,
+    0.3
+   ],
+   "note": "multi-mode area overhead per extra mode"
+  },
+  "mm_energy": {
+   "v": 0.1,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    0.0,
+    0.3
+   ],
+   "note": "multi-mode energy overhead"
+  },
+  "idle_gated": {
+   "v": 0.1,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "padding MAC energy / MAC energy with clock gating (03 \u00a72.6)"
+  },
+  "idle_ungated": {
+   "v": 0.35,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "padding MAC energy without declared clock gating"
+  },
+  "sfu_area": {
+   "v": 3.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "SFU lane area / fp32 FMA lane"
+  },
+  "sfu_energy": {
+   "v": 4.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "SFU op energy / fp32 FMA op"
+  },
+  "cast_energy": {
+   "v": 0.25,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "conversion op / fp32 FMA op"
+  },
+  "mx_block": {
+   "v": 32.0,
+   "q": "pub",
+   "c": "H",
+   "src": "ocp_mx_v1",
+   "note": "elements per shared E8M0 scale"
+  },
+  "max_dot_len": {
+   "v": 8.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "hardware dot-product length cap for mma geometries (A100 tensor core ~4-8, 04 \u00a74.2)"
+  },
+  "scalar_core_ge": {
+   "v": 150000.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "in-order scalar sequencer core incl. issue logic, excl. memories"
+  },
+  "dma_ge": {
+   "v": 60000.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "DMA engine descriptor/address logic"
+  },
+  "sequencer_ge": {
+   "v": 80000.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "sequencer block"
+  },
+  "simt_ctrl_ge": {
+   "v": 1500000.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    200000.0,
+    6000000.0
+   ],
+   "fit": true,
+   "note": "SIMT core control per sub-core (scheduler, operand collectors, LSU, TEX, L0 I-cache) in gate equivalents; platform/family fit (04 \u00a75 ctrl_ge)"
+  }
+ },
+ "formats": {
+  "fp32": {
+   "m": {
+    "v": 24.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   },
+   "e": {
+    "v": 8.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   }
+  },
+  "tf32": {
+   "m": {
+    "v": 11.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   },
+   "e": {
+    "v": 8.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   }
+  },
+  "fp16": {
+   "m": {
+    "v": 11.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   },
+   "e": {
+    "v": 5.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   }
+  },
+  "bf16": {
+   "m": {
+    "v": 8.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   },
+   "e": {
+    "v": 8.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ieee754"
+   }
+  },
+  "fp8_e4m3": {
+   "m": {
+    "v": 4.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 4.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  },
+  "fp8_e5m2": {
+   "m": {
+    "v": 3.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 5.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  },
+  "fp6_e2m3": {
+   "m": {
+    "v": 4.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 2.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  },
+  "fp6_e3m2": {
+   "m": {
+    "v": 3.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 3.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  },
+  "fp4_e2m1": {
+   "m": {
+    "v": 2.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 2.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  },
+  "fp64": {
+   "m": {
+    "v": 53.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   },
+   "e": {
+    "v": 11.0,
+    "q": "pub",
+    "c": "H",
+    "src": "ocp_mx_v1"
+   }
+  }
+ },
+ "format_note": "significand widths incl. hidden bit (IEEE 754, NVIDIA A100 whitepaper for tf32, OCP FP8 and MX v1.0); integers use M = bits, E = 0"
+}

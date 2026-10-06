@@ -1,0 +1,22 @@
+[package]
+name = "kiln-viz-render"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-ir = { path = "../kiln-ir" }
+kiln-trace = { path = "../kiln-trace" }
+serde.workspace = true
+serde_json.workspace = true
+tiny-skia.workspace = true
+ab_glyph.workspace = true
+epaint_default_fonts.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

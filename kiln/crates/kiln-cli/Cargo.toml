@@ -1,0 +1,33 @@
+[package]
+name = "kiln-cli"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "kiln"
+path = "src/main.rs"
+
+[dependencies]
+kiln-calib = { path = "../kiln-calib" }
+kiln-ir = { path = "../kiln-ir" }
+kiln-sim = { path = "../kiln-sim" }
+kiln-py = { path = "../kiln-py" }
+kiln-trace = { path = "../kiln-trace" }
+kiln-wl = { path = "../kiln-wl" }
+kiln-viz-render = { path = "../kiln-viz-render" }
+kiln-viz = { path = "../kiln-viz", optional = true }
+serde.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+
+[features]
+# The native viewer (eframe/wgpu) is opt-in so default builds and `cargo test --workspace` stay lean.
+gui = ["dep:kiln-viz", "kiln-viz/gui"]
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

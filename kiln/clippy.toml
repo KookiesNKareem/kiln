@@ -1,0 +1,6 @@
+# Diagnostic (01 §18.1 incl. related paths and span) is the error type everywhere; 136 bytes on cold paths.
+large-error-threshold = 160
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "iteration order breaks determinism; use IndexMap or BTreeMap" },
+    { path = "std::collections::HashSet", reason = "iteration order breaks determinism; use IndexSet or BTreeSet" },
+]

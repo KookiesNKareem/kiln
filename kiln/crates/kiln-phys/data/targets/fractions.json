@@ -1,0 +1,34 @@
+{
+ "schema": "kiln.phys.targets/1",
+ "kind": "fractions",
+ "targets": [
+  {
+   "chip": "tpu_v4i",
+   "fractions": {
+    "cmem": {
+     "v": 0.28,
+     "q": "pub",
+     "c": "H",
+     "src": "tpuv4i_isca2021",
+     "note": "Fig. 6 caption 'CMEM is 28% of the area'; text 'the resulting CMEM is 28% of the die area'"
+    },
+    "mxu": {
+     "v": 0.11,
+     "q": "pub",
+     "c": "H",
+     "src": "tpuv4i_isca2021",
+     "note": "text 'the MXUs occupy only 11% of the die (Figure 6)'; Table 7 'MXUs % Die Area' 11% (v4i)"
+    }
+   },
+   "tolerance_pts": {
+    "v": 4.0,
+    "q": "asm",
+    "c": "M",
+    "src": "kiln_assumed",
+    "note": "04 \u00a712.3 fraction tolerance"
+   },
+   "use": "fit",
+   "note": "block area over die area, whitespace excluded (Fig. 6: 'OCI blocks are stretched to fill space in the abutted floorplan because the die dimensions and overall layout are dominated by the TensorCore, CMEM, and SerDes locations')"
+  }
+ ]
+}

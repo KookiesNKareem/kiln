@@ -1,0 +1,105 @@
+
+{
+  "kiln_workload": "0.1",
+  "id": "llama3_8b",
+  "model": {
+    "symbols": {
+      "seqs": {"kind": "segments"},
+      "T": {"kind": "size"}, "N": {"kind": "size"},
+      "L": {"kind": "size", "default": 32},
+      "kv_cap": {"kind": "size"}, "slots": {"kind": "size"}
+    },
+    "entry": {"forward": "fwd"},
+    "tensors": {
+      "w_embed":   {"shape": [128256, 4096], "dtype": "bf16", "class": "weight"},
+      "w_attn_norm": {"shape": [4096], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_qkv":     {"shape": [6144, 4096], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_o":       {"shape": [4096, 4096], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_mlp_norm": {"shape": [4096], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_gate_up": {"shape": [28672, 4096], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_down":    {"shape": [4096, 14336], "dtype": "bf16", "class": "weight", "stack": "L"},
+      "w_final_norm": {"shape": [4096], "dtype": "bf16", "class": "weight"},
+      "w_lm":      {"shape": [128256, 4096], "dtype": "bf16", "class": "weight"},
+      "rope_tab":  {"shape": ["kv_cap", 64, 2], "dtype": "fp32", "class": "constant"},
+      "kv_k": {"shape": ["slots", "kv_cap", 8, 128], "dtype": "bf16", "class": "kv_cache", "stack": "L"},
+      "kv_v": {"shape": ["slots", "kv_cap", 8, 128], "dtype": "bf16", "class": "kv_cache", "stack": "L"}
+    },
+    "graphs": {
+      "fwd": {
+        "params": ["ids", "pos"], "results": ["next"],
+        "tensors": {
+          "ids": {"shape": ["T"], "dtype": "int32", "class": "input"},
+          "pos": {"shape": ["T"], "dtype": "int32", "class": "input"},
+          "h0": {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "hl": {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "hf": {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "hs": {"shape": ["N", 4096], "dtype": "bf16", "class": "activation"},
+          "logits": {"shape": ["N", 128256], "dtype": "fp32", "class": "activation"},
+          "next": {"shape": ["N"], "dtype": "int32", "class": "output"}
+        },
+        "nodes": [
+          {"id": "embed", "op": "embedding", "inputs": ["ids", "w_embed"], "outputs": ["h0"], "role": "embed"},
+          {"id": "layers", "op": "repeat", "inputs": ["h0", "pos"], "outputs": ["hl"],
+           "body": "block", "count": "L",
+           "carry": [{"init": "h0", "param": "x", "yield": "y", "out": "hl"}],
+           "broadcast": [["pos", "pos"], ["rope_tab", "rope_tab"]],
+           "stacked": [{"outer": "w_attn_norm", "param": "wn1"}, {"outer": "w_qkv", "param": "wqkv"},
+                       {"outer": "w_o", "param": "wo"}, {"outer": "w_mlp_norm", "param": "wn2"},
+                       {"outer": "w_gate_up", "param": "wgu"}, {"outer": "w_down", "param": "wd"},
+                       {"outer": "kv_k", "param": "ck"}, {"outer": "kv_v", "param": "cv"}]},
+          {"id": "final_norm", "op": "rms_norm", "eps": 1e-5, "inputs": ["hl", "w_final_norm"], "outputs": ["hf"], "role": "final_norm"},
+          {"id": "select", "op": "logits_select", "which": "last", "seqs": "seqs", "inputs": ["hf"], "outputs": ["hs"], "role": "logits_select"},
+          {"id": "lm_head", "op": "einsum", "eq": "nd,vd->nv", "accum": "fp32", "inputs": ["hs", "w_lm"], "outputs": ["logits"], "role": "lm_head"},
+          {"id": "sample", "op": "sample", "strategy": "greedy", "inputs": ["logits"], "outputs": ["next"], "role": "sample"}
+        ]
+      },
+      "block": {
+        "params": ["x", "pos", "rope_tab", "wn1", "wqkv", "wo", "wn2", "wgu", "wd", "ck", "cv"],
+        "results": ["y", "ck1", "cv1"],
+        "tensors": {
+          "xn":  {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "qkv": {"shape": ["T", 6144], "dtype": "bf16", "class": "activation"},
+          "q":   {"shape": ["T", 32, 128], "dtype": "bf16", "class": "activation"},
+          "k":   {"shape": ["T", 8, 128], "dtype": "bf16", "class": "activation"},
+          "v":   {"shape": ["T", 8, 128], "dtype": "bf16", "class": "activation"},
+          "qr":  {"shape": ["T", 32, 128], "dtype": "bf16", "class": "activation"},
+          "kr":  {"shape": ["T", 8, 128], "dtype": "bf16", "class": "activation"},
+          "ck1": {"shape": ["slots", "kv_cap", 8, 128], "dtype": "bf16", "class": "kv_cache", "alias_of": "ck"},
+          "cv1": {"shape": ["slots", "kv_cap", 8, 128], "dtype": "bf16", "class": "kv_cache", "alias_of": "cv"},
+          "o":   {"shape": ["T", 32, 128], "dtype": "bf16", "class": "activation"},
+          "a":   {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "h":   {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "hn":  {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "gu":  {"shape": ["T", 28672], "dtype": "bf16", "class": "activation"},
+          "m":   {"shape": ["T", 14336], "dtype": "bf16", "class": "activation"},
+          "dn":  {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"},
+          "y":   {"shape": ["T", 4096], "dtype": "bf16", "class": "activation"}
+        },
+        "nodes": [
+          {"id": "attn_norm", "op": "rms_norm", "eps": 1e-5, "inputs": ["x", "wn1"], "outputs": ["xn"], "role": "attn.norm"},
+          {"id": "qkv", "op": "einsum", "eq": "td,nd->tn", "inputs": ["xn", "wqkv"], "outputs": ["qkv"], "role": "attn.qkv"},
+          {"id": "split", "op": "layout", "kind": "split", "axis": 1, "sizes": [4096, 1024, 1024],
+           "reshape": [["T", 32, 128], ["T", 8, 128], ["T", 8, 128]], "inputs": ["qkv"], "outputs": ["q", "k", "v"]},
+          {"id": "rope", "op": "rope", "theta": 500000.0, "rotary_dim": 128, "style": "half",
+           "scaling": {"llama3": {"factor": 8, "low_freq_factor": 1, "high_freq_factor": 4, "original_max_pos": 8192}},
+           "inputs": ["q", "k", "pos", "rope_tab"], "outputs": ["qr", "kr"], "role": "attn.rope"},
+          {"id": "kv_append", "op": "kv_append", "seqs": "seqs", "inputs": ["ck", "cv", "kr", "v"], "outputs": ["ck1", "cv1"], "role": "attn.kv_append"},
+          {"id": "attn", "op": "attention", "n_heads": 32, "n_kv_heads": 8, "head_dim": 128, "mask": "causal",
+           "seqs": "seqs", "impl_hint": "auto", "inputs": ["qr", "ck1", "cv1"], "outputs": ["o"], "role": "attn.core"},
+          {"id": "o_proj", "op": "einsum", "eq": "thd,nhd->tn", "inputs": ["o", "wo"], "outputs": ["a"], "role": "attn.o"},
+          {"id": "res1", "op": "map", "fn": "add", "inputs": ["x", "a"], "outputs": ["h"], "role": "residual"},
+          {"id": "mlp_norm", "op": "rms_norm", "eps": 1e-5, "inputs": ["h", "wn2"], "outputs": ["hn"], "role": "mlp.norm"},
+          {"id": "gate_up", "op": "einsum", "eq": "td,nd->tn", "inputs": ["hn", "wgu"], "outputs": ["gu"], "role": "mlp.gate_up"},
+          {"id": "act", "op": "gated_act", "fn": "silu", "layout": "concat_halves", "inputs": ["gu"], "outputs": ["m"], "role": "mlp.act"},
+          {"id": "down", "op": "einsum", "eq": "tf,nf->tn", "inputs": ["m", "wd"], "outputs": ["dn"], "role": "mlp.down"},
+          {"id": "res2", "op": "map", "fn": "add", "inputs": ["h", "dn"], "outputs": ["y"], "role": "residual"}
+        ]
+      }
+    }
+  },
+  "scenarios": {
+    "decode_b8_kv2048": {"mode": {"snapshot": {"kind": "decode",
+                          "seqs": {"segments": [{"count": 8, "q_len": 1, "kv_len": 2048}]}}},
+                         "bindings": {"kv_cap": 2048}}
+  }
+}

@@ -1,0 +1,143 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&Inputs { runs: vec![&multi], ..Default::default() }, &kind,\n&sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Floorplan  tpu_v5e_2x2</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">UNPLACED (hierarchy layout, nominal sizes, not physical) | color: kind | all phases | tier A</text>
+<rect x="133" y="60" width="484" height="484" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="142.68" y="89.04" width="232.32" height="222.64" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="147.13" y="102.4" width="127.19" height="49.88" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="148.13" y="105.39" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="116.86" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="128.33" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="139.81" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="105.39" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="114.57" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="123.75" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="132.92" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="142.1" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="163.93" y="105.39" width="109.4" height="45.89" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="164.85" y="108.14" width="11.95" height="8.44" fill="#332288" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="164.85" y="116.59" width="11.95" height="33.77" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="176.8" y="108.14" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="176.8" y="129.25" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="195.92" y="108.14" width="26.29" height="15.35" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="195.92" y="123.49" width="26.29" height="26.86" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="222.22" y="108.14" width="35.85" height="2.81" fill="#44aa99" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="222.22" y="110.96" width="35.85" height="39.4" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="258.07" y="108.14" width="14.34" height="14.07" fill="#117733" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="258.07" y="122.22" width="14.34" height="28.14" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="147.13" y="152.27" width="127.19" height="154.95" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="274.33" y="102.4" width="96.22" height="204.83" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="142.68" y="311.68" width="232.32" height="222.64" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="147.13" y="325.04" width="127.19" height="49.88" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="148.13" y="328.03" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="339.5" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="350.97" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="148.13" y="362.45" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="328.03" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="337.21" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="346.39" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="355.56" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="157.85" y="364.74" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="163.93" y="328.03" width="109.4" height="45.89" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="164.85" y="330.78" width="11.95" height="8.44" fill="#332288" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="164.85" y="339.23" width="11.95" height="33.77" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="176.8" y="330.78" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="176.8" y="351.89" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="195.92" y="330.78" width="26.29" height="15.35" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="195.92" y="346.13" width="26.29" height="26.86" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="222.22" y="330.78" width="35.85" height="2.81" fill="#44aa99" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="222.22" y="333.6" width="35.85" height="39.4" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="258.07" y="330.78" width="14.34" height="14.07" fill="#117733" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="258.07" y="344.86" width="14.34" height="28.14" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="147.13" y="374.91" width="127.19" height="154.95" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="274.33" y="325.04" width="96.22" height="204.83" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="375" y="89.04" width="232.32" height="222.64" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="379.45" y="102.4" width="127.19" height="49.88" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="380.45" y="105.39" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="116.86" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="128.33" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="139.81" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="105.39" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="114.57" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="123.75" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="132.92" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="142.1" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="396.25" y="105.39" width="109.4" height="45.89" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="397.17" y="108.14" width="11.95" height="8.44" fill="#332288" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="397.17" y="116.59" width="11.95" height="33.77" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="409.12" y="108.14" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="409.12" y="129.25" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="428.24" y="108.14" width="26.29" height="15.35" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="428.24" y="123.49" width="26.29" height="26.86" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="454.54" y="108.14" width="35.85" height="2.81" fill="#44aa99" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="454.54" y="110.96" width="35.85" height="39.4" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="490.39" y="108.14" width="14.34" height="14.07" fill="#117733" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="490.39" y="122.22" width="14.34" height="28.14" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="379.45" y="152.27" width="127.19" height="154.95" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="506.65" y="102.4" width="96.22" height="204.83" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="375" y="311.68" width="232.32" height="222.64" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="379.45" y="325.04" width="127.19" height="49.88" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="380.45" y="328.03" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="339.5" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="350.97" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="380.45" y="362.45" width="9.72" height="11.47" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="328.03" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="337.21" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="346.39" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="355.56" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="390.17" y="364.74" width="6.08" height="9.18" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="396.25" y="328.03" width="109.4" height="45.89" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="397.17" y="330.78" width="11.95" height="8.44" fill="#332288" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="397.17" y="339.23" width="11.95" height="33.77" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="409.12" y="330.78" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="409.12" y="351.89" width="19.12" height="21.11" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="428.24" y="330.78" width="26.29" height="15.35" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="428.24" y="346.13" width="26.29" height="26.86" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="454.54" y="330.78" width="35.85" height="2.81" fill="#44aa99" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="454.54" y="333.6" width="35.85" height="39.4" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="490.39" y="330.78" width="14.34" height="14.07" fill="#117733" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="490.39" y="344.86" width="14.34" height="28.14" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="379.45" y="374.91" width="127.19" height="154.95" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="506.65" y="325.04" width="96.22" height="204.83" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<text x="136" y="69.31" font-size="10" text-anchor="start" fill="#6e727c">tray</text>
+<text x="145.68" y="98.35" font-size="10" text-anchor="start" fill="#6e727c">chip0_0</text>
+<text x="210.73" y="233.73" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm0</text>
+<text x="322.44" y="208.79" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm1</text>
+<text x="145.68" y="320.99" font-size="10" text-anchor="start" fill="#6e727c">chip0_1</text>
+<text x="210.73" y="456.37" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm0</text>
+<text x="322.44" y="431.43" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm1</text>
+<text x="378" y="98.35" font-size="10" text-anchor="start" fill="#6e727c">chip1_0</text>
+<text x="443.05" y="233.73" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm0</text>
+<text x="554.76" y="208.79" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm1</text>
+<text x="378" y="320.99" font-size="10" text-anchor="start" fill="#6e727c">chip1_1</text>
+<text x="443.05" y="456.37" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm0</text>
+<text x="554.76" y="431.43" font-size="12" text-anchor="middle" fill="#f5f5f8">hbm1</text>
+<text x="750" y="79.15" font-size="11" text-anchor="start" fill="#1c1e24">unit kind</text>
+<rect x="750" y="90" width="12" height="12" fill="#0072b2" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="99.65" font-size="11" text-anchor="start" fill="#1c1e24">block</text>
+<rect x="750" y="108" width="12" height="12" fill="#e69f00" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="117.65" font-size="11" text-anchor="start" fill="#1c1e24">channel</text>
+<rect x="750" y="126" width="12" height="12" fill="#009e73" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="135.65" font-size="11" text-anchor="start" fill="#1c1e24">mem_stack</text>
+<rect x="750" y="144" width="12" height="12" fill="#d55e00" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="153.65" font-size="11" text-anchor="start" fill="#1c1e24">memory</text>
+<rect x="750" y="162" width="12" height="12" fill="#cc79a7" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="171.65" font-size="11" text-anchor="start" fill="#1c1e24">network</text>
+<rect x="750" y="180" width="12" height="12" fill="#56b4e9" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="189.65" font-size="11" text-anchor="start" fill="#1c1e24">port</text>
+<rect x="750" y="198" width="12" height="12" fill="#f0e442" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="207.65" font-size="11" text-anchor="start" fill="#1c1e24">router</text>
+<rect x="750" y="216" width="12" height="12" fill="#882255" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="225.65" font-size="11" text-anchor="start" fill="#1c1e24">unit_matrix</text>
+<rect x="750" y="234" width="12" height="12" fill="#44aa99" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="243.65" font-size="11" text-anchor="start" fill="#1c1e24">unit_scalar</text>
+<rect x="750" y="252" width="12" height="12" fill="#332288" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="261.65" font-size="11" text-anchor="start" fill="#1c1e24">unit_special</text>
+<rect x="750" y="270" width="12" height="12" fill="#117733" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="768" y="279.65" font-size="11" text-anchor="start" fill="#1c1e24">unit_vector</text>
+<text x="884" y="550.31" font-size="10" text-anchor="end" fill="#6e727c">97 blocks drawn of 97 placed</text>
+</svg>

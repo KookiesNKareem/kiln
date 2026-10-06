@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.phys.calib/1",
+  "id": "phys-a100_40gb-2026-10-05",
+  "scope": "platform",
+  "platform": "a100_40gb",
+  "params": [
+    {
+      "name": "p_board_w",
+      "value": 9.303263309966349,
+      "sigma": 0.6804800656622757,
+      "prior": 10.0,
+      "bounds": [
+        2.0,
+        40.0
+      ],
+      "at_bound": false
+    }
+  ],
+  "note": null,
+  "targets_hash": "phys1-45c36324d9a0ab197578b05f16f32e60",
+  "report": {
+    "date": "2026-10-05",
+    "see": "phys-generic-2026-10-05"
+  }
+}

@@ -1,0 +1,352 @@
+{
+  "schema": "kiln.hw/1.0",
+  "name": "tpuv6e",
+  "meta": {
+    "description": "Google TPU v6e Trillium: 1 TensorCore x (4 MXU 256x256 + VPU + 128 MiB VMEM), 32 GiB HBM.",
+    "authors": [],
+    "citations": {
+      "harness": "harness/designs (tpuv6e): kiln.hw/0 design, migrated by v0_to_v1"
+    },
+    "claims": [],
+    "notes": {}
+  },
+  "tech": "tsmc_n5",
+  "exec_model": "host_launched",
+  "clocks": [
+    {
+      "id": "core",
+      "freq": 1750000000,
+      "vf": []
+    }
+  ],
+  "power": [],
+  "system": {
+    "hosts": [],
+    "boards": [
+      {
+        "id": "board",
+        "vary": [],
+        "disabled": [],
+        "harvest_power": "gated",
+        "packages": [
+          {
+            "id": "chip",
+            "vary": [],
+            "disabled": [],
+            "harvest_power": "gated",
+            "dies": [
+              {
+                "id": "die",
+                "vary": [],
+                "disabled": [],
+                "harvest_power": "gated",
+                "role": "compute",
+                "clusters": [],
+                "units": [
+                  {
+                    "id": "mxu",
+                    "count": 4,
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "geometry": {
+                      "systolic": {
+                        "rows": 256,
+                        "cols": 256
+                      }
+                    },
+                    "dataflow": "weight_stationary",
+                    "sparsity": [],
+                    "accumulate_in": "local",
+                    "kind": "matrix",
+                    "precisions": [
+                      {
+                        "a": "bf16",
+                        "b": "bf16",
+                        "acc": "fp32",
+                        "rate": 1
+                      }
+                    ],
+                    "feeds": {
+                      "any": {
+                        "from": "vmem",
+                        "width_bits": 208487,
+                        "via": "tc_bus"
+                      }
+                    },
+                    "local": [
+                      {
+                        "id": "buf",
+                        "holds": "any",
+                        "capacity": 16777216,
+                        "double_buffered": false
+                      }
+                    ],
+                    "pipeline": {
+                      "issue_overhead": 0
+                    },
+                    "placement": {
+                      "mode": "auto"
+                    },
+                    "power": {
+                      "energy_per_op": {}
+                    }
+                  },
+                  {
+                    "id": "vpu",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "lanes": 128,
+                    "sublanes": 8,
+                    "class_rates": {},
+                    "reduce_tree": false,
+                    "kind": "vector",
+                    "precisions": [
+                      {
+                        "dtype": "fp32",
+                        "rate": 1
+                      }
+                    ],
+                    "feeds": {
+                      "any": {
+                        "from": "vpu_rf"
+                      }
+                    },
+                    "local": [
+                      {
+                        "id": "buf",
+                        "holds": "any",
+                        "capacity": 524288,
+                        "double_buffered": false
+                      }
+                    ],
+                    "pipeline": {
+                      "issue_overhead": 0
+                    },
+                    "placement": {
+                      "mode": "auto"
+                    },
+                    "power": {
+                      "energy_per_op": {}
+                    }
+                  }
+                ],
+                "memories": [
+                  {
+                    "id": "vmem",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "kind": "scratchpad",
+                    "capacity": 67108864,
+                    "word_bits": 32,
+                    "banks": 1,
+                    "ports": [
+                      {
+                        "dir": "rw",
+                        "count": 1,
+                        "width_bits": 208487,
+                        "per_bank": false
+                      }
+                    ],
+                    "operands": {
+                      "policy": "unified"
+                    },
+                    "implementation": "auto",
+                    "power_gated": false,
+                    "shared_rf": false,
+                    "placement": {
+                      "mode": "auto"
+                    },
+                    "overrides": {
+                      "bandwidth": 45606531250000,
+                      "source": "harness"
+                    }
+                  },
+                  {
+                    "id": "vpu_rf",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "kind": "register_file",
+                    "capacity": 262144,
+                    "word_bits": 32,
+                    "banks": 1,
+                    "ports": [
+                      {
+                        "dir": "rw",
+                        "count": 1,
+                        "width_bits": 208487,
+                        "per_bank": false
+                      }
+                    ],
+                    "operands": {
+                      "policy": "unified"
+                    },
+                    "implementation": "auto",
+                    "power_gated": false,
+                    "shared_rf": false,
+                    "placement": {
+                      "mode": "auto"
+                    },
+                    "overrides": {
+                      "bandwidth": 45606531250000,
+                      "source": "harness"
+                    }
+                  }
+                ],
+                "networks": [
+                  {
+                    "id": "tc_bus",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "topology": {
+                      "type": "bus",
+                      "arbitration": "round_robin"
+                    },
+                    "endpoints": [
+                      {
+                        "select": "mxu*",
+                        "at": "auto"
+                      },
+                      {
+                        "select": "vpu_rf*",
+                        "at": "auto"
+                      },
+                      {
+                        "select": "vmem",
+                        "at": "auto"
+                      }
+                    ],
+                    "router": {
+                      "power": {
+                        "energy_per_op": {}
+                      }
+                    },
+                    "link": {
+                      "width_bits": 208487,
+                      "full_duplex": true,
+                      "count": 1,
+                      "phys": {
+                        "type": "on_die",
+                        "metal": "auto",
+                        "swing": "full"
+                      },
+                      "bandwidth": 45606531250000,
+                      "source": "harness"
+                    },
+                    "routing": "default",
+                    "features": {
+                      "multicast": false,
+                      "broadcast": false,
+                      "in_network_reduce": [],
+                      "ordered": false
+                    }
+                  },
+                  {
+                    "id": "offchip",
+                    "vary": [],
+                    "disabled": [],
+                    "harvest_power": "gated",
+                    "topology": {
+                      "type": "bus",
+                      "arbitration": "round_robin"
+                    },
+                    "endpoints": [
+                      {
+                        "select": "vmem",
+                        "at": "auto"
+                      }
+                    ],
+                    "router": {
+                      "power": {
+                        "energy_per_op": {}
+                      }
+                    },
+                    "link": {
+                      "width_bits": 7498,
+                      "full_duplex": true,
+                      "count": 1,
+                      "phys": {
+                        "type": "on_die",
+                        "metal": "auto",
+                        "swing": "full"
+                      }
+                    },
+                    "routing": "default",
+                    "features": {
+                      "multicast": false,
+                      "broadcast": false,
+                      "in_network_reduce": [],
+                      "ordered": false
+                    }
+                  }
+                ],
+                "blocks": [],
+                "ports": [],
+                "clocks": [],
+                "default_clock": "core",
+                "floorplan": {
+                  "outline": {
+                    "type": "auto"
+                  },
+                  "shoreline": [],
+                  "keepouts": []
+                },
+                "placement": {
+                  "mode": "auto"
+                },
+                "stitched": false,
+                "power": {
+                  "energy_per_op": {}
+                }
+              }
+            ],
+            "mem_stacks": [
+              {
+                "id": "hbm",
+                "count": 2,
+                "vary": [],
+                "disabled": [],
+                "harvest_power": "gated",
+                "kind": "hbm3",
+                "capacity": 17179869184,
+                "io_width_bits": 1024,
+                "pin_rate_bits_per_s": 6406250000,
+                "attach": {
+                  "network": "die.offchip"
+                },
+                "site": {
+                  "mode": "auto"
+                },
+                "overrides": {
+                  "bandwidth": 820000000000,
+                  "source": "harness"
+                }
+              }
+            ],
+            "links": [],
+            "networks": [],
+            "ports": [],
+            "substrate": {
+              "kind": "organic",
+              "outline": {
+                "type": "auto"
+              },
+              "sites": []
+            },
+            "layers": [],
+            "address_map": []
+          }
+        ],
+        "switches": [],
+        "networks": [],
+        "host_links": []
+      }
+    ],
+    "switches": [],
+    "networks": []
+  }
+}

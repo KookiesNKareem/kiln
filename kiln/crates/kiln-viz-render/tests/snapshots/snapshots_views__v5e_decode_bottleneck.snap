@@ -1,0 +1,85 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&one, &spec(v), &sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Bottleneck  tpu_v5e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">all phases | makespan 21 ms | tier A (Tier A: per-group attribution, no contention)</text>
+<text x="16" y="80.81" font-size="13" text-anchor="start" fill="#1c1e24">Time by limiter (sums to the makespan)</text>
+<rect x="16" y="92" width="485.74" height="26" fill="#e69f00" stroke="#ffffff" stroke-width="0.5"/>
+<text x="20" y="108.65" font-size="11" text-anchor="start" fill="#141418">off-chip memory bw 99%</text>
+<rect x="501.74" y="92" width="0.01" height="26" fill="#999999" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="501.75" y="92" width="4.25" height="26" fill="#cc79a7" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="506" y="92" width="0" height="26" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<text x="16" y="142.81" font-size="13" text-anchor="start" fill="#1c1e24">Scheduled time by op family (repeat window; group time attributed by roofline bound), split by binding term</text>
+<text x="178" y="165.65" font-size="11" text-anchor="end" fill="#1c1e24">lm_head</text>
+<rect x="186" y="154" width="260" height="16" fill="#e69f00"/>
+<text x="452" y="165.31" font-size="10" text-anchor="start" fill="#6e727c">1.41 ms (43%)</text>
+<text x="178" y="185.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.gate_up</text>
+<rect x="186" y="174" width="175.64" height="16" fill="#e69f00"/>
+<text x="367.64" y="185.31" font-size="10" text-anchor="start" fill="#6e727c">954 us (29%)</text>
+<text x="178" y="205.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.down</text>
+<rect x="186" y="194" width="88.65" height="16" fill="#e69f00"/>
+<text x="280.65" y="205.31" font-size="10" text-anchor="start" fill="#6e727c">482 us (15%)</text>
+<text x="178" y="225.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.qkv</text>
+<rect x="186" y="214" width="38.93" height="16" fill="#e69f00"/>
+<text x="230.93" y="225.31" font-size="10" text-anchor="start" fill="#6e727c">211 us (7%)</text>
+<text x="178" y="245.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.o_proj</text>
+<rect x="186" y="234" width="26.5" height="16" fill="#e69f00"/>
+<text x="218.5" y="245.31" font-size="10" text-anchor="start" fill="#6e727c">144 us (4%)</text>
+<text x="178" y="265.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.attn</text>
+<rect x="186" y="254" width="7.87" height="16" fill="#e69f00"/>
+<text x="199.87" y="265.31" font-size="10" text-anchor="start" fill="#6e727c">42.8 us (1%)</text>
+<text x="178" y="285.65" font-size="11" text-anchor="end" fill="#1c1e24">embed</text>
+<rect x="186" y="274" width="0.27" height="16" fill="#999999"/>
+<text x="192.27" y="285.31" font-size="10" text-anchor="start" fill="#6e727c">1.46 us (0%)</text>
+<text x="178" y="305.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.act</text>
+<rect x="186" y="294" width="0.02" height="16" fill="#e69f00"/>
+<text x="192.02" y="305.31" font-size="10" text-anchor="start" fill="#6e727c">116 ns (0%)</text>
+<text x="178" y="325.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.mlp_norm</text>
+<rect x="186" y="314" width="0.01" height="16" fill="#e69f00"/>
+<text x="192.01" y="325.31" font-size="10" text-anchor="start" fill="#6e727c">70.3 ns (0%)</text>
+<text x="178" y="345.65" font-size="11" text-anchor="end" fill="#1c1e24">layers.attn_norm</text>
+<rect x="186" y="334" width="0.01" height="16" fill="#e69f00"/>
+<text x="192.01" y="345.31" font-size="10" text-anchor="start" fill="#6e727c">68.8 ns (0%)</text>
+<text x="16" y="380.81" font-size="13" text-anchor="start" fill="#1c1e24">Energy (1.99 J)</text>
+<rect x="16" y="392" width="0.75" height="22" fill="#0072b2" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="16.75" y="392" width="3.43" height="22" fill="#e69f00" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="20.18" y="392" width="41.29" height="22" fill="#009e73" stroke="#ffffff" stroke-width="0.5"/>
+<text x="23.18" y="406.31" font-size="10" text-anchor="start" fill="#f5f5f8">mem l…</text>
+<rect x="61.48" y="392" width="135.71" height="22" fill="#d55e00" stroke="#ffffff" stroke-width="0.5"/>
+<text x="64.48" y="406.31" font-size="10" text-anchor="start" fill="#f5f5f8">mem l3 28%</text>
+<rect x="197.18" y="392" width="23.45" height="22" fill="#cc79a7" stroke="#ffffff" stroke-width="0.5"/>
+<text x="200.18" y="406.31" font-size="10" text-anchor="start" fill="#141418">lin…</text>
+<rect x="220.64" y="392" width="14.93" height="22" fill="#56b4e9" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="235.57" y="392" width="107.28" height="22" fill="#f0e442" stroke="#ffffff" stroke-width="0.5"/>
+<text x="238.57" y="406.31" font-size="10" text-anchor="start" fill="#141418">link nochop 22%</text>
+<rect x="342.85" y="392" width="163.07" height="22" fill="#882255" stroke="#ffffff" stroke-width="0.5"/>
+<text x="345.85" y="406.31" font-size="10" text-anchor="start" fill="#f5f5f8">static 33%</text>
+<rect x="505.93" y="392" width="0.07" height="22" fill="#44aa99" stroke="#ffffff" stroke-width="0.5"/>
+<text x="538" y="80.81" font-size="13" text-anchor="start" fill="#1c1e24">Top limiters: time recoverable if lifted (upper bound)</text>
+<rect x="538" y="96" width="10" height="10" fill="#e69f00"/>
+<text x="554" y="104.65" font-size="11" text-anchor="start" fill="#1c1e24">1. off-chip memory bw on board.chip.hbm0</text>
+<text x="884" y="104.65" font-size="11" text-anchor="end" fill="#6e727c">-322 us (10% of window), 78 ops</text>
+<rect x="538" y="116" width="10" height="10" fill="#999999"/>
+<text x="554" y="124.65" font-size="11" text-anchor="start" fill="#1c1e24">2. dependency chain</text>
+<text x="884" y="124.65" font-size="11" text-anchor="end" fill="#6e727c">-428 ns (0% of window), 1 ops</text>
+<text x="538" y="154.81" font-size="13" text-anchor="start" fill="#1c1e24">Busiest resources (utilization, shadow price)</text>
+<text x="538" y="176.65" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.hbm0</text>
+<text x="884" y="176.65" font-size="11" text-anchor="end" fill="#6e727c">99%  sp 0.98</text>
+<text x="538" y="194.65" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.hbm1</text>
+<text x="884" y="194.65" font-size="11" text-anchor="end" fill="#6e727c">99%  sp 0.98</text>
+<text x="538" y="212.65" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.die.hbm0_phy-board.chip.die.hbm0_mc</text>
+<text x="884" y="212.65" font-size="11" text-anchor="end" fill="#6e727c">89%  sp 0.00</text>
+<text x="538" y="230.65" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.die.hbm1_phy-board.chip.die.hbm1_mc</text>
+<text x="884" y="230.65" font-size="11" text-anchor="end" fill="#6e727c">89%  sp 0.00</text>
+<text x="538" y="248.65" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.hbm0-board.chip.die.hbm0_phy</text>
+<text x="884" y="248.65" font-size="11" text-anchor="end" fill="#6e727c">89%  sp 0.00</text>
+<text x="16" y="436.81" font-size="13" text-anchor="start" fill="#1c1e24">Explanation (kiln explain_run, as given to the evolution LLM)</text>
+<text x="16" y="457.15" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1 (Step, tier A, Central corner): 20.999 ms; floors A0 18.650 ms, A2 18.833 ms (90% of time). Time by limiter: off-chip memory bandwidth 99%, launch/sync overheads 1%, dependency</text>
+<text x="16" y="472.15" font-size="11" text-anchor="start" fill="#1c1e24">chains 0%, contention 0%. Busiest resources: board.chip.hbm0 99% (binding), board.chip.hbm1 99% (binding), board.chip.die.hbm0_phy-board.chip.die.hbm0_mc 89%,</text>
+<text x="16" y="487.15" font-size="11" text-anchor="start" fill="#1c1e24">board.chip.die.hbm1_phy-board.chip.die.hbm1_mc 89%, board.chip.hbm0-board.chip.die.hbm0_phy 89%. Slowest ops: lm_head.k0 353.5 us (off-chip memory bandwidth on board.chip.hbm0);</text>
+<text x="16" y="502.15" font-size="11" text-anchor="start" fill="#1c1e24">sample.k0 353.1 us (off-chip memory bandwidth on board.chip.hbm0); layers.gate_up.i1.k0 79.2 us (off-chip memory bandwidth on board.chip.hbm0); layers.gate_up.i2.k0 79.2 us (off-chip memory</text>
+<text x="16" y="517.15" font-size="11" text-anchor="start" fill="#1c1e24">bandwidth on board.chip.hbm0); layers.gate_up.i0.k0 79.2 us (off-chip memory bandwidth on board.chip.hbm0).</text>
+</svg>

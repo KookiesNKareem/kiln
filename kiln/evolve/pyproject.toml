@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kiln-evo"
+version = "0.0.1"
+requires-python = ">=3.10"
+description = "LLM-driven MAP-Elites design search over the kiln simulator (spec 06 §6, §12.3)"
+dependencies = ["kiln", "pyyaml>=6", "json5"]
+
+[project.optional-dependencies]
+arrow = ["pyarrow>=14"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["kiln_evo*"]
+
+[tool.setuptools.package-data]
+kiln_evo = ["seeds/*.py", "docs/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,79 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.92"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = { version = "2", features = ["serde"] }
+thiserror = "2"
+sha2 = "0.10"
+hex = "0.4"
+json5 = "1"
+serde_path_to_error = "0.1"
+clap = { version = "4", features = ["derive"] }
+proptest = "1"
+arrow-schema = "=60.0.0"
+arrow-array = "=60.0.0"
+arrow-ipc = { version = "=60.0.0", default-features = false }
+tiny-skia = { version = "=0.12.0", default-features = false, features = ["std", "simd", "png-format"] }
+ab_glyph = "=0.2.32"
+epaint_default_fonts = "=0.35.0"
+prost = { version = "=0.14.4", default-features = false, features = ["derive", "std"] }
+insta = "=1.49.0"
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+disallowed_types = "deny"
+
+# Tier A runs inside the 5 s evaluation timeout in tests and debug CLI builds.
+[profile.dev.package.kiln-sim]
+opt-level = 3
+
+[profile.dev.package.kiln-map]
+opt-level = 3
+
+[profile.dev.package.kiln-cost]
+opt-level = 3
+
+[profile.dev.package.kiln-wl]
+opt-level = 3
+
+[profile.dev.package.kiln-ir]
+opt-level = 3
+
+# Debug info dominates target/ size; line tables keep useful backtraces.
+[profile.dev]
+debug = "line-tables-only"
+incremental = false
+
+[profile.dev.package."*"]
+debug = false
+
+# Headless rendering in debug CLI builds and tests.
+[profile.dev.package.tiny-skia]
+opt-level = 3
+
+[profile.dev.package.tiny-skia-path]
+opt-level = 3
+
+[profile.dev.package.ab_glyph_rasterizer]
+opt-level = 3
+
+[profile.dev.package.png]
+opt-level = 3
+
+[profile.dev.package.fdeflate]
+opt-level = 3
+
+[profile.dev.package.kiln-viz-render]
+opt-level = 3

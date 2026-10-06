@@ -1,0 +1,30 @@
+// NVIDIA H100-PCIe-80GB as a variant of the SXM5 design (T1 backtest, published specs only).
+{
+  schema: "kiln.hw/1.0",
+  name: "h100-pcie-80gb",
+  extends: "h100_sxm5_80gb.json5",
+  meta: {
+    description: "NVIDIA H100 PCIe 80GB. GH100 die, 114 of 144 SMs active, 5 HBM2e stacks.",
+    citations: {
+      pcie_ds: "NVIDIA H100 Tensor Core GPU datasheet (PCIe 80GB column), as reproduced by Cisco: bxin.cisco.com/c/dam/en/us/products/collateral/servers-unified-computing/ucs-c-series-rack-servers/nvidia-h100-80-gpu.pdf (bf16/fp16 1,513 TFLOPS and fp8 3,026 TFLOPS with sparsity, 80 GB HBM2e, 2 TB/s, 300-350 W, NVLink bridge 600 GB/s)",
+    },
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 756.5e12, rel_tol: 0.01, source: "pcie_ds" },
+      { metric: "peak_ops.fp8_e4m3", scope: "", value: 1513e12, rel_tol: 0.01, source: "pcie_ds" },
+      { metric: "offchip_bw", scope: "", value: 2.0e12, rel_tol: 0.01, source: "pcie_ds" },
+      { metric: "offchip_bytes", scope: "", value: 85899345920, rel_tol: 0.0, source: "pcie_ds" },
+      { metric: "die_area", scope: "board.gpu.gh100", value: 814, rel_tol: 0.01, source: "wp" },
+    ],
+  },
+  params: {
+    clk: "1620MHz",                                    // derived: 756.5 TFLOPS / (114 SMs x 4096 FLOP/clk)
+    tdp: "350W",                                       // pub:pcie_ds
+    gpc_disabled: [                                    // 57 TPCs, 114 SMs pub:wp; which: assumed
+      "gpc0_0.tpc7", "gpc0_0.tpc8", "gpc0_1.tpc7", "gpc0_1.tpc8", "gpc0_2.tpc7", "gpc0_2.tpc8",
+      "gpc0_3.tpc7", "gpc0_3.tpc8", "gpc1_0.tpc7", "gpc1_0.tpc8", "gpc1_1.tpc7", "gpc1_1.tpc8",
+      "gpc1_2.tpc8", "gpc1_3.tpc8", "gpc1_2.tpc7" ],
+    hbm_kind: "hbm2e", hbm_pin: "3.125Gbps",           // HBM2e pub:pcie_ds; pin rate derived from 2 TB/s over 5120 bits
+    hbm_clk: "1562.5MHz",                              // derived: hbm_pin / 2 (DDR)
+    nvl_count: 12,                                     // 600 GB/s bridge pub:pcie_ds; link count derived at 25 GB/s/dir
+  },
+}

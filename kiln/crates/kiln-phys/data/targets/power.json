@@ -1,0 +1,217 @@
+{
+ "schema": "kiln.phys.targets/1",
+ "kind": "power",
+ "targets": [
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "power_step/gemm_8192",
+   "workload": "gemm:8192",
+   "clock_mhz": {
+    "v": 1282.5,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "NVML steady SM clock: 1275 (micro) and 1290 (micro_r2)"
+   },
+   "power_w": {
+    "v": 398.7,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "NVML steady board power: 400.6 and 396.7 W"
+   },
+   "capped": true,
+   "use": "fit"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "power_step/gemm_16384",
+   "workload": "gemm:16384",
+   "clock_mhz": {
+    "v": 1267.5,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "1245 and 1290 MHz"
+   },
+   "power_w": {
+    "v": 399.4,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "400.1 and 398.7 W"
+   },
+   "capped": true,
+   "use": "held_out"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "power_step/copy_1GiB",
+   "workload": "copy:1GiB",
+   "clock_mhz": {
+    "v": 1410.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry"
+   },
+   "power_w": {
+    "v": 173.3,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "179.1 and 167.4 W"
+   },
+   "capped": false,
+   "use": "fit"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "idle",
+   "workload": "idle",
+   "clock_mhz": {
+    "v": 1410.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry"
+   },
+   "power_w": {
+    "v": 69.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "pre/post-load idle 63.4-74.9 W at 1410 MHz"
+   },
+   "capped": false,
+   "use": "fit"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "seq/decode_b1/step_sdpa",
+   "workload": "llama3_8b:decode_b1",
+   "clock_mhz": {
+    "v": 1410.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry"
+   },
+   "power_w": {
+    "v": 225.3,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "232.6 and 217.9 W (CUDA graph)"
+   },
+   "capped": false,
+   "use": "fit"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "seq/decode_b8/step_sdpa",
+   "workload": "llama3_8b:decode_b8",
+   "clock_mhz": {
+    "v": 1410.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry"
+   },
+   "power_w": {
+    "v": 234.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "242.0 and 226.0 W"
+   },
+   "capped": false,
+   "use": "held_out"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "seq/decode_b32/step_sdpa",
+   "workload": "llama3_8b:decode_b32",
+   "clock_mhz": {
+    "v": 1410.0,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry"
+   },
+   "power_w": {
+    "v": 282.2,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "292.1 and 272.3 W"
+   },
+   "capped": false,
+   "use": "fit"
+  },
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "record": "seq/prefill_b1/step_sdpa",
+   "workload": "llama3_8b:prefill_b1",
+   "clock_mhz": {
+    "v": 1357.5,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "1350 and 1365 MHz"
+   },
+   "power_w": {
+    "v": 397.9,
+    "q": "pub",
+    "c": "H",
+    "src": "kiln_a100_telemetry",
+    "note": "397.7 and 398.2 W"
+   },
+   "capped": true,
+   "use": "held_out"
+  },
+  {
+   "chip": "tpu_v4",
+   "design": "tpu_v4",
+   "record": "published",
+   "workload": "idle",
+   "power_w": {
+    "v": 90.0,
+    "q": "pub",
+    "c": "H",
+    "src": "tpuv4_isca2023",
+    "note": "min 90 W, mean 170 W, max 192 W; HBM inclusion unclear (04 \u00a716 q2)"
+   },
+   "capped": false,
+   "use": "weak"
+  },
+  {
+   "chip": "h100_sxm5",
+   "design": "h100_sxm5_80gb",
+   "record": "published",
+   "workload": "gemm:8192",
+   "power_w": {
+    "v": 700.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_h100_wp"
+   },
+   "clock_band_mhz": {
+    "v": 1690.0,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "range": [
+     1400.0,
+     1980.0
+    ],
+    "note": "04 \u00a712.3 sanity band: below the 1980 MHz boost (throttles), above 1400 MHz"
+   },
+   "capped": true,
+   "use": "held_out"
+  }
+ ]
+}

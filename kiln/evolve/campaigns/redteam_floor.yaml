@@ -1,0 +1,14 @@
+# Red-team campaign (06 §12.3 T3): find designs whose whole steps sit at (or below) a physical floor while scoring
+# above the baseline. Holes are written to kiln/corpus/adversarial/redteam_floor_margin/.
+#   python -m kiln_evo run kiln/evolve/campaigns/redteam_floor.yaml
+# Other objectives: physics_bound (score above the roofline ratio), extrapolation_leverage (score gain resting on
+# extrapolated calibration keys). tier_disagreement needs tier B (not implemented yet; refused at start).
+name: redteam_floor
+mode: redteam
+out_dir: ../runs/redteam_floor
+redteam: {objective: floor_margin}   # hole_threshold defaults per objective: 0.01 / 1.25 / 0.5
+cascade: {prune_ratio: null}
+llm:
+  backend: mock
+operators: {parametric: 0.5, llm_diff: 0.4, llm_full: 0.1}
+budget: {max_evals: 2000}

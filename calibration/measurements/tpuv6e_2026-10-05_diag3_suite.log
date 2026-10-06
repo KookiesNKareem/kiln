@@ -1,0 +1,49 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+23:09:23 decode_b8/embedding                          best=     41.76us single=    147.2us loop_cv=0.001     0.0TF       3GB/s ok
+23:09:25 decode_b32/rmsnorm                           best=      3.59us single=    143.5us loop_cv=0.002     0.0TF     146GB/s ok
+23:09:26 decode_b32/rope_qk                           best=      3.44us single=    204.1us loop_cv=0.003     0.0TF     190GB/s ok
+23:09:30 decode_b32/softmax                           best=     27.49us single=    145.9us loop_cv=0.000     0.0TF     305GB/s ok
+23:09:31 decode_b32/residual_add                      best=      2.64us single=    134.7us loop_cv=0.002     0.0TF     298GB/s ok
+23:09:32 decode_b32/silu_mul                          best=      3.98us single=    146.8us loop_cv=0.002     0.0TF     692GB/s ok
+23:09:36 decode_b32/argmax                            best=     14.87us single=    171.5us loop_cv=0.001     0.0TF     552GB/s ok
+23:10:15 decode_b32/kv_write                          best=      1.77us single=      nanus loop_cv=0.002     0.0TF      37GB/s ok
+23:11:27 decode_b32/embedding                         best=     42.97us single=    153.2us loop_cv=0.001     0.0TF      12GB/s ok
+23:11:29 prefill_b1/rmsnorm                           best=     30.99us single=    172.3us loop_cv=0.027     0.0TF    1083GB/s ok
+23:11:30 prefill_b1/rmsnorm_final                     best=      3.92us single=    148.4us loop_cv=0.006     0.0TF       4GB/s ok
+23:11:33 prefill_b1/rope_qk                           best=     41.37us single=    283.9us loop_cv=0.001     0.0TF    1014GB/s ok
+23:11:36 prefill_b1/softmax                           best=    676.94us single=    745.4us loop_cv=0.016     0.0TF     793GB/s ok
+23:11:37 prefill_b1/residual_add                      best=     30.88us single=    181.1us loop_cv=0.027     0.0TF    1630GB/s ok
+23:11:39 prefill_b1/silu_mul                          best=    104.36us single=    305.4us loop_cv=0.047     0.0TF    1688GB/s rejected
+23:11:41 prefill_b1/argmax                            best=      7.08us single=    151.5us loop_cv=0.001     0.0TF      36GB/s ok
+23:12:05 prefill_b1/kv_write                          best=      7.80us single=      nanus loop_cv=0.000     0.0TF     537GB/s ok
+23:12:33 prefill_b1/embedding                         best=     97.82us single=    241.7us loop_cv=0.001     0.0TF     343GB/s ok
+23:12:34 sweep/gemm_256_256_256                       best=      2.53us single=    144.9us loop_cv=0.002    13.3TF     155GB/s ok
+23:12:35 sweep/gemm_512_512_512                       best=      3.37us single=    147.1us loop_cv=0.004    79.6TF     467GB/s ok
+23:12:37 sweep/gemm_1024_1024_1024                    best=      7.65us single=    150.3us loop_cv=0.002   280.8TF     823GB/s ok
+23:12:40 sweep/gemm_2048_2048_2048                    best=     30.89us single=    167.8us loop_cv=0.001   556.3TF     815GB/s ok
+23:12:43 sweep/gemm_4096_4096_4096                    best=    184.03us single=    350.2us loop_cv=0.001   746.8TF     547GB/s ok
+23:12:47 sweep/gemm_8192_8192_8192                    best=   1500.34us single=   1692.6us loop_cv=0.001   732.8TF     268GB/s ok
+23:12:48 sweep/gemm_1_4096_4096                       best=     30.80us single=    162.2us loop_cv=0.027     1.1TF    1090GB/s ok
+23:12:49 sweep/gemm_8_4096_4096                       best=     30.82us single=    154.3us loop_cv=0.022     8.7TF    1093GB/s ok
+23:12:51 sweep/gemm_16_4096_4096                      best=     30.98us single=    155.3us loop_cv=0.027    17.3TF    1092GB/s ok
+23:12:53 sweep/gemm_32_4096_4096                      best=     31.28us single=    157.5us loop_cv=0.009    34.3TF    1089GB/s ok
+23:12:55 sweep/gemm_64_4096_4096                      best=     31.27us single=    161.2us loop_cv=0.014    68.7TF    1107GB/s ok
+23:12:57 sweep/gemm_128_4096_4096                     best=     32.07us single=    148.7us loop_cv=0.020   133.9TF    1112GB/s ok
+23:13:00 sweep/gemm_256_4096_4096                     best=     33.21us single=    146.6us loop_cv=0.025   258.7TF    1137GB/s ok
+23:13:01 sweep/gemm_1_8192_8192                       best=     97.68us single=    252.0us loop_cv=0.023     1.4TF    1374GB/s ok
+23:13:03 sweep/gemm_8_8192_8192                       best=     99.18us single=    252.1us loop_cv=0.022    10.8TF    1356GB/s ok
+23:13:04 sweep/gemm_16_8192_8192                      best=     98.25us single=    252.4us loop_cv=0.011    21.9TF    1371GB/s ok
+23:13:06 sweep/gemm_32_8192_8192                      best=     97.93us single=    231.4us loop_cv=0.013    43.9TF    1381GB/s ok
+23:13:08 sweep/gemm_64_8192_8192                      best=     98.48us single=    232.5us loop_cv=0.016    87.2TF    1384GB/s ok
+23:13:10 sweep/gemm_128_8192_8192                     best=    101.33us single=    225.3us loop_cv=0.029   169.5TF    1366GB/s ok
+23:13:13 sweep/gemm_256_8192_8192                     best=    106.87us single=    235.0us loop_cv=0.012   321.5TF    1334GB/s ok
+23:13:15 sweep/gemm_1_14336_14336                     best=    377.60us single=    473.7us loop_cv=0.012     1.1TF    1089GB/s ok
+23:13:16 sweep/gemm_8_14336_14336                     best=    397.13us single=    481.0us loop_cv=0.036     8.3TF    1036GB/s rejected
+23:13:17 sweep/gemm_16_14336_14336                    best=    380.34us single=    474.3us loop_cv=0.009    17.3TF    1083GB/s ok
+23:13:19 sweep/gemm_32_14336_14336                    best=    391.90us single=    474.5us loop_cv=0.024    33.6TF    1054GB/s ok
+23:13:21 sweep/gemm_64_14336_14336                    best=    390.80us single=    481.7us loop_cv=0.015    67.3TF    1061GB/s ok
+23:13:23 sweep/gemm_128_14336_14336                   best=    420.53us single=    477.4us loop_cv=0.026   125.1TF     995GB/s ok
+23:13:26 sweep/gemm_256_14336_14336                   best=    420.06us single=    483.6us loop_cv=0.022   250.5TF    1013GB/s ok
+23:13:28 sanity end {'gemm_8192^3': {'loop_s': 0.001500252421082175, 'cv': 0.0008332814600981321, 'tflops': 732.8844215314718, 'gbps': 268.3902910881855}, 'copy_1GiB': {'loop_s': 0.0018278497059059993, 'cv': 0.010300002100080828, 'tflops': None, 'gbps': 1174.8688314259239}}
+23:13:28 DONE

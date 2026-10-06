@@ -1,0 +1,17 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "kiln"
+requires-python = ">=3.10"
+dynamic = ["version"]
+description = "kiln accelerator-system simulator: evolution-loop API"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.maturin]
+features = ["python"]
+python-source = "python"
+module-name = "kiln._kiln"

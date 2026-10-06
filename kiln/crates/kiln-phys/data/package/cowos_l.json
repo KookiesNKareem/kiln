@@ -1,0 +1,44 @@
+{
+ "schema": "kiln.phys.package/1",
+ "id": "cowos_l",
+ "max_mm2": {
+  "v": 5500.0,
+  "q": "asm",
+  "c": "L",
+  "src": "tsmc_cowos"
+ },
+ "die_gap_mm": {
+  "v": 0.1,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed"
+ },
+ "hbm_gap_mm": {
+  "v": 0.5,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed"
+ },
+ "trace_e_pj_per_bit_mm": {
+  "v": 0.25,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "package/interposer trace energy per mm (added to the PHY energy for the trace length)"
+ },
+ "trace_ps_per_mm": {
+  "v": 7.0,
+  "q": "asm",
+  "c": "M",
+  "src": "kiln_assumed",
+  "note": "time of flight in the substrate dielectric"
+ },
+ "overhang_max_mm": {
+  "v": 3.0,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "HBM stack overhang past a die corner"
+ },
+ "d2d_default": "ucie_adv"
+}

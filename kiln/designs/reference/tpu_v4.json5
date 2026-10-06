@@ -1,0 +1,97 @@
+// Google TPU v4, single chip, T1 backtest design (06 §12.1): published specs only, no measurements, no platform key.
+// Tags: pub:<src> = published, derived = arithmetic from published values, assumed = modelling choice.
+{
+  schema: "kiln.hw/1.0",
+  name: "tpu-v4",
+  exec_model: "static_dataflow",                       // 01 §2: XLA compiles the step to one static program
+  meta: {
+    description: "Google TPU v4 chip: 2 TensorCores x 4 MXUs (128x128) at 1050 MHz, 16 MiB VMEM per TC, 128 MiB shared CMEM, 32 GiB HBM2.",
+    citations: {
+      v4: "Google Cloud TPU v4 docs, docs.cloud.google.com/tpu/docs/v4 (accessed 2026-10-05): 275 TFLOPS bf16 or int8, 32 GiB HBM2 at 1200 GBps, 2 TensorCores with 4 MXUs each, 6 ICI links, measured min/mean/max power 90/170/192 W",
+      isca: "Jouppi et al., TPU v4: An Optically Reconfigurable Supercomputer, ISCA 2023 (arXiv 2304.01433), sec 2 and Table 4: 1050 MHz, 7 nm, <600 mm2, 16 MiB VMEM per TC, 128 MiB CMEM shared by both TCs, 0.25 MiB register file, 6 ICI links @ 50 GB/s, 128-lane VPU",
+      sysarch: "Google Cloud TPU system architecture page (MXU 128x128 before v6e)",
+      pallas: "JAX Pallas TPU docs (vreg shape (8,128) x 32-bit)",
+    },
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 275e12, rel_tol: 0.01, source: "v4" },
+      { metric: "peak_ops.int8", scope: "", value: 275e12, rel_tol: 0.01, source: "v4" },
+      { metric: "offchip_bw", scope: "", value: 1200e9, rel_tol: 0.01, source: "v4" },
+      { metric: "offchip_bytes", scope: "", value: 34359738368, rel_tol: 0.0, source: "v4" },
+      { metric: "onchip_bytes.scratchpad", scope: "board.chip.die.cmem", value: 134217728, rel_tol: 0.0, source: "isca" },
+    ],
+  },
+  tech: "tsmc_n7",                                    // pub:isca 7 nm (foundry assumed)
+  params: {
+    mxu_edge: 128, n_mxu: 4, clk: "1050MHz",          // pub:sysarch, pub:v4, pub:isca
+    vmem_cap: "16MiB",                                // pub:isca
+    vmem_rd_ports: 3,                                 // assumed, as v5e
+    hbm_pin: "2.34375Gbps", n_hbm: 4,                 // derived: 1200 GB/s over 4 x 1024 bits; 4 stacks assumed (HBM2 pins <= 2.4 Gb/s need >= 4)
+    tdp: "192W",                                      // pub:v4 measured max power (TDP unpublished, isca Table 4: N.A.)
+  },
+
+  templates: {
+    tensorcore: { kind: "cluster", body: {
+      units: [
+        { id: "mxu", count: "=n_mxu", kind: "matrix",
+          geometry: { systolic: { rows: "=mxu_edge", cols: "=mxu_edge" } },
+          dataflow: "weight_stationary",
+          precisions: ["bf16*bf16+fp32", "int8*int8+int32"],   // int8 at the bf16 rate pub:v4 (275 TOPS)
+          local: [ { id: "wreg", holds: "b", capacity: "= 2 * mxu_edge * mxu_edge * 2", double_buffered: true } ], // assumed
+          accumulate_in: "feed",
+          feeds: { a: "vreg", b: "vreg", o: "vreg" } },
+        { id: "vpu", kind: "vector", lanes: 128, sublanes: 8,   // 128 lanes pub:isca; (8,128) pub:pallas
+          precisions: ["fp32@1", "int32@1"], feeds: { any: "vreg" } },
+        { id: "eup", kind: "special", lanes: 128,               // width assumed
+          functions: ["exp", "log", "recip", "rsqrt", "tanh", "sigmoid"],
+          precisions: ["fp32@1"], feeds: { any: "vreg" } },
+        { id: "spu", kind: "scalar", issue_width: 2, controls: ["mxu", "vpu", "eup"], // assumed
+          precisions: ["int32@1", "fp32@1"], feeds: { any: "smem" } },
+      ],
+      memories: [
+        { id: "vreg", kind: "register_file", capacity: "128KiB", // 0.25 MiB per chip pub:isca, split per TC
+          banks: 32, word_bits: 32768,
+          ports: [ { dir: "read", count: 4, width_bits: 32768 }, { dir: "write", count: 2, width_bits: 32768 } ] }, // assumed
+        { id: "vmem", kind: "scratchpad", capacity: "=vmem_cap", banks: 32, word_bits: 32768, // banks assumed
+          ports: [ { dir: "read", count: "=vmem_rd_ports", width_bits: 32768 }, { dir: "write", count: 1, width_bits: 32768 } ] },
+        { id: "smem", kind: "scratchpad", capacity: "1MiB", word_bits: 32,  // assumed
+          ports: [ { dir: "rw", count: 2, width_bits: 32 } ] },
+      ],
+      networks: [
+        { id: "vld", topology: "p2p", endpoints: ["vmem", "vreg"], link: { width_bits: "= vmem_rd_ports * 32768" } },
+      ],
+    } },
+  },
+
+  system: { package: {
+    id: "chip",
+    substrate: { kind: "silicon_interposer" },        // assumed
+    power: { cap: "=tdp", policy: "dvfs" },
+    dies: [ {
+      id: "die",
+      clocks: [ { id: "core", freq: "=clk" } ],       // no V/F published: fixed clock
+      default_clock: "core",
+      clusters: [ { id: "tc", count: 2, use: "tensorcore" } ],  // pub:v4
+      memories: [
+        { id: "cmem", kind: "scratchpad", capacity: "128MiB",   // shared by both TCs pub:isca
+          banks: 32, word_bits: 32768,                           // assumed
+          ports: [ { dir: "read", count: 2, width_bits: 32768 }, { dir: "write", count: 1, width_bits: 32768 } ] }, // assumed
+      ],
+      networks: [
+        { id: "dma", topology: "crossbar", endpoints: ["tc*.vmem", "tc*.smem", "cmem"],
+          link: { width_bits: 8192 } },              // assumed
+      ],
+      ports: [
+        { id: "ici", count: 6, kind: "serdes", internal: "dma",  // 6 links @ 50 GB/s pub:isca
+          link: { phys: { type: "serdes", protocol: "ici_like", lanes: 4, lane_rate_bits_per_s: "100Gbps" } } }, // 50 GB/s/dir assumed reading; lane split assumed
+        { id: "pcie", kind: "pcie", internal: "dma",
+          link: { phys: { type: "serdes", protocol: "pcie", lanes: 16, lane_rate_bits_per_s: "16Gbps" } } }, // assumed Gen4 x16
+      ],
+      floorplan: { outline: { type: "fixed", w: "24.0mm", h: "24.0mm" } }, // <600 mm2 pub:isca; 576 mm2 and square aspect assumed
+    } ],
+    mem_stacks: [ {
+      id: "hbm", count: "=n_hbm", kind: "hbm2", capacity: "8GiB",  // 32 GiB / 4 stacks
+      io_width_bits: 1024, pin_rate_bits_per_s: "=hbm_pin",
+      attach: { network: "die.dma" },
+    } ],
+  } },
+}

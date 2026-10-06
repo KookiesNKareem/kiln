@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.archive/1",
+  "axes": [
+    {
+      "name": "die_mm2_total",
+      "unit": "mm^2",
+      "range": [
+        10,
+        6864
+      ],
+      "bins": 10
+    },
+    {
+      "name": "power_w",
+      "unit": "W",
+      "log": true,
+      "range": [
+        5,
+        8000
+      ],
+      "bins": 8
+    }
+  ],
+  "fitness": {
+    "name": "matched_envelope",
+    "direction": "maximize"
+  },
+  "run_config": {
+    "seed": 0,
+    "driver": "pyarrow-fixture"
+  }
+}

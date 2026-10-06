@@ -1,0 +1,94 @@
+{
+ "kiln_workload": "0.1",
+ "id": "llama2_70b_l2",
+ "model": {
+  "zoo": {
+   "preset": "llama2_70b",
+   "overrides": {
+    "n_layers": 2
+   }
+  }
+ },
+ "scenarios": {
+  "decode_b1": {
+   "mode": {
+    "snapshot": {
+     "kind": "decode",
+     "seqs": {
+      "segments": [
+       {
+        "count": 1,
+        "q_len": 1,
+        "kv_len": 2048
+       }
+      ]
+     }
+    }
+   },
+   "bindings": {
+    "kv_cap": 2048
+   },
+   "scope": "step"
+  },
+  "decode_b8": {
+   "mode": {
+    "snapshot": {
+     "kind": "decode",
+     "seqs": {
+      "segments": [
+       {
+        "count": 8,
+        "q_len": 1,
+        "kv_len": 2048
+       }
+      ]
+     }
+    }
+   },
+   "bindings": {
+    "kv_cap": 2048
+   },
+   "scope": "step"
+  },
+  "decode_b32": {
+   "mode": {
+    "snapshot": {
+     "kind": "decode",
+     "seqs": {
+      "segments": [
+       {
+        "count": 32,
+        "q_len": 1,
+        "kv_len": 2048
+       }
+      ]
+     }
+    }
+   },
+   "bindings": {
+    "kv_cap": 2048
+   },
+   "scope": "step"
+  },
+  "prefill_b1": {
+   "mode": {
+    "snapshot": {
+     "kind": "prefill",
+     "seqs": {
+      "segments": [
+       {
+        "count": 1,
+        "q_len": 2048,
+        "kv_len": 2048
+       }
+      ]
+     }
+    }
+   },
+   "bindings": {
+    "kv_cap": 2048
+   },
+   "scope": "step"
+  }
+ }
+}

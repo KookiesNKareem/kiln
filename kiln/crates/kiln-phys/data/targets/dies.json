@@ -1,0 +1,152 @@
+{
+ "schema": "kiln.phys.targets/1",
+ "kind": "dies",
+ "targets": [
+  {
+   "chip": "a100_40gb",
+   "design": "a100_sxm4_40gb",
+   "node": "tsmc_n7",
+   "die": "board.gpu.ga100",
+   "area_mm2": {
+    "v": 826.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   },
+   "transistors_b": {
+    "v": 54.2,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   },
+   "use": "fit"
+  },
+  {
+   "chip": "p100_16gb",
+   "design": "p100_sxm2_16gb",
+   "node": "tsmc_n16",
+   "die": "board.gpu.gp100",
+   "area_mm2": {
+    "v": 610.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_p100_wp"
+   },
+   "transistors_b": {
+    "v": 15.3,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_p100_wp"
+   },
+   "use": "fit",
+   "note": "the N16 die-area target (no tensor cores: separates the fixed SIMT control from the matrix-operand term)"
+  },
+  {
+   "chip": "tpu_v4",
+   "design": "tpu_v4",
+   "node": "tsmc_n7",
+   "die": "board.chip.die",
+   "area_mm2": {
+    "v": 600.0,
+    "q": "pub",
+    "c": "H",
+    "src": "tpuv4_isca2023",
+    "range": [
+     0.0,
+     600.0
+    ],
+    "note": "published only as '< 600 mm2' (Table 4): one-sided target (hinge above 600); the former [500, 600] lower edge was not published"
+   },
+   "transistors_b": {
+    "v": 22.0,
+    "q": "pub",
+    "c": "H",
+    "src": "tpuv4_isca2023"
+   },
+   "use": "fit"
+  },
+  {
+   "chip": "tpu_v4i",
+   "design": "tpu_v4i",
+   "node": "tsmc_n7",
+   "die": "board.chip.die",
+   "area_mm2": {
+    "v": 400.0,
+    "q": "pub",
+    "c": "H",
+    "src": "tpuv4i_isca2021",
+    "range": [
+     0.0,
+     400.0
+    ],
+    "note": "Table 1 'Die Size (mm2) < 400' and Fig. 6 caption 'The die is <400 mm2': one-sided target"
+   },
+   "transistors_b": {
+    "v": 16.0,
+    "q": "pub",
+    "c": "H",
+    "src": "tpuv4i_isca2021",
+    "note": "Table 1 'Transistors (B) 16'"
+   },
+   "use": "fit"
+  },
+  {
+   "chip": "h100_sxm5",
+   "design": "h100_sxm5_80gb",
+   "node": "tsmc_n4",
+   "die": "board.gpu.gh100",
+   "area_mm2": {
+    "v": 814.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_h100_wp"
+   },
+   "transistors_b": {
+    "v": 80.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_h100_wp"
+   },
+   "use": "held_out"
+  },
+  {
+   "chip": "v100_32gb",
+   "design": "v100_sxm2_32gb",
+   "node": "tsmc_n16",
+   "die": "board.gpu.gv100",
+   "area_mm2": {
+    "v": 815.0,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   },
+   "transistors_b": {
+    "v": 21.1,
+    "q": "pub",
+    "c": "H",
+    "src": "nvidia_a100_wp"
+   },
+   "use": "held_out",
+   "note": "TSMC 12FFN, N16 table (alias); a held-out check, never fitted"
+  },
+  {
+   "chip": "tpu_v5e",
+   "design": "tpu_v5e",
+   "node": "tsmc_n5",
+   "die": "board.chip.die",
+   "area_mm2": {
+    "v": 325.0,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "range": [
+     300.0,
+     350.0
+    ],
+    "note": "unofficial 300-350 mm2 estimates; weak held-out check only"
+   },
+   "use": "weak_held_out"
+  }
+ ],
+ "note": "Transistor counts enter the fit for the TPUs only; GPU counts are reported checks (04 \u00a712.3: the IR does not describe the SM logic they count, so as fit terms they only push util_std_cell to its bound)."
+}

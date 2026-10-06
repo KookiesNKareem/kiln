@@ -1,0 +1,121 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:90: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+17:02:34 sanity start {'gemm_8192^3': {'loop_s': 0.006712942999987111, 'cv': 0.0015192896680254605, 'tflops': 163.78980542187102, 'gbps': 59.98161819648597}, 'copy_1GiB': {'loop_s': 0.006536675888911405, 'cv': 0.0025348607535481175, 'tflops': None, 'gbps': 328.5283964656896}}
+17:02:34 plan {'decode_b1': 16, 'decode_b8': 16, 'decode_b32': 16, 'prefill_b1': 16} impls ['einsum_f32', 'einsum_bf16sm', 'dpa_xla', 'pallas_paged_ps64_pb16', 'pallas_paged_ps128_pb8', 'pallas_ragged_ps128'] phases ['decode_b1', 'decode_b8', 'decode_b32']
+17:02:36 check decode_b1/einsum_f32 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0022811952512711287, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:37 check decode_b1/einsum_bf16sm {'max_abs_err': 0.0006338432431221008, 'rel_rms_err': 0.004343814216554165, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:37 check decode_b1/dpa_xla {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.0022811952512711287, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:39 check decode_b1/pallas_paged_ps64_pb16 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.002644023159518838, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:40 check decode_b1/pallas_paged_ps128_pb8 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.002644023159518838, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:41 check decode_b1/pallas_ragged_ps128 {'max_abs_err': 0.0004485994577407837, 'rel_rms_err': 0.002212770748883486, 'ref_rms': 0.037999000400304794, 'ok': True}
+17:02:47 check decode_b8/einsum_f32 {'max_abs_err': 0.00047670304775238037, 'rel_rms_err': 0.0016397845465689898, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:02:47 check decode_b8/einsum_bf16sm {'max_abs_err': 0.0016074106097221375, 'rel_rms_err': 0.004661538638174534, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:02:47 check decode_b8/dpa_xla {'max_abs_err': 0.00047670304775238037, 'rel_rms_err': 0.0016397845465689898, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:02:48 check decode_b8/pallas_paged_ps64_pb16 {'max_abs_err': 0.0005991756916046143, 'rel_rms_err': 0.0031131894793361425, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:02:49 check decode_b8/pallas_paged_ps128_pb8 {'max_abs_err': 0.0005991756916046143, 'rel_rms_err': 0.0031131894793361425, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:02:50 check decode_b8/pallas_ragged_ps128 {'max_abs_err': 0.0005220770835876465, 'rel_rms_err': 0.002722250297665596, 'ref_rms': 0.03800085559487343, 'ok': True}
+17:03:02 check decode_b32/einsum_f32 {'max_abs_err': 0.00048419833183288574, 'rel_rms_err': 0.0016524223610758781, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:03 check decode_b32/einsum_bf16sm {'max_abs_err': 0.0016607791185379028, 'rel_rms_err': 0.004725515376776457, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:03 check decode_b32/dpa_xla {'max_abs_err': 0.00048419833183288574, 'rel_rms_err': 0.0016524223610758781, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:04 check decode_b32/pallas_paged_ps64_pb16 {'max_abs_err': 0.0007546693086624146, 'rel_rms_err': 0.003104663221165538, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:05 check decode_b32/pallas_paged_ps128_pb8 {'max_abs_err': 0.0007546693086624146, 'rel_rms_err': 0.003104663221165538, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:06 check decode_b32/pallas_ragged_ps128 {'max_abs_err': 0.0006091296672821045, 'rel_rms_err': 0.002705867402255535, 'ref_rms': 0.037949007004499435, 'ok': True}
+17:03:15 weights 16 layers in 9.4s
+17:03:23 seq/decode_b1/step                           best=  10839.27us single=  11550.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:03:25 seq/decode_b1/layer1                         best=    644.35us single=    926.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:03:31 seq/decode_b1/step/einsum_bf16sm             best=  10838.22us single=  11678.0us loop_cv=0.001     0.0TF       0GB/s ok
+17:03:33 seq/decode_b1/layer1/einsum_bf16sm           best=    644.16us single=    933.5us loop_cv=0.001     0.0TF       0GB/s ok
+17:03:39 seq/decode_b1/step/dpa_xla                   best=  10835.09us single=  11660.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:03:41 seq/decode_b1/layer1/dpa_xla                 best=    644.19us single=    917.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:03:49 seq/decode_b1/step/pallas_paged_ps64_pb16    best=  11659.65us single=  11704.2us loop_cv=0.001     0.0TF       0GB/s ok
+17:03:51 seq/decode_b1/layer1/pallas_paged_ps64_pb16  best=    643.69us single=    995.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:00 seq/decode_b1/step/pallas_paged_ps128_pb8    best=  11660.25us single=  11661.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:02 seq/decode_b1/layer1/pallas_paged_ps128_pb8  best=    643.16us single=    957.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:11 seq/decode_b1/step/pallas_ragged_ps128       best=  11627.19us single=  11584.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:14 seq/decode_b1/layer1/pallas_ragged_ps128     best=    638.56us single=    924.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:30 seq/decode_b8/step                           best=  12121.31us single=  12824.0us loop_cv=0.001     0.0TF       0GB/s ok
+17:04:33 seq/decode_b8/layer1                         best=    723.74us single=   1127.0us loop_cv=0.001     0.0TF       0GB/s ok
+17:04:39 seq/decode_b8/step/einsum_bf16sm             best=  12120.52us single=  12967.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:42 seq/decode_b8/layer1/einsum_bf16sm           best=    721.36us single=   1077.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:49 seq/decode_b8/step/dpa_xla                   best=  12123.82us single=  12797.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:04:51 seq/decode_b8/layer1/dpa_xla                 best=    590.60us single=   1092.3us loop_cv=0.000     0.0TF       0GB/s ok
+17:05:12 seq/decode_b8/step/pallas_paged_ps64_pb16    best=  16037.21us single=  13394.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:05:15 seq/decode_b8/layer1/pallas_paged_ps64_pb16  best=    811.10us single=    906.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:05:36 seq/decode_b8/step/pallas_paged_ps128_pb8    best=  16037.61us single=  13309.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:05:39 seq/decode_b8/layer1/pallas_paged_ps128_pb8  best=    807.84us single=    899.7us loop_cv=0.001     0.0TF       0GB/s ok
+17:05:54 seq/decode_b8/step/pallas_ragged_ps128       best=  12298.13us single=  12880.1us loop_cv=0.001     0.0TF       0GB/s ok
+17:05:57 seq/decode_b8/layer1/pallas_ragged_ps128     best=    682.80us single=    980.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:06:13 seq/decode_b32/step                          best=  16615.07us single=  17484.9us loop_cv=0.002     0.0TF       0GB/s ok
+17:06:16 seq/decode_b32/layer1                        best=   1021.01us single=   1240.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:06:22 seq/decode_b32/step/einsum_bf16sm            best=  16613.48us single=  17513.5us loop_cv=0.001     0.0TF       0GB/s ok
+17:06:25 seq/decode_b32/layer1/einsum_bf16sm          best=   1007.37us single=   1249.4us loop_cv=0.002     0.0TF       0GB/s ok
+17:06:29 seq/decode_b32/step/dpa_xla                  best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:06:32 seq/decode_b32/layer1/dpa_xla                best=    900.77us single=   1310.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:06:48 seq/decode_b32/step/pallas_paged_ps64_pb16   best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:06:52 seq/decode_b32/layer1/pallas_paged_ps64_pb16 best=   1788.09us single=   1318.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:07:09 seq/decode_b32/step/pallas_paged_ps128_pb8   best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:07:13 seq/decode_b32/layer1/pallas_paged_ps128_pb8 best=   1784.53us single=   1311.7us loop_cv=0.000     0.0TF       0GB/s ok
+17:07:29 seq/decode_b32/step/pallas_ragged_ps128      best=  16625.39us single=  17532.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:07:32 seq/decode_b32/layer1/pallas_ragged_ps128    best=    955.18us single=   1296.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:07:36 sanity end {'gemm_8192^3': {'loop_s': 0.006723202833351631, 'cv': 0.0017666225955106259, 'tflops': 163.539856676892, 'gbps': 59.89008423226026}, 'copy_1GiB': {'loop_s': 0.006531496000030125, 'cv': 0.00177800561188563, 'tflops': None, 'gbps': 328.7889402351461}}
+17:07:36 DONE
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:90: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+17:07:53 plan {'decode_b1': 16, 'decode_b8': 16, 'decode_b32': 16, 'prefill_b1': 16} impls ['einsum_f32', 'einsum_bf16sm', 'dpa_xla', 'pallas_ragged_ps128', 'pallas_flash_b128', 'pallas_flash_b512', 'pallas_splash_b512', 'pallas_splash_b1024'] phases ['prefill_b1']
+17:07:59 check prefill_b1/einsum_f32 {'max_abs_err': 0.0077724456787109375, 'rel_rms_err': 0.0016079628840088844, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:00 check prefill_b1/einsum_bf16sm {'max_abs_err': 0.019500732421875, 'rel_rms_err': 0.004262622445821762, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:01 check prefill_b1/dpa_xla {'max_abs_err': 0.0077724456787109375, 'rel_rms_err': 0.0016079628840088844, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:09 check prefill_b1/pallas_ragged_ps128 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.002573610981926322, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:11 check prefill_b1/pallas_flash_b128 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.0025645631831139326, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:12 check prefill_b1/pallas_flash_b512 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.0025729157496243715, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:12 check prefill_b1/pallas_splash_b512 {'max_abs_err': 0.013785600662231445, 'rel_rms_err': 0.0029460762161761522, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:13 check prefill_b1/pallas_splash_b1024 {'max_abs_err': 0.013785600662231445, 'rel_rms_err': 0.0029460762161761522, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:08:22 weights 16 layers in 9.2s
+17:08:39 seq/prefill_b1/step                          best= 145435.12us single= 145685.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:08:45 seq/prefill_b1/layer1                        best=   8899.88us single=  10132.4us loop_cv=0.001     0.0TF       0GB/s ok
+17:08:58 seq/prefill_b1/step/einsum_bf16sm            best=  98752.66us single=  99906.4us loop_cv=0.001     0.0TF       0GB/s ok
+17:09:03 seq/prefill_b1/layer1/einsum_bf16sm          best=   6045.89us single=   7303.4us loop_cv=0.001     0.0TF       0GB/s ok
+17:09:18 seq/prefill_b1/step/dpa_xla                  best= 116684.35us single= 118320.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:09:24 seq/prefill_b1/layer1/dpa_xla                best=   7211.07us single=   8256.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:09:46 seq/prefill_b1/step/pallas_ragged_ps128      best=  88365.72us single=  89654.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:09:59 seq/prefill_b1/layer1/pallas_ragged_ps128    best=   5505.53us single=   5825.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:10:13 seq/prefill_b1/step/pallas_flash_b128        best= 110371.23us single= 112833.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:10:17 seq/prefill_b1/layer1/pallas_flash_b128      best=   6901.86us single=   8717.1us loop_cv=0.000     0.0TF       0GB/s ok
+17:10:29 seq/prefill_b1/step/pallas_flash_b512        best=  85485.72us single=  86999.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:10:34 seq/prefill_b1/layer1/pallas_flash_b512      best=   5343.50us single=   6426.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:10:34 seq/prefill_b1/step/pallas_splash_b512       best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:10:34 seq/prefill_b1/layer1/pallas_splash_b512     best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:10:34 seq/prefill_b1/step/pallas_splash_b1024      best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:10:34 seq/prefill_b1/layer1/pallas_splash_b1024    best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:10:38 sanity end {'gemm_8192^3': {'loop_s': 0.006719374333367038, 'cv': 0.0015842192056624643, 'tflops': 163.63303683142794, 'gbps': 59.924207824009244}, 'copy_1GiB': {'loop_s': 0.006537618444427708, 'cv': 0.0014301852395019342, 'tflops': None, 'gbps': 328.4810311666922}}
+17:10:38 DONE
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:90: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+17:11:16 plan {'decode_b1': 16, 'decode_b8': 16, 'decode_b32': 16, 'prefill_b1': 16} impls ['einsum_f32', 'einsum_bf16sm', 'dpa_xla', 'pallas_paged_ps64_pb16', 'pallas_paged_ps128_pb8', 'pallas_ragged_ps128', 'pallas_flash_b128', 'pallas_flash_b512', 'pallas_flash_b1024', 'pallas_flash_b2048', 'pallas_splash_b512', 'pallas_splash_b1024', 'pallas_splash_b2048'] phases ['decode_b32', 'prefill_b1']
+17:11:22 check prefill_b1/pallas_flash_b1024 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.0025729171466082335, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:11:29 check prefill_b1/pallas_flash_b2048 {'max_abs_err': 0.013458251953125, 'rel_rms_err': 0.0025729225017130375, 'ref_rms': 0.0927659347653389, 'ok': True}
+17:11:33 check prefill_b1/pallas_splash_b2048 {'ok': False, 'error': 'JaxRuntimeError(\'RESOURCE_EXHAUSTED: E1001: CompileTimeScopedVmemOom:\\nRan out of memory in memory space vmem while allocating on stack for %splash_mqa_fwd_no_residuals.1 = (f32[8,2048,128]{2,1,0:T(8,128)}, f32[8,2048,128]{2,1,0:T(8,128)}, f32[8,2048,128]{2,1,0:T(8,128)}, bf16[8,4,2048,128]{3,2,1,0:T(8,128)(2,1)S(1)}) custom-call(%constant.5.data_next_ref, %constant.6.block_mask_ref, %bitcast.12, %bitcast.14, %bitcast.15, /*index=5*/%iota.1.q_sequence_ref), custom_call_target="tpu_custom_call", operand_layout_constraints={s8[1,1,1]{2,1,0}, s8[1,1,1]{2,1,0}, bf16[8,4,2048,128]{3,2,1,0}, bf16[8,2048,128]{2,1,0}, bf16[8,2048,128]{2,1,0}, s32[2048,128]{1,0}}, frontend_attributes={kernel_metadata={\\n"xprof_metadata":"{\\\\"block_q\\\\": 2048, \\\\"block_kv\\\\": 2048, \\\\"block_kv_compute\\\\": 512, \\\\"bl'}
+17:11:42 weights 16 layers in 9.2s
+17:11:56 seq/decode_b32/step/dpa_xla                  best=  16717.84us single=  17403.9us loop_cv=0.000     0.0TF       0GB/s ok
+17:12:13 seq/decode_b32/step/pallas_paged_ps64_pb16   best=  18484.15us single=  19129.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:12:29 seq/decode_b32/step/pallas_paged_ps128_pb8   best=  18372.94us single=  19002.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:12:43 seq/prefill_b1/step/pallas_flash_b1024       best=  86258.35us single=  87716.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:12:48 seq/prefill_b1/layer1/pallas_flash_b1024     best=   5394.96us single=   6462.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:12:54 seq/prefill_b1/step/pallas_flash_b2048       best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:12:58 seq/prefill_b1/layer1/pallas_flash_b2048     best=       nanus single=      nanus loop_cv=0.000     0.0TF       0GB/s rejected
+17:13:09 seq/prefill_b1/step/pallas_splash_b512       best=  85667.27us single=  87825.8us loop_cv=0.000     0.0TF       0GB/s ok
+17:13:14 seq/prefill_b1/layer1/pallas_splash_b512     best=   5274.28us single=   6435.4us loop_cv=0.000     0.0TF       0GB/s ok
+17:13:26 seq/prefill_b1/step/pallas_splash_b1024      best=  85253.77us single=  87356.9us loop_cv=0.001     0.0TF       0GB/s ok
+17:13:31 seq/prefill_b1/layer1/pallas_splash_b1024    best=   5262.35us single=   6284.8us loop_cv=0.001     0.0TF       0GB/s ok
+17:13:34 sanity end {'gemm_8192^3': {'loop_s': 0.006723794499976066, 'cv': 0.0018527443951981083, 'tflops': 163.52546583330496, 'gbps': 59.88481414793883}, 'copy_1GiB': {'loop_s': 0.00653352177778288, 'cv': 0.0009598121881527185, 'tflops': None, 'gbps': 328.68699623876336}}
+17:13:34 DONE
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:90: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+17:56:11 plan {'decode_b1': 16, 'decode_b8': 16, 'decode_b32': 16, 'prefill_b1': 16} impls ['einsum_f32'] phases ['decode_b1', 'decode_b8', 'decode_b32', 'prefill_b1']
+17:56:21 weights 16 layers in 9.7s
+17:56:24 seq/decode_b1/step0                          best=   1396.57us single=   1631.5us loop_cv=0.000     0.0TF       0GB/s ok
+17:56:26 seq/decode_b8/step0                          best=   1425.49us single=   1672.6us loop_cv=0.000     0.0TF       0GB/s ok
+17:56:28 seq/decode_b32/step0                         best=   1401.05us single=   1620.2us loop_cv=0.000     0.0TF       0GB/s ok
+17:56:31 seq/prefill_b1/step0                         best=   1498.73us single=   1756.0us loop_cv=0.000     0.0TF       0GB/s ok
+17:56:34 sanity end {'gemm_8192^3': {'loop_s': 0.00672856316667018, 'cv': 0.0016945572761522581, 'tflops': 163.4095720795803, 'gbps': 59.84237258773693}, 'copy_1GiB': {'loop_s': 0.006531015222220857, 'cv': 0.0009073855821580653, 'tflops': None, 'gbps': 328.81314388817987}}
+17:56:34 DONE

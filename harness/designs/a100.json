@@ -1,0 +1,68 @@
+{
+ "name": "a100",
+ "clock_mhz": 1410.0,
+ "tech_node": "n7",
+ "compute": [
+  {
+   "name": "sm_cluster",
+   "kind": "matrix",
+   "rows": 72,
+   "cols": 96,
+   "count": 16,
+   "attach": "l2",
+   "precision": "bf16",
+   "accumulator": "fp32",
+   "buffer_kib": 3024,
+   "buffer_gbps": 4872.96,
+   "regfile_kib": 0.0,
+   "regfile_gbps": 0.0,
+   "ops": null
+  },
+  {
+   "name": "cuda_cores",
+   "kind": "vector",
+   "rows": 27,
+   "cols": 64,
+   "count": 4,
+   "attach": "l2",
+   "precision": "fp32",
+   "accumulator": "fp32",
+   "buffer_kib": 2048,
+   "buffer_gbps": 7219.2,
+   "regfile_kib": 256,
+   "regfile_gbps": 9188.08875,
+   "ops": null
+  }
+ ],
+ "memory": [
+  {
+   "name": "l2",
+   "size_mib": 10,
+   "bandwidth_gbps": 7219.2,
+   "count": 4
+  }
+ ],
+ "offchip": {
+  "capacity_gib": 80,
+  "bandwidth_gbps": 2039,
+  "attach": [
+   "l2"
+  ],
+  "kind": "HBM2e",
+  "stacks": 5
+ },
+ "links": [
+  {
+   "name": "l2_xbar",
+   "endpoints": [
+    "sm_cluster",
+    "cuda_cores",
+    "l2"
+   ],
+   "bandwidth_gbps": 7219.2,
+   "kind": "bus",
+   "scope": "global"
+  }
+ ],
+ "notes": "NVIDIA A100-SXM4-80GB; 16 tensor-core clusters of 6.75 SMs; 4 L2 slices on one crossbar bus."
+}

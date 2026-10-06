@@ -1,0 +1,22 @@
+15:51:27 sanity start {'gemm_8192^3': 270.4, 'copy_1GiB': 1376.1}
+15:51:27 weights 32 layers in 0.1s, alloc 15.22 GiB
+/usr/local/lib/python3.13/dist-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+  _warn_once(
+15:51:38 seq/decode_b1/step                             15628.29us cv=0.000     0.0TF       0GB/s ok
+15:51:39 seq/decode_b1/layer1                             463.96us cv=0.000     0.0TF       0GB/s ok
+15:51:44 seq/decode_b1/step_sdpa                        15150.67us cv=0.000     0.0TF       0GB/s ok
+15:51:45 seq/decode_b1/layer1_sdpa                        447.72us cv=0.000     0.0TF       0GB/s ok
+15:51:51 seq/decode_b8/step                             18166.42us cv=0.000     0.0TF       0GB/s ok
+15:51:52 seq/decode_b8/layer1                             542.28us cv=0.000     0.0TF       0GB/s ok
+15:51:57 seq/decode_b8/step_sdpa                        17263.82us cv=0.000     0.0TF       0GB/s ok
+15:51:58 seq/decode_b8/layer1_sdpa                        514.43us cv=0.000     0.0TF       0GB/s ok
+15:52:03 seq/decode_b32/step                            25223.66us cv=0.000     0.0TF       0GB/s ok
+15:52:04 seq/decode_b32/layer1                            764.50us cv=0.000     0.0TF       0GB/s ok
+15:52:10 seq/decode_b32/step_sdpa                       24833.34us cv=0.000     0.0TF       0GB/s ok
+15:52:11 seq/decode_b32/layer1_sdpa                       751.95us cv=0.000     0.0TF       0GB/s ok
+15:52:39 seq/prefill_b1/step                           291259.28us cv=0.000     0.0TF       0GB/s ok
+15:52:47 seq/prefill_b1/layer1                           9074.05us cv=0.000     0.0TF       0GB/s ok
+15:53:02 seq/prefill_b1/step_sdpa                      156030.83us cv=0.003     0.0TF       0GB/s ok
+15:53:06 seq/prefill_b1/layer1_sdpa                      4863.28us cv=0.004     0.0TF       0GB/s ok
+15:53:07 sanity end {'gemm_8192^3': 264.8, 'copy_1GiB': 1378.3}
+15:53:07 DONE

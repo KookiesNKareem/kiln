@@ -1,0 +1,22 @@
+[package]
+name = "kiln-calib"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-ir = { path = "../kiln-ir" }
+kiln-wl = { path = "../kiln-wl" }
+kiln-map = { path = "../kiln-map" }
+kiln-phys = { path = "../kiln-phys" }
+kiln-sim = { path = "../kiln-sim" }
+kiln-trace = { path = "../kiln-trace" }
+indexmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[lints]
+workspace = true

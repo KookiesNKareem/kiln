@@ -1,0 +1,3825 @@
+{
+ "started": "2026-10-05T03:11:43",
+ "warmup": 10,
+ "iters": 50,
+ "flush_bytes": 268435456,
+ "device": {
+  "torch_name": "NVIDIA A100-SXM4-40GB",
+  "smi": {
+   "name": "NVIDIA A100-SXM4-40GB",
+   "memory.total": "40960 MiB",
+   "clocks.max.sm": "1410 MHz",
+   "clocks.max.mem": "1215 MHz",
+   "clocks.sm": "1095 MHz",
+   "clocks.mem": "1215 MHz",
+   "power.limit": "400.00 W",
+   "power.default_limit": "400.00 W",
+   "power.max_limit": "400.00 W",
+   "pcie.link.gen.max": "4",
+   "pcie.link.width.max": "16",
+   "driver_version": "580.82.07",
+   "vbios_version": "92.00.45.00.03",
+   "pci.device_id": "0x20B010DE"
+  },
+  "sm_count": 108,
+  "total_mem_gib": 39.4935302734375,
+  "l2_bytes": 41943040,
+  "cc": "8.0",
+  "mem_bus_width": 5120,
+  "mem_clock_khz": 1215000,
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "cudnn": 92700,
+  "cublas_lt": null,
+  "python": "3.13.15",
+  "spec_hbm_gbps": 1555,
+  "spec_bf16_dense_tflops": 312,
+  "smi_clock_power": "\n==============NVSMI LOG==============\n\nTimestamp                                 : Mon Oct  5 03:11:44 2026\nDriver Version                            : 580.82.07\nCUDA Version                              : 13.0\n\nAttached GPUs                             : 1\nGPU 00000000:00:04.0\n    GPU Power Readings\n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : 49.79 W\n        Current Power Limit               : 400.00 W\n        Requested Power Limit             : 400.00 W\n        Default Power Limit               : 400.00 W\n        Min Power Limit                   : 100.00 W\n        Max Power Limit                   : 400.00 W\n    Power Samples\n        Duration                          : 2.37 sec\n        Number of Samples                 : 119\n        Max                               : 53.31 W\n        Min                               : 44.81 W\n        Avg                               : 46.84 W\n    GPU Memory Power Readings \n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : N/A\n    Module Power Readings\n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : N/A\n        Current Power Limit               : N/A\n        Requested Power Limit             : N/A\n        Default Power Limit               : N/A\n        Min Power Limit                   : N/A\n        Max Power Limit                   : N/A\n    Clocks\n        Graphics                          : 1095 MHz\n        SM                                : 1095 MHz\n        Memory                            : 1215 MHz\n        Video                             : 990 MHz\n    Applications Clocks\n        Graphics                          : 1095 MHz\n        Memory                            : 1215 MHz\n    Default Applications Clocks\n        Graphics                          : 1095 MHz\n        Memory                            : 1215 MHz\n    Deferred Clocks\n        Memory                            : N/A\n    Max Clocks\n        Graphics                          : 1410 MHz\n        SM                                : 1410 MHz\n        Memory                            : 1215 MHz\n        Video                             : 1290 MHz\n    Max Customer Boost Clocks\n        Graphics                          : 1410 MHz\n    SM Clock Samples\n        Duration                          : Not Found\n        Number of Samples                 : Not Found\n        Max                               : Not Found\n        Min                               : Not Found\n        Avg                               : Not Found\n    Memory Clock Samples\n        Duration                          : Not Found\n        Number of Samples                 : Not Found\n        Max                               : Not Found\n        Min                               : Not Found\n        Avg                               : Not Found\n    Clock Policy\n        Auto Boost                        : N/A\n        Auto Boost Default                : N/A\n\n",
+  "smi_memory": "\n==============NVSMI LOG==============\n\nTimestamp                                 : Mon Oct  5 03:11:44 2026\nDriver Version                            : 580.82.07\nCUDA Version                              : 13.0\n\nAttached GPUs                             : 1\nGPU 00000000:00:04.0\n    FB Memory Usage\n        Total                             : 40960 MiB\n        Reserved                          : 519 MiB\n        Used                              : 684 MiB\n        Free                              : 39758 MiB\n    BAR1 Memory Usage\n        Total                             : 65536 MiB\n        Used                              : 685 MiB\n        Free                              : 64851 MiB\n    Conf Compute Protected Memory Usage\n        Total                             : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 0 MiB\n\n",
+  "smi_L": "GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-ab61f08c-8a8b-0241-4e37-8544f182c8a0)\n",
+  "nvcc": "Cuda compilation tools, release 13.0, V13.0.88\nBuild cuda_13.0.r13.0/compiler.36424714_0\n",
+  "hostname": "9f0df8175454",
+  "theoretical_hbm_gbps_from_clock": 1555.2
+ },
+ "ops": [
+  {
+   "name": "gemm_2048_6144_4096",
+   "flops": 103079215104,
+   "min_bytes": 92274688,
+   "intensity": 1117.090909090909,
+   "m": 2048,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "prefill_b1",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 430.59200048446655,
+    "min_us": 422.91200160980225,
+    "p90_us": 434.1759979724884,
+    "n": 50,
+    "tflops": 239.38952648452312,
+    "gbps": 214.2972649194136
+   },
+   "unflushed": {
+    "median_us": 418.8160002231598,
+    "min_us": 417.7919924259186,
+    "p90_us": 422.91200160980225,
+    "n": 50,
+    "tflops": 246.1205279862178,
+    "gbps": 220.32273826891242
+   },
+   "graph_unflushed": {
+    "median_us": 419.6966552734375,
+    "min_us": 412.5900650024414,
+    "n": 250,
+    "tflops": 245.60409002269182,
+    "gbps": 219.86043214921955
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1312.5,
+    "sm_mhz_min": 1275.0,
+    "mem_mhz": 1215.0,
+    "power_w": 410.945,
+    "power_w_max": 415.89,
+    "temp_c": 58.0
+   }
+  },
+  {
+   "name": "gemm_2048_6144_4096_linear",
+   "flops": 103079215104,
+   "min_bytes": 92274688,
+   "intensity": 1117.090909090909,
+   "m": 2048,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "prefill_b1",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 411.6480052471161,
+    "min_us": 410.6239974498749,
+    "p90_us": 412.6720130443573,
+    "n": 50,
+    "tflops": 250.40620576339387,
+    "gbps": 224.1592011228298
+   },
+   "unflushed": {
+    "median_us": 411.6480052471161,
+    "min_us": 410.6239974498749,
+    "p90_us": 412.6720130443573,
+    "n": 50,
+    "tflops": 250.40620576339387,
+    "gbps": 224.1592011228298
+   },
+   "graph_unflushed": {
+    "median_us": 427.9500961303711,
+    "min_us": 407.3267364501953,
+    "n": 250,
+    "tflops": 240.8673722381823,
+    "gbps": 215.62020626790408
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1395.0,
+    "sm_mhz_min": 1365.0,
+    "mem_mhz": 1215.0,
+    "power_w": 69.89,
+    "power_w_max": 471.36,
+    "temp_c": 48.0
+   }
+  },
+  {
+   "name": "bmm_1_8192_2048_128",
+   "flops": 4294967296,
+   "min_bytes": 36175872,
+   "intensity": 118.72463768115942,
+   "m": 8192,
+   "n": 2048,
+   "k": 128,
+   "batch": 1,
+   "weight": false,
+   "phase": "prefill_b1",
+   "op": "attn_score",
+   "flushed": {
+    "median_us": 53.75999957323074,
+    "min_us": 52.22399905323982,
+    "p90_us": 54.27199974656105,
+    "n": 50,
+    "tflops": 79.89150539611678,
+    "gbps": 672.9142910561594
+   },
+   "unflushed": {
+    "median_us": 50.175998359918594,
+    "min_us": 49.15200173854828,
+    "p90_us": 51.19999870657921,
+    "n": 50,
+    "tflops": 85.59804361423309,
+    "gbps": 720.9796154030864
+   },
+   "graph_unflushed": {
+    "median_us": 45.46559810638428,
+    "min_us": 45.44511795043945,
+    "n": 250,
+    "tflops": 94.46631024077304,
+    "gbps": 795.6757088151049
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 118.22,
+    "power_w_max": 118.22,
+    "temp_c": 46.0
+   }
+  },
+  {
+   "name": "bmm_1_8192_128_2048",
+   "flops": 4294967296,
+   "min_bytes": 36175872,
+   "intensity": 118.72463768115942,
+   "m": 8192,
+   "n": 128,
+   "k": 2048,
+   "batch": 1,
+   "weight": false,
+   "phase": "prefill_b1",
+   "op": "attn_av",
+   "flushed": {
+    "median_us": 53.247999399900436,
+    "min_us": 52.22399905323982,
+    "p90_us": 54.27199974656105,
+    "n": 50,
+    "tflops": 80.65969321671888,
+    "gbps": 679.3846230412113
+   },
+   "unflushed": {
+    "median_us": 40.95999896526337,
+    "min_us": 39.93599861860275,
+    "p90_us": 41.98399931192398,
+    "n": 50,
+    "tflops": 104.85760264892583,
+    "gbps": 883.2000223115092
+   },
+   "graph_unflushed": {
+    "median_us": 35.61471939086914,
+    "min_us": 35.430400371551514,
+    "n": 250,
+    "tflops": 120.59528670893133,
+    "gbps": 1015.7561990864577
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 67.695,
+    "power_w_max": 68.43,
+    "temp_c": 41.5
+   }
+  },
+  {
+   "name": "gemm_2048_4096_4096",
+   "flops": 68719476736,
+   "min_bytes": 67108864,
+   "intensity": 1024.0,
+   "m": 2048,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "prefill_b1",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 307.20001459121704,
+    "min_us": 306.17600679397583,
+    "p90_us": 308.22399258613586,
+    "n": 50,
+    "tflops": 223.69620270833386,
+    "gbps": 218.45332295735727
+   },
+   "unflushed": {
+    "median_us": 307.20001459121704,
+    "min_us": 306.17600679397583,
+    "p90_us": 308.22399258613586,
+    "n": 50,
+    "tflops": 223.69620270833386,
+    "gbps": 218.45332295735727
+   },
+   "graph_unflushed": {
+    "median_us": 305.2134323120117,
+    "min_us": 302.1004867553711,
+    "n": 250,
+    "tflops": 225.15220321545308,
+    "gbps": 219.8751984525909
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 238.665,
+    "power_w_max": 409.77,
+    "temp_c": 46.0
+   }
+  },
+  {
+   "name": "gemm_2048_4096_4096_linear",
+   "flops": 68719476736,
+   "min_bytes": 67108864,
+   "intensity": 1024.0,
+   "m": 2048,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "prefill_b1",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 310.2720081806183,
+    "min_us": 309.2480003833771,
+    "p90_us": 311.2959861755371,
+    "n": 50,
+    "tflops": 221.48139350036504,
+    "gbps": 216.29042334020025
+   },
+   "unflushed": {
+    "median_us": 310.2720081806183,
+    "min_us": 309.2480003833771,
+    "p90_us": 311.2959861755371,
+    "n": 50,
+    "tflops": 221.48139350036504,
+    "gbps": 216.29042334020025
+   },
+   "graph_unflushed": {
+    "median_us": 307.7734375,
+    "min_us": 304.72192764282227,
+    "n": 250,
+    "tflops": 223.27942688686383,
+    "gbps": 218.04631531920296
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 245.035,
+    "power_w_max": 407.12,
+    "temp_c": 46.0
+   }
+  },
+  {
+   "name": "gemm_2048_14336_4096",
+   "flops": 240518168576,
+   "min_bytes": 192937984,
+   "intensity": 1246.608695652174,
+   "m": 2048,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "prefill_b1",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 906.2399864196777,
+    "min_us": 905.2159786224365,
+    "p90_us": 907.263994216919,
+    "n": 50,
+    "tflops": 265.4022909827956,
+    "gbps": 212.89943821862087
+   },
+   "unflushed": {
+    "median_us": 917.5040125846863,
+    "min_us": 914.4319891929626,
+    "p90_us": 936.959981918335,
+    "n": 50,
+    "tflops": 262.1439964043754,
+    "gbps": 210.2857114013893
+   },
+   "graph_unflushed": {
+    "median_us": 957.6242828369141,
+    "min_us": 949.8214721679688,
+    "n": 250,
+    "tflops": 251.16130917595046,
+    "gbps": 201.47565956497144
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1395.0,
+    "sm_mhz_min": 1320.0,
+    "mem_mhz": 1215.0,
+    "power_w": 397.29,
+    "power_w_max": 412.65,
+    "temp_c": 51.0
+   }
+  },
+  {
+   "name": "gemm_2048_14336_4096_linear",
+   "flops": 240518168576,
+   "min_bytes": 192937984,
+   "intensity": 1246.608695652174,
+   "m": 2048,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "prefill_b1",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 914.4319891929626,
+    "min_us": 911.3600254058838,
+    "p90_us": 925.6960153579712,
+    "n": 50,
+    "tflops": 263.0246660424366,
+    "gbps": 210.99216374776933
+   },
+   "unflushed": {
+    "median_us": 935.9360039234161,
+    "min_us": 922.6239919662476,
+    "p90_us": 944.1279768943787,
+    "n": 50,
+    "tflops": 256.9814256185839,
+    "gbps": 206.14441926713968
+   },
+   "graph_unflushed": {
+    "median_us": 969.4617462158203,
+    "min_us": 948.7564849853516,
+    "n": 250,
+    "tflops": 248.09454268292106,
+    "gbps": 199.015572046149
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1335.0,
+    "sm_mhz_min": 1335.0,
+    "mem_mhz": 1215.0,
+    "power_w": 394.37,
+    "power_w_max": 419.08,
+    "temp_c": 57.0
+   }
+  },
+  {
+   "name": "gemm_2048_4096_14336",
+   "flops": 240518168576,
+   "min_bytes": 192937984,
+   "intensity": 1246.608695652174,
+   "m": 2048,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "phase": "prefill_b1",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 885.7600092887878,
+    "min_us": 880.6399703025818,
+    "p90_us": 904.1919708251953,
+    "n": 50,
+    "tflops": 271.53875322179164,
+    "gbps": 217.82196303366374
+   },
+   "unflushed": {
+    "median_us": 922.6239919662476,
+    "min_us": 921.5999841690063,
+    "p90_us": 923.6479997634888,
+    "n": 50,
+    "tflops": 260.68926309126255,
+    "gbps": 209.11875875763945
+   },
+   "graph_unflushed": {
+    "median_us": 934.7277069091797,
+    "min_us": 934.6047973632812,
+    "n": 250,
+    "tflops": 257.3136184989211,
+    "gbps": 206.4108965358254
+   },
+   "clock": {
+    "n": 4,
+    "sm_mhz": 1365.0,
+    "sm_mhz_min": 1320.0,
+    "mem_mhz": 1215.0,
+    "power_w": 238.51,
+    "power_w_max": 421.23,
+    "temp_c": 51.5
+   }
+  },
+  {
+   "name": "gemm_2048_4096_14336_linear",
+   "flops": 240518168576,
+   "min_bytes": 192937984,
+   "intensity": 1246.608695652174,
+   "m": 2048,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "prefill_b1",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 891.9039964675903,
+    "min_us": 889.8559808731079,
+    "p90_us": 900.0959992408752,
+    "n": 50,
+    "tflops": 269.6682260967309,
+    "gbps": 216.32147043194792
+   },
+   "unflushed": {
+    "median_us": 918.0160164833069,
+    "min_us": 907.263994216919,
+    "p90_us": 928.76797914505,
+    "n": 50,
+    "tflops": 261.9977911685744,
+    "gbps": 210.16842902055006
+   },
+   "graph_unflushed": {
+    "median_us": 944.3532562255859,
+    "min_us": 944.3122863769531,
+    "n": 250,
+    "tflops": 254.69088711284678,
+    "gbps": 204.30700347361454
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1380.0,
+    "sm_mhz_min": 1320.0,
+    "mem_mhz": 1215.0,
+    "power_w": 406.0,
+    "power_w_max": 406.26,
+    "temp_c": 54.0
+   }
+  },
+  {
+   "name": "gemm_1_128256_4096",
+   "flops": 1050673152,
+   "min_bytes": 1050937856,
+   "intensity": 0.9997481259253449,
+   "m": 1,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "prefill_b1",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 763.9039754867554,
+    "min_us": 758.7839961051941,
+    "p90_us": 765.9519910812378,
+    "n": 50,
+    "tflops": 1.3753995079427581,
+    "gbps": 1375.746022699186
+   },
+   "unflushed": {
+    "median_us": 746.4960217475891,
+    "min_us": 740.3519749641418,
+    "p90_us": 749.567985534668,
+    "n": 50,
+    "tflops": 1.4074732100250384,
+    "gbps": 1407.8278053507847
+   },
+   "graph_unflushed": {
+    "median_us": 742.6252746582031,
+    "min_us": 742.3590087890625,
+    "n": 250,
+    "tflops": 1.414809309424026,
+    "gbps": 1415.1657529885435
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 247.56,
+    "power_w_max": 276.95,
+    "temp_c": 48.0
+   }
+  },
+  {
+   "name": "gemm_1_128256_4096_linear",
+   "flops": 1050673152,
+   "min_bytes": 1050937856,
+   "intensity": 0.9997481259253449,
+   "m": 1,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "prefill_b1",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 742.3999905586243,
+    "min_us": 740.3519749641418,
+    "p90_us": 745.4720139503479,
+    "n": 50,
+    "tflops": 1.415238638687769,
+    "gbps": 1415.5951904164413
+   },
+   "unflushed": {
+    "median_us": 725.5039811134338,
+    "min_us": 722.9440212249756,
+    "p90_us": 727.0399928092957,
+    "n": 50,
+    "tflops": 1.448197638264545,
+    "gbps": 1448.5624936022011
+   },
+   "graph_unflushed": {
+    "median_us": 720.6707000732422,
+    "min_us": 720.5683135986328,
+    "n": 250,
+    "tflops": 1.4579101826856835,
+    "gbps": 1458.2774849778027
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 85.6,
+    "power_w_max": 285.94,
+    "temp_c": 45.0
+   }
+  },
+  {
+   "name": "gemm_1_6144_4096",
+   "flops": 50331648,
+   "min_bytes": 50352128,
+   "intensity": 0.9995932644594485,
+   "m": 1,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b1",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 66.04800000786781,
+    "min_us": 63.48799914121628,
+    "p90_us": 66.56000018119812,
+    "n": 50,
+    "tflops": 0.76204651153713,
+    "gbps": 762.3565890564729
+   },
+   "unflushed": {
+    "median_us": 49.15200173854828,
+    "min_us": 46.08000069856644,
+    "p90_us": 50.175998359918594,
+    "n": 50,
+    "tflops": 1.0239999637802455,
+    "gbps": 1024.4166304321743
+   },
+   "graph_unflushed": {
+    "median_us": 45.28128147125244,
+    "min_us": 45.199360847473145,
+    "n": 250,
+    "tflops": 1.11153320676125,
+    "gbps": 1111.985490780928
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 68.7,
+    "power_w_max": 68.7,
+    "temp_c": 44.0
+   }
+  },
+  {
+   "name": "gemm_1_6144_4096_linear",
+   "flops": 50331648,
+   "min_bytes": 50352128,
+   "intensity": 0.9995932644594485,
+   "m": 1,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b1",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 60.416001826524734,
+    "min_us": 59.39200147986412,
+    "p90_us": 62.463998794555664,
+    "n": 50,
+    "tflops": 0.8330847205765054,
+    "gbps": 833.4237036171046
+   },
+   "unflushed": {
+    "median_us": 44.544000178575516,
+    "min_us": 43.007999658584595,
+    "p90_us": 46.08000069856644,
+    "n": 50,
+    "tflops": 1.1299310299529,
+    "gbps": 1130.3908000659994
+   },
+   "graph_unflushed": {
+    "median_us": 40.87808132171631,
+    "min_us": 40.87808132171631,
+    "n": 250,
+    "tflops": 1.2312624852395293,
+    "gbps": 1231.7634872273381
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 69.43,
+    "power_w_max": 70.43,
+    "temp_c": 42.0
+   }
+  },
+  {
+   "name": "bmm_8_4_2048_128",
+   "flops": 16777216,
+   "min_bytes": 4333568,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 2048,
+   "k": 128,
+   "batch": 8,
+   "weight": false,
+   "phase": "decode_b1",
+   "op": "attn_score",
+   "flushed": {
+    "median_us": 15.359999611973763,
+    "min_us": 14.336000196635723,
+    "p90_us": 16.383999958634377,
+    "n": 50,
+    "tflops": 1.0922666942596442,
+    "gbps": 282.133340460621
+   },
+   "unflushed": {
+    "median_us": 11.264000087976456,
+    "min_us": 10.239999741315842,
+    "p90_us": 11.264000087976456,
+    "n": 50,
+    "tflops": 1.4894545338212952,
+    "gbps": 384.72726972239514
+   },
+   "graph_unflushed": {
+    "median_us": 6.594560146331787,
+    "min_us": 6.574079990386963,
+    "n": 250,
+    "tflops": 2.544099322429002,
+    "gbps": 657.1428425610069
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 67.83,
+    "power_w_max": 67.83,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "bmm_8_4_128_2048",
+   "flops": 16777216,
+   "min_bytes": 4333568,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 128,
+   "k": 2048,
+   "batch": 8,
+   "weight": false,
+   "phase": "decode_b1",
+   "op": "attn_av",
+   "flushed": {
+    "median_us": 17.40800030529499,
+    "min_us": 16.383999958634377,
+    "p90_us": 18.432000651955605,
+    "n": 50,
+    "tflops": 0.9637646889802085,
+    "gbps": 248.9411721047511
+   },
+   "unflushed": {
+    "median_us": 15.359999611973763,
+    "min_us": 15.359999611973763,
+    "p90_us": 16.383999958634377,
+    "n": 50,
+    "tflops": 1.0922666942596442,
+    "gbps": 282.133340460621
+   },
+   "graph_unflushed": {
+    "median_us": 10.915839672088623,
+    "min_us": 10.87488055229187,
+    "n": 250,
+    "tflops": 1.5369606465454682,
+    "gbps": 396.9981357531995
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.96,
+    "power_w_max": 66.96,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_1_4096_4096",
+   "flops": 33554432,
+   "min_bytes": 33570816,
+   "intensity": 0.9995119570522206,
+   "m": 1,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b1",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 46.08000069856644,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 0.7281777667387034,
+    "gbps": 728.5333222888687
+   },
+   "unflushed": {
+    "median_us": 26.623999699950218,
+    "min_us": 25.599999353289604,
+    "p90_us": 27.648000046610832,
+    "n": 50,
+    "tflops": 1.2603077065112325,
+    "gbps": 1260.9230911335524
+   },
+   "graph_unflushed": {
+    "median_us": 21.729280948638916,
+    "min_us": 21.688320636749268,
+    "n": 250,
+    "tflops": 1.544203514111303,
+    "gbps": 1544.9575197334275
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 83.87,
+    "power_w_max": 83.87,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_1_4096_4096_linear",
+   "flops": 33554432,
+   "min_bytes": 33570816,
+   "intensity": 0.9995119570522206,
+   "m": 1,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b1",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 0.7123478102801206,
+    "gbps": 712.6956363593589
+   },
+   "unflushed": {
+    "median_us": 27.135999873280525,
+    "min_us": 26.623999699950218,
+    "p90_us": 28.672000393271446,
+    "n": 50,
+    "tflops": 1.2365283076611224,
+    "gbps": 1237.1320812488475
+   },
+   "graph_unflushed": {
+    "median_us": 21.729280948638916,
+    "min_us": 21.667840480804443,
+    "n": 250,
+    "tflops": 1.544203514111303,
+    "gbps": 1544.9575197334275
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.37,
+    "power_w_max": 66.37,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_1_14336_4096",
+   "flops": 117440512,
+   "min_bytes": 117477376,
+   "intensity": 0.999686203409923,
+   "m": 1,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b1",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 121.85599654912949,
+    "min_us": 117.76000261306763,
+    "p90_us": 122.8799968957901,
+    "n": 50,
+    "tflops": 0.9637647331754472,
+    "gbps": 964.0672541924179
+   },
+   "unflushed": {
+    "median_us": 104.44799810647964,
+    "min_us": 101.3759970664978,
+    "p90_us": 106.49599879980087,
+    "n": 50,
+    "tflops": 1.1243921772466632,
+    "gbps": 1124.7451184295323
+   },
+   "graph_unflushed": {
+    "median_us": 97.66912460327148,
+    "min_us": 97.40287780761719,
+    "n": 250,
+    "tflops": 1.202432319087933,
+    "gbps": 1202.8097566880929
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 95.92500000000001,
+    "power_w_max": 125.48,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_1_14336_4096_linear",
+   "flops": 117440512,
+   "min_bytes": 117477376,
+   "intensity": 0.999686203409923,
+   "m": 1,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b1",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 124.92799758911133,
+    "min_us": 122.8799968957901,
+    "p90_us": 125.95200538635254,
+    "n": 50,
+    "tflops": 0.9400655919120893,
+    "gbps": 940.3606738849969
+   },
+   "unflushed": {
+    "median_us": 108.5439994931221,
+    "min_us": 107.51999914646149,
+    "p90_us": 109.56799983978271,
+    "n": 50,
+    "tflops": 1.0819622692034823,
+    "gbps": 1082.3018918465773
+   },
+   "graph_unflushed": {
+    "median_us": 103.23967933654785,
+    "min_us": 103.15775871276855,
+    "n": 250,
+    "tflops": 1.1375520803116725,
+    "gbps": 1137.909152323489
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.394999999999996,
+    "power_w_max": 51.53,
+    "temp_c": 39.5
+   }
+  },
+  {
+   "name": "gemm_1_4096_14336",
+   "flops": 117440512,
+   "min_bytes": 117477376,
+   "intensity": 0.999686203409923,
+   "m": 1,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b1",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 118.78400295972824,
+    "min_us": 111.61600053310394,
+    "p90_us": 120.83200365304947,
+    "n": 50,
+    "tflops": 0.9886896305373398,
+    "gbps": 988.9999753571933
+   },
+   "unflushed": {
+    "median_us": 101.3759970664978,
+    "min_us": 94.2080020904541,
+    "p90_us": 103.42399775981903,
+    "n": 50,
+    "tflops": 1.158464679986966,
+    "gbps": 1158.8283163611252
+   },
+   "graph_unflushed": {
+    "median_us": 97.32095718383789,
+    "min_us": 97.21856117248535,
+    "n": 250,
+    "tflops": 1.2067340416530896,
+    "gbps": 1207.1128295428384
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 126.35,
+    "power_w_max": 126.35,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_1_4096_14336_linear",
+   "flops": 117440512,
+   "min_bytes": 117477376,
+   "intensity": 0.999686203409923,
+   "m": 1,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b1",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 116.73600226640701,
+    "min_us": 114.68800157308578,
+    "p90_us": 117.76000261306763,
+    "n": 50,
+    "tflops": 1.0060350681873207,
+    "gbps": 1006.3508576548738
+   },
+   "unflushed": {
+    "median_us": 98.30400347709656,
+    "min_us": 97.28000313043594,
+    "p90_us": 100.35199671983719,
+    "n": 50,
+    "tflops": 1.1946666244102864,
+    "gbps": 1195.0416243970224
+   },
+   "graph_unflushed": {
+    "median_us": 93.10208320617676,
+    "min_us": 93.10208320617676,
+    "n": 250,
+    "tflops": 1.2614165865647198,
+    "gbps": 1261.812539036786
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.715,
+    "power_w_max": 52.12,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_8_6144_4096",
+   "flops": 402653184,
+   "min_bytes": 50495488,
+   "intensity": 7.974042829331603,
+   "m": 8,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b8",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 69.63200122117996,
+    "min_us": 66.56000018119812,
+    "p90_us": 71.68000191450119,
+    "n": 50,
+    "tflops": 5.782588133881251,
+    "gbps": 725.1764578703619
+   },
+   "unflushed": {
+    "median_us": 54.27199974656105,
+    "min_us": 52.22399905323982,
+    "p90_us": 55.296000093221664,
+    "n": 50,
+    "tflops": 7.419169845966735,
+    "gbps": 930.4150986844676
+   },
+   "graph_unflushed": {
+    "median_us": 47.5545597076416,
+    "min_us": 47.41119861602783,
+    "n": 250,
+    "tflops": 8.46718351458729,
+    "gbps": 1061.8432451154797
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 75.69,
+    "power_w_max": 75.69,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_8_6144_4096_linear",
+   "flops": 402653184,
+   "min_bytes": 50495488,
+   "intensity": 7.974042829331603,
+   "m": 8,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b8",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 63.48799914121628,
+    "min_us": 62.463998794555664,
+    "p90_us": 65.5359998345375,
+    "n": 50,
+    "tflops": 6.342193634176106,
+    "gbps": 795.3548494682113
+   },
+   "unflushed": {
+    "median_us": 48.128001391887665,
+    "min_us": 46.08000069856644,
+    "p90_us": 49.15200173854828,
+    "n": 50,
+    "tflops": 8.366297630382595,
+    "gbps": 1049.1914590185204
+   },
+   "graph_unflushed": {
+    "median_us": 42.5984001159668,
+    "min_us": 42.495999336242676,
+    "n": 250,
+    "tflops": 9.452307666575415,
+    "gbps": 1185.3846121576103
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.26,
+    "power_w_max": 51.26,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "bmm_64_4_2048_128",
+   "flops": 134217728,
+   "min_bytes": 34668544,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 2048,
+   "k": 128,
+   "batch": 64,
+   "weight": false,
+   "phase": "decode_b8",
+   "op": "attn_score",
+   "flushed": {
+    "median_us": 52.22399905323982,
+    "min_us": 50.175998359918594,
+    "p90_us": 53.247999399900436,
+    "n": 50,
+    "tflops": 2.5700392622780877,
+    "gbps": 663.8431492896036
+   },
+   "unflushed": {
+    "median_us": 38.91199827194214,
+    "min_us": 37.88800165057182,
+    "p90_us": 40.95999896526337,
+    "n": 50,
+    "tflops": 3.4492633110743878,
+    "gbps": 890.9474079874763
+   },
+   "graph_unflushed": {
+    "median_us": 35.041279792785645,
+    "min_us": 35.02079963684082,
+    "n": 250,
+    "tflops": 3.8302747158119765,
+    "gbps": 989.3629514963553
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 89.07,
+    "power_w_max": 89.07,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "bmm_64_4_128_2048",
+   "flops": 134217728,
+   "min_bytes": 34668544,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 128,
+   "k": 2048,
+   "batch": 64,
+   "weight": false,
+   "phase": "decode_b8",
+   "op": "attn_av",
+   "flushed": {
+    "median_us": 50.175998359918594,
+    "min_us": 48.128001391887665,
+    "p90_us": 52.22399905323982,
+    "n": 50,
+    "tflops": 2.674938862944784,
+    "gbps": 690.9387980946244
+   },
+   "unflushed": {
+    "median_us": 33.79200026392937,
+    "min_us": 32.76799991726875,
+    "p90_us": 35.840000957250595,
+    "n": 50,
+    "tflops": 3.971878756856787,
+    "gbps": 1025.9393859263869
+   },
+   "graph_unflushed": {
+    "median_us": 28.85632038116455,
+    "min_us": 28.774399757385254,
+    "n": 250,
+    "tflops": 4.651241954175426,
+    "gbps": 1201.4194305462893
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 50.96,
+    "power_w_max": 50.99,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_4096_4096",
+   "flops": 268435456,
+   "min_bytes": 33685504,
+   "intensity": 7.968871595330739,
+   "m": 8,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b8",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 49.15200173854828,
+    "min_us": 47.10400104522705,
+    "p90_us": 51.19999870657921,
+    "n": 50,
+    "tflops": 5.461333140161309,
+    "gbps": 685.3333090925081
+   },
+   "unflushed": {
+    "median_us": 29.69600073993206,
+    "min_us": 28.672000393271446,
+    "p90_us": 30.719999223947525,
+    "n": 50,
+    "tflops": 9.039448050627106,
+    "gbps": 1134.3447993218588
+   },
+   "graph_unflushed": {
+    "median_us": 23.797760009765625,
+    "min_us": 23.7772798538208,
+    "n": 250,
+    "tflops": 11.279862301739538,
+    "gbps": 1415.4905329819633
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 63.77,
+    "power_w_max": 63.77,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_4096_4096_linear",
+   "flops": 268435456,
+   "min_bytes": 33685504,
+   "intensity": 7.968871595330739,
+   "m": 8,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b8",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 48.128001391887665,
+    "min_us": 47.10400104522705,
+    "p90_us": 49.15200173854828,
+    "n": 50,
+    "tflops": 5.5775317535883975,
+    "gbps": 699.9148733751064
+   },
+   "unflushed": {
+    "median_us": 30.719999223947525,
+    "min_us": 29.69600073993206,
+    "p90_us": 31.74399957060814,
+    "n": 50,
+    "tflops": 8.738133554077153,
+    "gbps": 1096.533361034096
+   },
+   "graph_unflushed": {
+    "median_us": 24.698879718780518,
+    "min_us": 24.637439250946045,
+    "n": 250,
+    "tflops": 10.868325165205254,
+    "gbps": 1363.84744504773
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 50.93,
+    "power_w_max": 50.93,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_14336_4096",
+   "flops": 939524096,
+   "min_bytes": 117735424,
+   "intensity": 7.979961035346507,
+   "m": 8,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b8",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 115.7120019197464,
+    "min_us": 109.56799983978271,
+    "p90_us": 117.76000261306763,
+    "n": 50,
+    "tflops": 8.11950429007027,
+    "gbps": 1017.4867087828709
+   },
+   "unflushed": {
+    "median_us": 99.32799637317657,
+    "min_us": 90.11200070381165,
+    "p90_us": 101.3759970664978,
+    "n": 50,
+    "tflops": 9.458804469086397,
+    "gbps": 1185.3196309091595
+   },
+   "graph_unflushed": {
+    "median_us": 94.06463623046875,
+    "min_us": 94.00320053100586,
+    "n": 250,
+    "tflops": 9.988069200608635,
+    "gbps": 1251.6438559495962
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 59.245000000000005,
+    "power_w_max": 67.56,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_14336_4096_linear",
+   "flops": 939524096,
+   "min_bytes": 117735424,
+   "intensity": 7.979961035346507,
+   "m": 8,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b8",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 126.97599828243256,
+    "min_us": 124.92799758911133,
+    "p90_us": 128.00000607967377,
+    "n": 50,
+    "tflops": 7.399225906538791,
+    "gbps": 927.2258189939271
+   },
+   "unflushed": {
+    "median_us": 111.61600053310394,
+    "min_us": 110.59200018644333,
+    "p90_us": 112.64000087976456,
+    "n": 50,
+    "tflops": 8.417467849704476,
+    "gbps": 1054.825683035302
+   },
+   "graph_unflushed": {
+    "median_us": 106.55743598937988,
+    "min_us": 106.47551536560059,
+    "n": 250,
+    "tflops": 8.817067408544236,
+    "gbps": 1104.9010602294725
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 50.96,
+    "power_w_max": 50.99,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_4096_14336",
+   "flops": 939524096,
+   "min_bytes": 117735424,
+   "intensity": 7.979961035346507,
+   "m": 8,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b8",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 118.78400295972824,
+    "min_us": 113.66400122642517,
+    "p90_us": 120.83200365304947,
+    "n": 50,
+    "tflops": 7.909517044298719,
+    "gbps": 991.172389096167
+   },
+   "unflushed": {
+    "median_us": 101.3759970664978,
+    "min_us": 95.23200243711472,
+    "p90_us": 103.42399775981903,
+    "n": 50,
+    "tflops": 9.267717439895728,
+    "gbps": 1161.373770980237
+   },
+   "graph_unflushed": {
+    "median_us": 94.90431785583496,
+    "min_us": 94.80192184448242,
+    "n": 250,
+    "tflops": 9.899698108859392,
+    "gbps": 1240.5697302292062
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 162.22,
+    "power_w_max": 162.22,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_8_4096_14336_linear",
+   "flops": 939524096,
+   "min_bytes": 117735424,
+   "intensity": 7.979961035346507,
+   "m": 8,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b8",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 116.73600226640701,
+    "min_us": 114.68800157308578,
+    "p90_us": 117.76000261306763,
+    "n": 50,
+    "tflops": 8.048280545498566,
+    "gbps": 1008.5613839277464
+   },
+   "unflushed": {
+    "median_us": 99.32799637317657,
+    "min_us": 98.30400347709656,
+    "p90_us": 100.35199671983719,
+    "n": 50,
+    "tflops": 9.458804469086397,
+    "gbps": 1185.3196309091595
+   },
+   "graph_unflushed": {
+    "median_us": 93.77792358398438,
+    "min_us": 93.73696327209473,
+    "n": 250,
+    "tflops": 10.018606299792868,
+    "gbps": 1255.4705787931002
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 50.93,
+    "power_w_max": 50.93,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_8_128256_4096",
+   "flops": 8405385216,
+   "min_bytes": 1052790784,
+   "intensity": 7.983908430566201,
+   "m": 8,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b8",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 799.7440099716187,
+    "min_us": 794.6239709854126,
+    "p90_us": 803.8399815559387,
+    "n": 50,
+    "tflops": 10.510094619274849,
+    "gbps": 1316.4097147002844
+   },
+   "unflushed": {
+    "median_us": 783.3600044250488,
+    "min_us": 779.263973236084,
+    "p90_us": 787.4559760093689,
+    "n": 50,
+    "tflops": 10.729913664878993,
+    "gbps": 1343.94247606846
+   },
+   "graph_unflushed": {
+    "median_us": 779.4483184814453,
+    "min_us": 767.9180908203125,
+    "n": 250,
+    "tflops": 10.783762074662926,
+    "gbps": 1350.6870937268711
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 151.97,
+    "power_w_max": 187.84,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_8_128256_4096_linear",
+   "flops": 8405385216,
+   "min_bytes": 1052790784,
+   "intensity": 7.983908430566201,
+   "m": 8,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b8",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 753.6640167236328,
+    "min_us": 751.6160011291504,
+    "p90_us": 755.7119727134705,
+    "n": 50,
+    "tflops": 11.152695404698138,
+    "gbps": 1396.8967081336143
+   },
+   "unflushed": {
+    "median_us": 737.280011177063,
+    "min_us": 732.1599721908569,
+    "p90_us": 740.3519749641418,
+    "n": 50,
+    "tflops": 11.400533160502825,
+    "gbps": 1427.9388672415328
+   },
+   "graph_unflushed": {
+    "median_us": 733.2454681396484,
+    "min_us": 732.8972625732422,
+    "n": 250,
+    "tflops": 11.463262415144138,
+    "gbps": 1435.7958279252446
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 225.43,
+    "power_w_max": 288.26,
+    "temp_c": 42.0
+   }
+  },
+  {
+   "name": "gemm_32_6144_4096",
+   "flops": 1610612736,
+   "min_bytes": 50987008,
+   "intensity": 31.588688946015424,
+   "m": 32,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b32",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 62.97599896788597,
+    "min_us": 60.416001826524734,
+    "p90_us": 64.51199948787689,
+    "n": 50,
+    "tflops": 25.575024809393135,
+    "gbps": 809.6260295291283
+   },
+   "unflushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 43.007999658584595,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 34.19269489344579,
+    "gbps": 1082.4347585897144
+   },
+   "graph_unflushed": {
+    "median_us": 42.5164794921875,
+    "min_us": 42.47551918029785,
+    "n": 250,
+    "tflops": 37.88208137731521,
+    "gbps": 1199.2293014140314
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 149.37,
+    "power_w_max": 149.37,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_32_6144_4096_linear",
+   "flops": 1610612736,
+   "min_bytes": 50987008,
+   "intensity": 31.588688946015424,
+   "m": 32,
+   "n": 6144,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b32",
+   "op": "qkv",
+   "flushed": {
+    "median_us": 62.463998794555664,
+    "min_us": 60.416001826524734,
+    "p90_us": 63.48799914121628,
+    "n": 50,
+    "tflops": 25.784656235303018,
+    "gbps": 816.2623108343811
+   },
+   "unflushed": {
+    "median_us": 46.08000069856644,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 34.95253280345776,
+    "gbps": 1106.4888721146704
+   },
+   "graph_unflushed": {
+    "median_us": 42.41407871246338,
+    "min_us": 42.41407871246338,
+    "n": 250,
+    "tflops": 37.97354050570764,
+    "gbps": 1202.1246139909074
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.37,
+    "power_w_max": 66.37,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "bmm_256_4_2048_128",
+   "flops": 536870912,
+   "min_bytes": 138674176,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 2048,
+   "k": 128,
+   "batch": 256,
+   "weight": false,
+   "phase": "decode_b32",
+   "op": "attn_score",
+   "flushed": {
+    "median_us": 135.16800105571747,
+    "min_us": 133.12000036239624,
+    "p90_us": 136.19199395179749,
+    "n": 50,
+    "tflops": 3.971878756856787,
+    "gbps": 1025.9393859263869
+   },
+   "unflushed": {
+    "median_us": 123.90399724245071,
+    "min_us": 122.8799968957901,
+    "p90_us": 124.92799758911133,
+    "n": 50,
+    "tflops": 4.332958774118247,
+    "gbps": 1119.2066364787856
+   },
+   "graph_unflushed": {
+    "median_us": 119.50079917907715,
+    "min_us": 119.39840316772461,
+    "n": 250,
+    "tflops": 4.492613569851324,
+    "gbps": 1160.4455949469486
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 349.6,
+    "power_w_max": 349.6,
+    "temp_c": 43.0
+   }
+  },
+  {
+   "name": "bmm_256_4_128_2048",
+   "flops": 536870912,
+   "min_bytes": 138674176,
+   "intensity": 3.8714555765595464,
+   "m": 4,
+   "n": 128,
+   "k": 2048,
+   "batch": 256,
+   "weight": false,
+   "phase": "decode_b32",
+   "op": "attn_av",
+   "flushed": {
+    "median_us": 133.12000036239624,
+    "min_us": 130.048006772995,
+    "p90_us": 134.14399325847626,
+    "n": 50,
+    "tflops": 4.03298460440551,
+    "gbps": 1041.7230740871655
+   },
+   "unflushed": {
+    "median_us": 114.17600139975548,
+    "min_us": 111.61600053310394,
+    "p90_us": 115.7120019197464,
+    "n": 50,
+    "tflops": 4.702134471501554,
+    "gbps": 1214.5650075314074
+   },
+   "graph_unflushed": {
+    "median_us": 109.5680046081543,
+    "min_us": 109.3836784362793,
+    "n": 250,
+    "tflops": 4.899887644390349,
+    "gbps": 1265.6448065832492
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.8,
+    "power_w_max": 66.96,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_32_4096_4096",
+   "flops": 1073741824,
+   "min_bytes": 34078720,
+   "intensity": 31.50769230769231,
+   "m": 32,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b32",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 45.05600035190582,
+    "p90_us": 49.15200173854828,
+    "n": 50,
+    "tflops": 22.79512992896386,
+    "gbps": 723.4782448157475
+   },
+   "unflushed": {
+    "median_us": 28.672000393271446,
+    "min_us": 26.623999699950218,
+    "p90_us": 29.69600073993206,
+    "n": 50,
+    "tflops": 37.449142343482194,
+    "gbps": 1188.5714122687223
+   },
+   "graph_unflushed": {
+    "median_us": 23.7772798538208,
+    "min_us": 23.592960834503174,
+    "n": 250,
+    "tflops": 45.15831207779889,
+    "gbps": 1433.247209500453
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 168.88,
+    "power_w_max": 168.88,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_32_4096_4096_linear",
+   "flops": 1073741824,
+   "min_bytes": 34078720,
+   "intensity": 31.50769230769231,
+   "m": 32,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b32",
+   "op": "o_proj",
+   "flushed": {
+    "median_us": 49.15200173854828,
+    "min_us": 47.10400104522705,
+    "p90_us": 50.175998359918594,
+    "n": 50,
+    "tflops": 21.845332560645236,
+    "gbps": 693.3333088095412
+   },
+   "unflushed": {
+    "median_us": 34.81600061058998,
+    "min_us": 33.79200026392937,
+    "p90_us": 35.840000957250595,
+    "n": 50,
+    "tflops": 30.840470047366672,
+    "gbps": 978.8235122455242
+   },
+   "graph_unflushed": {
+    "median_us": 28.50816011428833,
+    "min_us": 28.487679958343506,
+    "n": 250,
+    "tflops": 37.66436766509667,
+    "gbps": 1195.402294058244
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1252.5,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 58.67999999999999,
+    "power_w_max": 66.1,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_32_14336_4096",
+   "flops": 3758096384,
+   "min_bytes": 118620160,
+   "intensity": 31.681767955801106,
+   "m": 32,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b32",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 138.2399946451187,
+    "min_us": 135.16800105571747,
+    "p90_us": 140.28799533843994,
+    "n": 50,
+    "tflops": 27.185304756756942,
+    "gbps": 858.074107312536
+   },
+   "unflushed": {
+    "median_us": 121.85599654912949,
+    "min_us": 119.80800330638885,
+    "p90_us": 123.90399724245071,
+    "n": 50,
+    "tflops": 30.84047146161431,
+    "gbps": 973.4454057185042
+   },
+   "graph_unflushed": {
+    "median_us": 116.87935829162598,
+    "min_us": 116.71551704406738,
+    "n": 250,
+    "tflops": 32.15363635572985,
+    "gbps": 1014.8940046713
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 164.55,
+    "power_w_max": 164.55,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_32_14336_4096_linear",
+   "flops": 3758096384,
+   "min_bytes": 118620160,
+   "intensity": 31.681767955801106,
+   "m": 32,
+   "n": 14336,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b32",
+   "op": "ffn_gate_up",
+   "flushed": {
+    "median_us": 136.19199395179749,
+    "min_us": 134.14399325847626,
+    "p90_us": 137.2160017490387,
+    "n": 50,
+    "tflops": 27.594106488595102,
+    "gbps": 870.977482288594
+   },
+   "unflushed": {
+    "median_us": 121.85599654912949,
+    "min_us": 119.80800330638885,
+    "p90_us": 122.8799968957901,
+    "n": 50,
+    "tflops": 30.84047146161431,
+    "gbps": 973.4454057185042
+   },
+   "graph_unflushed": {
+    "median_us": 116.12159729003906,
+    "min_us": 116.01920127868652,
+    "n": 250,
+    "tflops": 32.36345754539815,
+    "gbps": 1021.5167786894993
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.230000000000004,
+    "power_w_max": 51.53,
+    "temp_c": 38.5
+   }
+  },
+  {
+   "name": "gemm_32_4096_14336",
+   "flops": 3758096384,
+   "min_bytes": 118620160,
+   "intensity": 31.681767955801106,
+   "m": 32,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b32",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 118.78400295972824,
+    "min_us": 114.68800157308578,
+    "p90_us": 120.83200365304947,
+    "n": 50,
+    "tflops": 31.638068177194874,
+    "gbps": 998.6206647726481
+   },
+   "unflushed": {
+    "median_us": 102.39999741315842,
+    "min_us": 98.30400347709656,
+    "p90_us": 104.44799810647964,
+    "n": 50,
+    "tflops": 36.700160927124045,
+    "gbps": 1158.400029263646
+   },
+   "graph_unflushed": {
+    "median_us": 96.13311767578125,
+    "min_us": 96.07168197631836,
+    "n": 250,
+    "tflops": 39.09262983308794,
+    "gbps": 1233.915666815869
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 115.29,
+    "power_w_max": 115.29,
+    "temp_c": 39.0
+   }
+  },
+  {
+   "name": "gemm_32_4096_14336_linear",
+   "flops": 3758096384,
+   "min_bytes": 118620160,
+   "intensity": 31.681767955801106,
+   "m": 32,
+   "n": 4096,
+   "k": 14336,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b32",
+   "op": "ffn_down",
+   "flushed": {
+    "median_us": 123.90399724245071,
+    "min_us": 121.85599654912949,
+    "p90_us": 124.92799758911133,
+    "n": 50,
+    "tflops": 30.330711418827736,
+    "gbps": 957.3553932072789
+   },
+   "unflushed": {
+    "median_us": 110.59200018644333,
+    "min_us": 109.56799983978271,
+    "p90_us": 111.61600053310394,
+    "n": 50,
+    "tflops": 33.98162957234114,
+    "gbps": 1072.5925907843448
+   },
+   "graph_unflushed": {
+    "median_us": 103.07583808898926,
+    "min_us": 103.01440238952637,
+    "n": 250,
+    "tflops": 36.45952779695561,
+    "gbps": 1150.8047103880033
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 52.965,
+    "power_w_max": 55.0,
+    "temp_c": 38.0
+   }
+  },
+  {
+   "name": "gemm_32_128256_4096",
+   "flops": 33621540864,
+   "min_bytes": 1059143680,
+   "intensity": 31.744079201794417,
+   "m": 32,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "decode_b32",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 787.4559760093689,
+    "min_us": 782.3359966278076,
+    "p90_us": 790.5279994010925,
+    "n": 50,
+    "tflops": 42.69640702250507,
+    "gbps": 1345.0195468291151
+   },
+   "unflushed": {
+    "median_us": 773.1199860572815,
+    "min_us": 769.0240144729614,
+    "p90_us": 774.1439938545227,
+    "n": 50,
+    "tflops": 43.488127936598104,
+    "gbps": 1369.960289607009
+   },
+   "graph_unflushed": {
+    "median_us": 760.3404998779297,
+    "min_us": 759.1526031494141,
+    "n": 250,
+    "tflops": 44.219058263235794,
+    "gbps": 1392.9860110964
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 73.09,
+    "power_w_max": 203.62,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_32_128256_4096_linear",
+   "flops": 33621540864,
+   "min_bytes": 1059143680,
+   "intensity": 31.744079201794417,
+   "m": 32,
+   "n": 128256,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "decode_b32",
+   "op": "lm_head",
+   "flushed": {
+    "median_us": 783.3600044250488,
+    "min_us": 778.2400250434875,
+    "p90_us": 789.5039916038513,
+    "n": 50,
+    "tflops": 42.91965465951597,
+    "gbps": 1352.052279944218
+   },
+   "unflushed": {
+    "median_us": 770.0480222702026,
+    "min_us": 762.8800272941589,
+    "p90_us": 776.1920094490051,
+    "n": 50,
+    "tflops": 43.661615758559165,
+    "gbps": 1375.425492136848
+   },
+   "graph_unflushed": {
+    "median_us": 768.2252502441406,
+    "min_us": 767.9385375976562,
+    "n": 250,
+    "tflops": 43.76521190017529,
+    "gbps": 1378.688971318511
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 72.5,
+    "power_w_max": 292.38,
+    "temp_c": 43.0
+   }
+  },
+  {
+   "name": "gemm_1024_1024_1024",
+   "flops": 2147483648,
+   "min_bytes": 6291456,
+   "intensity": 341.3333333333333,
+   "m": 1024,
+   "n": 1024,
+   "k": 1024,
+   "batch": 1,
+   "weight": true,
+   "phase": "smoke",
+   "op": "gemm_1024",
+   "flushed": {
+    "median_us": 23.04000034928322,
+    "min_us": 22.52800017595291,
+    "p90_us": 23.552000522613525,
+    "n": 50,
+    "tflops": 93.20675414255403,
+    "gbps": 273.06666252701376
+   },
+   "unflushed": {
+    "median_us": 22.52800017595291,
+    "min_us": 21.503999829292297,
+    "p90_us": 22.52800017595291,
+    "n": 50,
+    "tflops": 95.3250901645629,
+    "gbps": 279.2727250914929
+   },
+   "graph_unflushed": {
+    "median_us": 17.592320442199707,
+    "min_us": 17.55136013031006,
+    "n": 250,
+    "tflops": 122.06937993516237,
+    "gbps": 357.6251365287961
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.96,
+    "power_w_max": 66.96,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_1024_1024_1024_linear",
+   "flops": 2147483648,
+   "min_bytes": 6291456,
+   "intensity": 341.3333333333333,
+   "m": 1024,
+   "n": 1024,
+   "k": 1024,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "smoke",
+   "op": "gemm_1024",
+   "flushed": {
+    "median_us": 23.552000522613525,
+    "min_us": 22.52800017595291,
+    "p90_us": 23.552000522613525,
+    "n": 50,
+    "tflops": 91.18051971585544,
+    "gbps": 267.13042885504524
+   },
+   "unflushed": {
+    "median_us": 22.52800017595291,
+    "min_us": 21.503999829292297,
+    "p90_us": 22.52800017595291,
+    "n": 50,
+    "tflops": 95.3250901645629,
+    "gbps": 279.2727250914929
+   },
+   "graph_unflushed": {
+    "median_us": 17.653759717941284,
+    "min_us": 17.63327956199646,
+    "n": 250,
+    "tflops": 121.64454950735171,
+    "gbps": 356.38051613481946
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 66.64,
+    "power_w_max": 66.64,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_16_8192_8192",
+   "flops": 2147483648,
+   "min_bytes": 134742016,
+   "intensity": 15.937743190661479,
+   "m": 16,
+   "n": 8192,
+   "k": 8192,
+   "batch": 1,
+   "weight": true,
+   "phase": "smoke",
+   "op": "gemm_16_8192",
+   "flushed": {
+    "median_us": 123.90399724245071,
+    "min_us": 115.7120019197464,
+    "p90_us": 125.95200538635254,
+    "n": 50,
+    "tflops": 17.33183509647299,
+    "gbps": 1087.471098582412
+   },
+   "unflushed": {
+    "median_us": 106.49599879980087,
+    "min_us": 99.32799637317657,
+    "p90_us": 110.59200018644333,
+    "n": 50,
+    "tflops": 20.16492330417972,
+    "gbps": 1265.230783489792
+   },
+   "graph_unflushed": {
+    "median_us": 103.46495628356934,
+    "min_us": 103.34207534790039,
+    "n": 250,
+    "tflops": 20.75566186984442,
+    "gbps": 1302.2961671264688
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 217.31,
+    "power_w_max": 217.31,
+    "temp_c": 42.0
+   }
+  },
+  {
+   "name": "gemm_16_8192_8192_linear",
+   "flops": 2147483648,
+   "min_bytes": 134742016,
+   "intensity": 15.937743190661479,
+   "m": 16,
+   "n": 8192,
+   "k": 8192,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "smoke",
+   "op": "gemm_16_8192",
+   "flushed": {
+    "median_us": 130.048006772995,
+    "min_us": 128.00000607967377,
+    "p90_us": 131.071999669075,
+    "n": 50,
+    "tflops": 16.51300701400626,
+    "gbps": 1036.0944342284201
+   },
+   "unflushed": {
+    "median_us": 112.64000087976456,
+    "min_us": 110.59200018644333,
+    "p90_us": 114.68800157308578,
+    "n": 50,
+    "tflops": 19.06501803291258,
+    "gbps": 1196.2181724752277
+   },
+   "graph_unflushed": {
+    "median_us": 109.67040061950684,
+    "min_us": 109.4041633605957,
+    "n": 250,
+    "tflops": 19.581251056522827,
+    "gbps": 1228.608769903898
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 67.235,
+    "power_w_max": 68.1,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_4096_4096_4096",
+   "flops": 137438953472,
+   "min_bytes": 100663296,
+   "intensity": 1365.3333333333333,
+   "m": 4096,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "phase": "gemm",
+   "op": "gemm_4096_4096_4096",
+   "flushed": {
+    "median_us": 512.0000243186951,
+    "min_us": 510.97601652145386,
+    "p90_us": 512.0000243186951,
+    "n": 50,
+    "tflops": 268.4354432500006,
+    "gbps": 196.60799066162153
+   },
+   "unflushed": {
+    "median_us": 512.0000243186951,
+    "min_us": 509.95200872421265,
+    "p90_us": 522.2399830818176,
+    "n": 50,
+    "tflops": 268.4354432500006,
+    "gbps": 196.60799066162153
+   },
+   "graph_unflushed": {
+    "median_us": 533.8111877441406,
+    "min_us": 530.5344009399414,
+    "n": 250,
+    "tflops": 257.4673529283081,
+    "gbps": 188.57472138303817
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1372.5,
+    "sm_mhz_min": 1335.0,
+    "mem_mhz": 1215.0,
+    "power_w": 307.1,
+    "power_w_max": 408.91,
+    "temp_c": 47.0
+   }
+  },
+  {
+   "name": "gemm_4096_4096_4096_linear",
+   "flops": 137438953472,
+   "min_bytes": 100663296,
+   "intensity": 1365.3333333333333,
+   "m": 4096,
+   "n": 4096,
+   "k": 4096,
+   "batch": 1,
+   "weight": true,
+   "linear": true,
+   "phase": "gemm",
+   "op": "gemm_4096_4096_4096",
+   "flushed": {
+    "median_us": 514.0479803085327,
+    "min_us": 512.0000243186951,
+    "p90_us": 517.1200037002563,
+    "n": 50,
+    "tflops": 267.3660022737738,
+    "gbps": 195.82470869661168
+   },
+   "unflushed": {
+    "median_us": 513.0239725112915,
+    "min_us": 512.0000243186951,
+    "p90_us": 514.0479803085327,
+    "n": 50,
+    "tflops": 267.899671041152,
+    "gbps": 196.21557937584376
+   },
+   "graph_unflushed": {
+    "median_us": 535.7567977905273,
+    "min_us": 535.654411315918,
+    "n": 250,
+    "tflops": 256.53235579800617,
+    "gbps": 187.8899090317428
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1395.0,
+    "sm_mhz_min": 1335.0,
+    "mem_mhz": 1215.0,
+    "power_w": 69.29,
+    "power_w_max": 420.21,
+    "temp_c": 48.0
+   }
+  }
+ ],
+ "sweep": [
+  {
+   "name": "gemm_256_256_256",
+   "flops": 33554432,
+   "min_bytes": 393216,
+   "intensity": 85.33333333333333,
+   "m": 256,
+   "n": 256,
+   "k": 256,
+   "flushed": {
+    "median_us": 10.239999741315842,
+    "min_us": 9.216000325977802,
+    "p90_us": 11.264000087976456,
+    "n": 50,
+    "tflops": 3.2768000827789323,
+    "gbps": 38.40000097006561
+   },
+   "unflushed": {
+    "median_us": 9.216000325977802,
+    "min_us": 9.216000325977802,
+    "p90_us": 10.239999741315842,
+    "n": 50,
+    "tflops": 3.6408887601075395,
+    "gbps": 42.66666515751023
+   },
+   "graph_unflushed": {
+    "median_us": 4.894720017910004,
+    "min_us": 4.874239861965179,
+    "n": 250,
+    "tflops": 6.855230100439414,
+    "gbps": 80.33472773952437
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 82.09,
+    "power_w_max": 82.09,
+    "temp_c": 43.0
+   }
+  },
+  {
+   "name": "gemm_512_512_512",
+   "flops": 268435456,
+   "min_bytes": 1572864,
+   "intensity": 170.66666666666666,
+   "m": 512,
+   "n": 512,
+   "k": 512,
+   "flushed": {
+    "median_us": 11.264000087976456,
+    "min_us": 10.239999741315842,
+    "p90_us": 12.28800043463707,
+    "n": 50,
+    "tflops": 23.831272541140724,
+    "gbps": 139.63636254574644
+   },
+   "unflushed": {
+    "median_us": 11.264000087976456,
+    "min_us": 10.239999741315842,
+    "p90_us": 11.264000087976456,
+    "n": 50,
+    "tflops": 23.831272541140724,
+    "gbps": 139.63636254574644
+   },
+   "graph_unflushed": {
+    "median_us": 6.307839751243591,
+    "min_us": 6.287360191345215,
+    "n": 250,
+    "tflops": 42.5558458340794,
+    "gbps": 249.35065918405894
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 67.695,
+    "power_w_max": 67.83,
+    "temp_c": 41.5
+   }
+  },
+  {
+   "name": "gemm_1024_1024_1024",
+   "flops": 2147483648,
+   "min_bytes": 6291456,
+   "intensity": 341.3333333333333,
+   "m": 1024,
+   "n": 1024,
+   "k": 1024,
+   "flushed": {
+    "median_us": 23.552000522613525,
+    "min_us": 22.52800017595291,
+    "p90_us": 23.552000522613525,
+    "n": 50,
+    "tflops": 91.18051971585544,
+    "gbps": 267.13042885504524
+   },
+   "unflushed": {
+    "median_us": 22.52800017595291,
+    "min_us": 21.503999829292297,
+    "p90_us": 22.52800017595291,
+    "n": 50,
+    "tflops": 95.3250901645629,
+    "gbps": 279.2727250914929
+   },
+   "graph_unflushed": {
+    "median_us": 17.592320442199707,
+    "min_us": 17.55136013031006,
+    "n": 250,
+    "tflops": 122.06937993516237,
+    "gbps": 357.6251365287961
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 67.56,
+    "power_w_max": 67.56,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_2048_2048_2048",
+   "flops": 17179869184,
+   "min_bytes": 25165824,
+   "intensity": 682.6666666666666,
+   "m": 2048,
+   "n": 2048,
+   "k": 2048,
+   "flushed": {
+    "median_us": 111.61600053310394,
+    "min_us": 110.59200018644333,
+    "p90_us": 112.64000087976456,
+    "n": 50,
+    "tflops": 153.91941210888183,
+    "gbps": 225.46788883136986
+   },
+   "unflushed": {
+    "median_us": 110.59200018644333,
+    "min_us": 109.56799983978271,
+    "p90_us": 111.61600053310394,
+    "n": 50,
+    "tflops": 155.34459233070237,
+    "gbps": 227.55555517192732
+   },
+   "graph_unflushed": {
+    "median_us": 105.75872421264648,
+    "min_us": 105.69727897644043,
+    "n": 250,
+    "tflops": 162.44399043105753,
+    "gbps": 237.95506410799447
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 70.595,
+    "power_w_max": 74.23,
+    "temp_c": 40.5
+   }
+  },
+  {
+   "name": "gemm_4096_4096_4096",
+   "flops": 137438953472,
+   "min_bytes": 100663296,
+   "intensity": 1365.3333333333333,
+   "m": 4096,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 512.0000243186951,
+    "min_us": 510.97601652145386,
+    "p90_us": 513.0239725112915,
+    "n": 50,
+    "tflops": 268.4354432500006,
+    "gbps": 196.60799066162153
+   },
+   "unflushed": {
+    "median_us": 510.97601652145386,
+    "min_us": 509.95200872421265,
+    "p90_us": 521.2159752845764,
+    "n": 50,
+    "tflops": 268.9733941088593,
+    "gbps": 197.0019976383247
+   },
+   "graph_unflushed": {
+    "median_us": 533.8931274414062,
+    "min_us": 530.6777572631836,
+    "n": 250,
+    "tflops": 257.4278379095331,
+    "gbps": 188.54577971889628
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1380.0,
+    "sm_mhz_min": 1380.0,
+    "mem_mhz": 1215.0,
+    "power_w": 236.32,
+    "power_w_max": 405.4,
+    "temp_c": 50.0
+   }
+  },
+  {
+   "name": "gemm_8192_8192_8192",
+   "flops": 1099511627776,
+   "min_bytes": 402653184,
+   "intensity": 2730.6666666666665,
+   "m": 8192,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 4002.3040771484375,
+    "min_us": 3787.775993347168,
+    "p90_us": 4004.86421585083,
+    "n": 50,
+    "tflops": 274.71966311949495,
+    "gbps": 100.60534538067444
+   },
+   "unflushed": {
+    "median_us": 4004.86421585083,
+    "min_us": 3956.7360877990723,
+    "p90_us": 4049.920082092285,
+    "n": 50,
+    "tflops": 274.54404656823294,
+    "gbps": 100.54103267879624
+   },
+   "graph_unflushed": {
+    "median_us": 4045.6600952148438,
+    "min_us": 4045.5374145507812,
+    "n": 250,
+    "tflops": 271.7755822038754,
+    "gbps": 99.52719074848952
+   },
+   "clock": {
+    "n": 10,
+    "sm_mhz": 1290.0,
+    "sm_mhz_min": 1215.0,
+    "mem_mhz": 1215.0,
+    "power_w": 401.04499999999996,
+    "power_w_max": 442.33,
+    "temp_c": 59.5
+   }
+  },
+  {
+   "name": "gemm_1_4096_4096",
+   "flops": 33554432,
+   "min_bytes": 33570816,
+   "intensity": 0.9995119570522206,
+   "m": 1,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 0.7123478102801206,
+    "gbps": 712.6956363593589
+   },
+   "unflushed": {
+    "median_us": 26.623999699950218,
+    "min_us": 25.599999353289604,
+    "p90_us": 27.648000046610832,
+    "n": 50,
+    "tflops": 1.2603077065112325,
+    "gbps": 1260.9230911335524
+   },
+   "graph_unflushed": {
+    "median_us": 24.55552101135254,
+    "min_us": 21.790719032287598,
+    "n": 250,
+    "tflops": 1.3664720037700309,
+    "gbps": 1367.139226428122
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 71.9,
+    "power_w_max": 71.9,
+    "temp_c": 49.0
+   }
+  },
+  {
+   "name": "gemm_8_4096_4096",
+   "flops": 268435456,
+   "min_bytes": 33685504,
+   "intensity": 7.968871595330739,
+   "m": 8,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 46.08000069856644,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 5.825422133909627,
+    "gbps": 731.0222111400265
+   },
+   "unflushed": {
+    "median_us": 26.623999699950218,
+    "min_us": 25.599999353289604,
+    "p90_us": 27.648000046610832,
+    "n": 50,
+    "tflops": 10.08246165208986,
+    "gbps": 1265.230783489792
+   },
+   "graph_unflushed": {
+    "median_us": 21.770238876342773,
+    "min_us": 21.626880168914795,
+    "n": 250,
+    "tflops": 12.330386337271785,
+    "gbps": 1547.318988612719
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 74.4,
+    "power_w_max": 78.29,
+    "temp_c": 45.5
+   }
+  },
+  {
+   "name": "gemm_16_4096_4096",
+   "flops": 536870912,
+   "min_bytes": 33816576,
+   "intensity": 15.875968992248062,
+   "m": 16,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 45.05600035190582,
+    "p90_us": 48.128001391887665,
+    "n": 50,
+    "tflops": 11.39756496448193,
+    "gbps": 717.913027547934
+   },
+   "unflushed": {
+    "median_us": 27.648000046610832,
+    "min_us": 26.623999699950218,
+    "p90_us": 28.672000393271446,
+    "n": 50,
+    "tflops": 19.418074041337796,
+    "gbps": 1223.1111090491092
+   },
+   "graph_unflushed": {
+    "median_us": 22.58944034576416,
+    "min_us": 22.568960189819336,
+    "n": 250,
+    "tflops": 23.766454758613392,
+    "gbps": 1497.0081366509414
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 68.97,
+    "power_w_max": 68.97,
+    "temp_c": 44.0
+   }
+  },
+  {
+   "name": "gemm_32_4096_4096",
+   "flops": 1073741824,
+   "min_bytes": 34078720,
+   "intensity": 31.50769230769231,
+   "m": 32,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 47.10400104522705,
+    "min_us": 45.05600035190582,
+    "p90_us": 49.15200173854828,
+    "n": 50,
+    "tflops": 22.79512992896386,
+    "gbps": 723.4782448157475
+   },
+   "unflushed": {
+    "median_us": 27.648000046610832,
+    "min_us": 26.623999699950218,
+    "p90_us": 28.672000393271446,
+    "n": 50,
+    "tflops": 38.83614808267559,
+    "gbps": 1232.5925905146064
+   },
+   "graph_unflushed": {
+    "median_us": 23.42911958694458,
+    "min_us": 23.22432041168213,
+    "n": 250,
+    "tflops": 45.829371437342516,
+    "gbps": 1454.5454801890935
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 68.83500000000001,
+    "power_w_max": 68.97,
+    "temp_c": 42.5
+   }
+  },
+  {
+   "name": "gemm_64_4096_4096",
+   "flops": 2147483648,
+   "min_bytes": 34603008,
+   "intensity": 62.06060606060606,
+   "m": 64,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 48.128001391887665,
+    "min_us": 46.08000069856644,
+    "p90_us": 49.15200173854828,
+    "n": 50,
+    "tflops": 44.62025402870718,
+    "gbps": 718.9787026110042
+   },
+   "unflushed": {
+    "median_us": 29.69600073993206,
+    "min_us": 28.672000393271446,
+    "p90_us": 30.719999223947525,
+    "n": 50,
+    "tflops": 72.31558440501685,
+    "gbps": 1165.2413502761506
+   },
+   "graph_unflushed": {
+    "median_us": 24.944639205932617,
+    "min_us": 24.821760654449463,
+    "n": 250,
+    "tflops": 86.08998632015737,
+    "gbps": 1387.192162385348
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 139.78,
+    "power_w_max": 139.78,
+    "temp_c": 43.0
+   }
+  },
+  {
+   "name": "gemm_128_4096_4096",
+   "flops": 4294967296,
+   "min_bytes": 35651584,
+   "intensity": 120.47058823529412,
+   "m": 128,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 54.78399991989136,
+    "min_us": 53.247999399900436,
+    "p90_us": 55.296000093221664,
+    "n": 50,
+    "tflops": 78.39820572211548,
+    "gbps": 650.7663560917788
+   },
+   "unflushed": {
+    "median_us": 45.05600035190582,
+    "min_us": 44.03200000524521,
+    "p90_us": 46.08000069856644,
+    "n": 50,
+    "tflops": 95.3250901645629,
+    "gbps": 791.2727210925631
+   },
+   "graph_unflushed": {
+    "median_us": 40.20224094390869,
+    "min_us": 40.120320320129395,
+    "n": 250,
+    "tflops": 106.83402703825541,
+    "gbps": 886.8058885011435
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1252.5,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 60.245,
+    "power_w_max": 68.1,
+    "temp_c": 41.5
+   }
+  },
+  {
+   "name": "gemm_256_4096_4096",
+   "flops": 8589934592,
+   "min_bytes": 37748736,
+   "intensity": 227.55555555555554,
+   "m": 256,
+   "n": 4096,
+   "k": 4096,
+   "flushed": {
+    "median_us": 75.77600330114365,
+    "min_us": 74.75200295448303,
+    "p90_us": 76.80000364780426,
+    "n": 50,
+    "tflops": 113.35956262911476,
+    "gbps": 498.16214045997697
+   },
+   "unflushed": {
+    "median_us": 74.75200295448303,
+    "min_us": 74.75200295448303,
+    "p90_us": 75.77600330114365,
+    "n": 50,
+    "tflops": 114.91243381438844,
+    "gbps": 504.98628141088665
+   },
+   "graph_unflushed": {
+    "median_us": 69.14048194885254,
+    "min_us": 69.12000179290771,
+    "n": 250,
+    "tflops": 124.23885905733927,
+    "gbps": 545.971548591823
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 170.94,
+    "power_w_max": 170.94,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_1_8192_8192",
+   "flops": 134217728,
+   "min_bytes": 134250496,
+   "intensity": 0.9997559189650964,
+   "m": 1,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 126.97599828243256,
+    "min_us": 120.83200365304947,
+    "p90_us": 129.02399897575378,
+    "n": 50,
+    "tflops": 1.0570322723626844,
+    "gbps": 1057.2903368823042
+   },
+   "unflushed": {
+    "median_us": 109.56799983978271,
+    "min_us": 102.39999741315842,
+    "p90_us": 111.61600053310394,
+    "n": 50,
+    "tflops": 1.2249719644080543,
+    "gbps": 1225.2710298290522
+   },
+   "graph_unflushed": {
+    "median_us": 104.83712196350098,
+    "min_us": 104.73471641540527,
+    "n": 250,
+    "tflops": 1.280250024859781,
+    "gbps": 1280.5625859010063
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.985,
+    "power_w_max": 52.12,
+    "temp_c": 40.5
+   }
+  },
+  {
+   "name": "gemm_8_8192_8192",
+   "flops": 1073741824,
+   "min_bytes": 134479872,
+   "intensity": 7.984405458089668,
+   "m": 8,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 126.97599828243256,
+    "min_us": 119.80800330638885,
+    "p90_us": 129.02399897575378,
+    "n": 50,
+    "tflops": 8.456258178901475,
+    "gbps": 1059.0967885196428
+   },
+   "unflushed": {
+    "median_us": 109.56799983978271,
+    "min_us": 102.39999741315842,
+    "p90_us": 112.64000087976456,
+    "n": 50,
+    "tflops": 9.799775715264435,
+    "gbps": 1227.3644877760387
+   },
+   "graph_unflushed": {
+    "median_us": 105.34912109375,
+    "min_us": 105.08288383483887,
+    "n": 250,
+    "tflops": 10.192223844416121,
+    "gbps": 1276.5163164515307
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 126.95,
+    "power_w_max": 126.95,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_16_8192_8192",
+   "flops": 2147483648,
+   "min_bytes": 134742016,
+   "intensity": 15.937743190661479,
+   "m": 16,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 126.97599828243256,
+    "min_us": 118.78400295972824,
+    "p90_us": 129.02399897575378,
+    "n": 50,
+    "tflops": 16.91251635780295,
+    "gbps": 1061.1613046766013
+   },
+   "unflushed": {
+    "median_us": 109.56799983978271,
+    "min_us": 98.30400347709656,
+    "p90_us": 112.64000087976456,
+    "n": 50,
+    "tflops": 19.59955143052887,
+    "gbps": 1229.7570111440232
+   },
+   "graph_unflushed": {
+    "median_us": 105.47200202941895,
+    "min_us": 105.2467155456543,
+    "n": 250,
+    "tflops": 20.360698637359796,
+    "gbps": 1277.514538525749
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 52.72,
+    "power_w_max": 53.86,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_32_8192_8192",
+   "flops": 4294967296,
+   "min_bytes": 135266304,
+   "intensity": 31.751937984496124,
+   "m": 32,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 145.4080045223236,
+    "min_us": 141.31200313568115,
+    "p90_us": 146.43199741840363,
+    "n": 50,
+    "tflops": 29.53735119403705,
+    "gbps": 930.2534921950145
+   },
+   "unflushed": {
+    "median_us": 128.00000607967377,
+    "min_us": 124.92799758911133,
+    "p90_us": 130.048006772995,
+    "n": 50,
+    "tflops": 33.55443040625008,
+    "gbps": 1056.7679498062157
+   },
+   "graph_unflushed": {
+    "median_us": 122.83904075622559,
+    "min_us": 122.67519950866699,
+    "n": 250,
+    "tflops": 34.96418784743992,
+    "gbps": 1101.167048906189
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.58,
+    "power_w_max": 51.58,
+    "temp_c": 41.0
+   }
+  },
+  {
+   "name": "gemm_64_8192_8192",
+   "flops": 8589934592,
+   "min_bytes": 136314880,
+   "intensity": 63.01538461538462,
+   "m": 64,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 128.00000607967377,
+    "min_us": 118.78400295972824,
+    "p90_us": 132.09599256515503,
+    "n": 50,
+    "tflops": 67.10886081250015,
+    "gbps": 1064.9599494171166
+   },
+   "unflushed": {
+    "median_us": 112.64000087976456,
+    "min_us": 101.3759970664978,
+    "p90_us": 116.73600226640701,
+    "n": 50,
+    "tflops": 76.26007213165032,
+    "gbps": 1210.1818087298022
+   },
+   "graph_unflushed": {
+    "median_us": 108.05248260498047,
+    "min_us": 107.78623580932617,
+    "n": 250,
+    "tflops": 79.49779944809953,
+    "gbps": 1261.5617588199389
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 92.86,
+    "power_w_max": 133.93,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_128_8192_8192",
+   "flops": 17179869184,
+   "min_bytes": 138412032,
+   "intensity": 124.12121212121212,
+   "m": 128,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 144.896000623703,
+    "min_us": 140.28799533843994,
+    "p90_us": 147.45600521564484,
+    "n": 50,
+    "tflops": 118.56689701613206,
+    "gbps": 955.2508792803608
+   },
+   "unflushed": {
+    "median_us": 130.048006772995,
+    "min_us": 126.97599828243256,
+    "p90_us": 132.09599256515503,
+    "n": 50,
+    "tflops": 132.10405611205007,
+    "gbps": 1064.3149051996222
+   },
+   "graph_unflushed": {
+    "median_us": 126.15679740905762,
+    "min_us": 125.665283203125,
+    "n": 250,
+    "tflops": 136.1787040954683,
+    "gbps": 1097.142879675404
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 51.825,
+    "power_w_max": 52.12,
+    "temp_c": 40.0
+   }
+  },
+  {
+   "name": "gemm_256_8192_8192",
+   "flops": 34359738368,
+   "min_bytes": 142606336,
+   "intensity": 240.94117647058823,
+   "m": 256,
+   "n": 8192,
+   "k": 8192,
+   "flushed": {
+    "median_us": 207.87200331687927,
+    "min_us": 205.82400262355804,
+    "p90_us": 209.9200040102005,
+    "n": 50,
+    "tflops": 165.29276583543646,
+    "gbps": 686.0295457037158
+   },
+   "unflushed": {
+    "median_us": 200.70399343967438,
+    "min_us": 198.65599274635315,
+    "p90_us": 201.7280012369156,
+    "n": 50,
+    "tflops": 171.19608722846618,
+    "gbps": 710.5306354697083
+   },
+   "graph_unflushed": {
+    "median_us": 196.4441680908203,
+    "min_us": 196.2393569946289,
+    "n": 250,
+    "tflops": 174.90841648256395,
+    "gbps": 725.9382520028289
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 173.54,
+    "power_w_max": 173.54,
+    "temp_c": 44.0
+   }
+  },
+  {
+   "name": "gemm_1_14336_14336",
+   "flops": 411041792,
+   "min_bytes": 411099136,
+   "intensity": 0.9998605105314549,
+   "m": 1,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 323.5839903354645,
+    "min_us": 318.4640109539032,
+    "p90_us": 325.6320059299469,
+    "n": 50,
+    "tflops": 1.2702785189522716,
+    "gbps": 1270.455734147438
+   },
+   "unflushed": {
+    "median_us": 304.639995098114,
+    "min_us": 301.05599761009216,
+    "p90_us": 308.22399258613586,
+    "n": 50,
+    "tflops": 1.3492706099460698,
+    "gbps": 1349.4588452432163
+   },
+   "graph_unflushed": {
+    "median_us": 300.38015365600586,
+    "min_us": 300.2572822570801,
+    "n": 250,
+    "tflops": 1.3684052924172991,
+    "gbps": 1368.596197173496
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 155.505,
+    "power_w_max": 245.51,
+    "temp_c": 42.5
+   }
+  },
+  {
+   "name": "gemm_8_14336_14336",
+   "flops": 3288334336,
+   "min_bytes": 411500544,
+   "intensity": 7.9910813823857305,
+   "m": 8,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 325.6320059299469,
+    "min_us": 320.51199674606323,
+    "p90_us": 328.70399951934814,
+    "n": 50,
+    "tflops": 10.098314281512666,
+    "gbps": 1263.6980901948746
+   },
+   "unflushed": {
+    "median_us": 307.20001459121704,
+    "min_us": 302.0800054073334,
+    "p90_us": 312.3199939727783,
+    "n": 50,
+    "tflops": 10.704212824910506,
+    "gbps": 1339.519936376217
+   },
+   "graph_unflushed": {
+    "median_us": 304.5580863952637,
+    "min_us": 304.45568084716797,
+    "n": 250,
+    "tflops": 10.797067892435834,
+    "gbps": 1351.1397739278657
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 153.475,
+    "power_w_max": 239.71,
+    "temp_c": 42.5
+   }
+  },
+  {
+   "name": "gemm_16_14336_14336",
+   "flops": 6576668672,
+   "min_bytes": 411959296,
+   "intensity": 15.964365256124722,
+   "m": 16,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 326.1440098285675,
+    "min_us": 321.53600454330444,
+    "p90_us": 328.70399951934814,
+    "n": 50,
+    "tflops": 20.164922469239656,
+    "gbps": 1263.120841055888
+   },
+   "unflushed": {
+    "median_us": 310.2720081806183,
+    "min_us": 303.1040132045746,
+    "p90_us": 313.34400177001953,
+    "n": 50,
+    "tflops": 21.196461487339622,
+    "gbps": 1327.7359385903308
+   },
+   "graph_unflushed": {
+    "median_us": 305.5615997314453,
+    "min_us": 305.3158378601074,
+    "n": 250,
+    "tflops": 21.52321717709346,
+    "gbps": 1348.2037545361277
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 156.965,
+    "power_w_max": 246.37,
+    "temp_c": 43.0
+   }
+  },
+  {
+   "name": "gemm_32_14336_14336",
+   "flops": 13153337344,
+   "min_bytes": 412876800,
+   "intensity": 31.857777777777777,
+   "m": 32,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 327.67999172210693,
+    "min_us": 324.6079981327057,
+    "p90_us": 329.72800731658936,
+    "n": 50,
+    "tflops": 40.14080101404193,
+    "gbps": 1260.000031830278
+   },
+   "unflushed": {
+    "median_us": 311.2959861755371,
+    "min_us": 309.2480003833771,
+    "p90_us": 313.34400177001953,
+    "n": 50,
+    "tflops": 42.25347556066125,
+    "gbps": 1326.315848374551
+   },
+   "graph_unflushed": {
+    "median_us": 305.5206489562988,
+    "min_us": 305.07007598876953,
+    "n": 250,
+    "tflops": 43.052204127392486,
+    "gbps": 1351.3875458514663
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 167.735,
+    "power_w_max": 267.91,
+    "temp_c": 43.5
+   }
+  },
+  {
+   "name": "gemm_64_14336_14336",
+   "flops": 26306674688,
+   "min_bytes": 414711808,
+   "intensity": 63.43362831858407,
+   "m": 64,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 327.67999172210693,
+    "min_us": 322.56001234054565,
+    "p90_us": 330.7519853115082,
+    "n": 50,
+    "tflops": 80.28160202808385,
+    "gbps": 1265.600031971746
+   },
+   "unflushed": {
+    "median_us": 310.2720081806183,
+    "min_us": 306.17600679397583,
+    "p90_us": 313.34400177001953,
+    "n": 50,
+    "tflops": 84.78584594935849,
+    "gbps": 1336.6072254851438
+   },
+   "graph_unflushed": {
+    "median_us": 307.24096298217773,
+    "min_us": 306.64703369140625,
+    "n": 250,
+    "tflops": 85.6222895302082,
+    "gbps": 1349.793347783695
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 180.23499999999999,
+    "power_w_max": 292.64,
+    "temp_c": 44.0
+   }
+  },
+  {
+   "name": "gemm_128_14336_14336",
+   "flops": 52613349376,
+   "min_bytes": 418381824,
+   "intensity": 125.75438596491227,
+   "m": 128,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 344.06399726867676,
+    "min_us": 338.9439880847931,
+    "p90_us": 348.1599986553192,
+    "n": 50,
+    "tflops": 152.91733454725477,
+    "gbps": 1216.0000096531141
+   },
+   "unflushed": {
+    "median_us": 330.7519853115082,
+    "min_us": 322.56001234054565,
+    "p90_us": 333.8240087032318,
+    "n": 50,
+    "tflops": 159.07190799307767,
+    "gbps": 1264.9412326458462
+   },
+   "graph_unflushed": {
+    "median_us": 325.8572769165039,
+    "min_us": 325.59104919433594,
+    "n": 250,
+    "tflops": 161.46133016842643,
+    "gbps": 1283.9419391183465
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 216.285,
+    "power_w_max": 363.28,
+    "temp_c": 47.0
+   }
+  },
+  {
+   "name": "gemm_256_14336_14336",
+   "flops": 105226698752,
+   "min_bytes": 425721856,
+   "intensity": 247.17241379310346,
+   "m": 256,
+   "n": 14336,
+   "k": 14336,
+   "flushed": {
+    "median_us": 547.8399991989136,
+    "min_us": 546.8159914016724,
+    "p90_us": 548.8640069961548,
+    "n": 50,
+    "tflops": 192.0756040191829,
+    "gbps": 777.0915899213594
+   },
+   "unflushed": {
+    "median_us": 538.6239886283875,
+    "min_us": 536.575973033905,
+    "p90_us": 539.6479964256287,
+    "n": 50,
+    "tflops": 195.36207256561497,
+    "gbps": 790.3878493865561
+   },
+   "graph_unflushed": {
+    "median_us": 539.8937606811523,
+    "min_us": 538.4806442260742,
+    "n": 250,
+    "tflops": 194.90260198458606,
+    "gbps": 788.5289421809425
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1395.0,
+    "sm_mhz_min": 1395.0,
+    "mem_mhz": 1215.0,
+    "power_w": 248.59500000000003,
+    "power_w_max": 347.54,
+    "temp_c": 49.0
+   }
+  },
+  {
+   "name": "gemm_256_256_65536",
+   "flops": 8589934592,
+   "min_bytes": 67239936,
+   "intensity": 127.75048732943469,
+   "m": 256,
+   "n": 256,
+   "k": 65536,
+   "flushed": {
+    "median_us": 86.01599931716919,
+    "min_us": 83.96799862384796,
+    "p90_us": 87.0399996638298,
+    "n": 50,
+    "tflops": 99.86438174514598,
+    "gbps": 781.7142919198591
+   },
+   "unflushed": {
+    "median_us": 71.68000191450119,
+    "min_us": 70.65600156784058,
+    "p90_us": 72.7040022611618,
+    "n": 50,
+    "tflops": 119.83725394212381,
+    "gbps": 938.0571178025745
+   },
+   "graph_unflushed": {
+    "median_us": 65.08543968200684,
+    "min_us": 65.02399921417236,
+    "n": 250,
+    "tflops": 131.97935873166924,
+    "gbps": 1033.1025852866564
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 68.695,
+    "power_w_max": 69.29,
+    "temp_c": 43.5
+   }
+  },
+  {
+   "name": "gemm_1024_1024_32768",
+   "flops": 68719476736,
+   "min_bytes": 136314880,
+   "intensity": 504.12307692307695,
+   "m": 1024,
+   "n": 1024,
+   "k": 32768,
+   "flushed": {
+    "median_us": 279.55201268196106,
+    "min_us": 277.50399708747864,
+    "p90_us": 280.5759906768799,
+    "n": 50,
+    "tflops": 245.8200035003158,
+    "gbps": 487.619025498063
+   },
+   "unflushed": {
+    "median_us": 278.52800488471985,
+    "min_us": 277.50399708747864,
+    "p90_us": 279.55201268196106,
+    "n": 50,
+    "tflops": 246.72376037893338,
+    "gbps": 489.4117561227621
+   },
+   "graph_unflushed": {
+    "median_us": 286.67903900146484,
+    "min_us": 278.44608306884766,
+    "n": 250,
+    "tflops": 239.7087592289887,
+    "gbps": 475.49650115613605
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1380.0,
+    "sm_mhz_min": 1350.0,
+    "mem_mhz": 1215.0,
+    "power_w": 251.13,
+    "power_w_max": 435.62,
+    "temp_c": 48.5
+   }
+  },
+  {
+   "name": "gemm_2048_2048_16384",
+   "flops": 137438953472,
+   "min_bytes": 142606336,
+   "intensity": 963.7647058823529,
+   "m": 2048,
+   "n": 2048,
+   "k": 16384,
+   "flushed": {
+    "median_us": 529.4079780578613,
+    "min_us": 528.3839702606201,
+    "p90_us": 531.4559936523438,
+    "n": 50,
+    "tflops": 259.6087689803925,
+    "gbps": 269.36945023600293
+   },
+   "unflushed": {
+    "median_us": 529.4079780578613,
+    "min_us": 528.3839702606201,
+    "p90_us": 530.4319858551025,
+    "n": 50,
+    "tflops": 259.6087689803925,
+    "gbps": 269.36945023600293
+   },
+   "graph_unflushed": {
+    "median_us": 557.8752136230469,
+    "min_us": 554.9875259399414,
+    "n": 250,
+    "tflops": 246.36146241275156,
+    "gbps": 255.62407598979345
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1365.0,
+    "sm_mhz_min": 1335.0,
+    "mem_mhz": 1215.0,
+    "power_w": 278.49,
+    "power_w_max": 465.58,
+    "temp_c": 51.0
+   }
+  },
+  {
+   "name": "gemm_128_4096_65536",
+   "flops": 68719476736,
+   "min_bytes": 554696704,
+   "intensity": 123.88657844990549,
+   "m": 128,
+   "n": 4096,
+   "k": 65536,
+   "flushed": {
+    "median_us": 454.6560049057007,
+    "min_us": 446.46400213241577,
+    "p90_us": 458.75200629234314,
+    "n": 50,
+    "tflops": 151.1460884592363,
+    "gbps": 1220.036022871948
+   },
+   "unflushed": {
+    "median_us": 442.3680007457733,
+    "min_us": 435.2000057697296,
+    "p90_us": 447.488009929657,
+    "n": 50,
+    "tflops": 155.34459233070237,
+    "gbps": 1253.9259238119744
+   },
+   "graph_unflushed": {
+    "median_us": 436.8793487548828,
+    "min_us": 436.38782501220703,
+    "n": 250,
+    "tflops": 157.29623506318677,
+    "gbps": 1269.6793876407744
+   },
+   "clock": {
+    "n": 2,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 234.72500000000002,
+    "power_w_max": 398.42,
+    "temp_c": 49.5
+   }
+  },
+  {
+   "name": "gemm_4096_128_65536",
+   "flops": 68719476736,
+   "min_bytes": 554696704,
+   "intensity": 123.88657844990549,
+   "m": 4096,
+   "n": 128,
+   "k": 65536,
+   "flushed": {
+    "median_us": 460.7999920845032,
+    "min_us": 459.77601408958435,
+    "p90_us": 462.8480076789856,
+    "n": 50,
+    "tflops": 149.1308114506173,
+    "gbps": 1203.7689095669032
+   },
+   "unflushed": {
+    "median_us": 452.09600031375885,
+    "min_us": 449.535995721817,
+    "p90_us": 454.6560049057007,
+    "n": 50,
+    "tflops": 152.00195685940164,
+    "gbps": 1226.9445065097573
+   },
+   "graph_unflushed": {
+    "median_us": 445.6857681274414,
+    "min_us": 445.3171157836914,
+    "n": 250,
+    "tflops": 154.18817842159598,
+    "gbps": 1244.5914670566451
+   },
+   "clock": {
+    "n": 3,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 71.3,
+    "power_w_max": 391.72,
+    "temp_c": 46.0
+   }
+  },
+  {
+   "name": "gemm_64_64_262144",
+   "flops": 2147483648,
+   "min_bytes": 67117056,
+   "intensity": 31.996094226778958,
+   "m": 64,
+   "n": 64,
+   "k": 262144,
+   "flushed": {
+    "median_us": 79.8719972372055,
+    "min_us": 77.82399654388428,
+    "p90_us": 80.89599758386612,
+    "n": 50,
+    "tflops": 26.8865650325778,
+    "gbps": 840.307721374168
+   },
+   "unflushed": {
+    "median_us": 62.463998794555664,
+    "min_us": 60.416001826524734,
+    "p90_us": 63.48799914121628,
+    "n": 50,
+    "tflops": 34.37954164707069,
+    "gbps": 1074.4918240144737
+   },
+   "graph_unflushed": {
+    "median_us": 60.80512046813965,
+    "min_us": 56.995840072631836,
+    "n": 250,
+    "tflops": 35.31748036129996,
+    "gbps": 1103.8059867863867
+   },
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1410.0,
+    "sm_mhz_min": 1410.0,
+    "mem_mhz": 1215.0,
+    "power_w": 96.93,
+    "power_w_max": 96.93,
+    "temp_c": 44.0
+   }
+  }
+ ],
+ "peaks": {
+  "copy_1GiB": {
+   "median_us": 1551.360011100769,
+   "min_us": 1546.239972114563,
+   "p90_us": 1553.4080266952515,
+   "n": 30,
+   "gbps": 1384.258735969513,
+   "gbps_best": 1388.8424091528339,
+   "clock": {
+    "n": 1,
+    "sm_mhz": 1095.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 49.79,
+    "power_w_max": 49.79,
+    "temp_c": 35.0
+   }
+  },
+  "read_sum_1GiB": {
+   "median_us": 753.6640167236328,
+   "min_us": 748.5439777374268,
+   "p90_us": 755.7119727134705,
+   "n": 30,
+   "gbps": 1424.6956205602412
+  },
+  "matmul_8192^3": {
+   "median_us": 4004.86421585083,
+   "min_us": 3912.7039909362793,
+   "p90_us": 4033.535957336426,
+   "n": 100,
+   "tflops": 274.54404656823294,
+   "tflops_best": 281.01068476506333,
+   "clock": {
+    "n": 4,
+    "sm_mhz": 1305.0,
+    "sm_mhz_min": 1095.0,
+    "mem_mhz": 1215.0,
+    "power_w": 231.39000000000001,
+    "power_w_max": 418.48,
+    "temp_c": 40.5
+   }
+  },
+  "matmul_16384^3": {
+   "median_us": 32179.19921875,
+   "min_us": 31806.46324157715,
+   "p90_us": 32797.69515991211,
+   "n": 30,
+   "tflops": 273.3471694684913,
+   "tflops_best": 276.550490867209,
+   "clock": {
+    "n": 6,
+    "sm_mhz": 1282.5,
+    "sm_mhz_min": 1230.0,
+    "mem_mhz": 1215.0,
+    "power_w": 400.83500000000004,
+    "power_w_max": 408.32,
+    "temp_c": 56.0
+   }
+  }
+ },
+ "finished": "2026-10-05T03:12:19",
+ "smi_after": "\n==============NVSMI LOG==============\n\nTimestamp                                 : Mon Oct  5 03:12:19 2026\nDriver Version                            : 580.82.07\nCUDA Version                              : 13.0\n\nAttached GPUs                             : 1\nGPU 00000000:00:04.0\n    Performance State                     : P0\n    Clocks Event Reasons\n        Idle                              : Not Active\n        Applications Clocks Setting       : Not Active\n        SW Power Cap                      : Not Active\n        HW Slowdown                       : Not Active\n            HW Thermal Slowdown           : Not Active\n            HW Power Brake Slowdown       : Not Active\n        Sync Boost                        : Not Active\n        SW Thermal Slowdown               : Not Active\n        Display Clock Setting             : Not Active\n    Clocks Event Reasons Counters\n        SW Power Capping                  : 0 us\n        Sync Boost                        : 0 us\n        SW Thermal Slowdown               : 0 us\n        HW Thermal Slowdown               : 0 us\n        HW Power Braking                  : 0 us\n    Sparse Operation Mode                 : N/A\n    GPU Power Readings\n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : 68.10 W\n        Current Power Limit               : 400.00 W\n        Requested Power Limit             : 400.00 W\n        Default Power Limit               : 400.00 W\n        Min Power Limit                   : 100.00 W\n        Max Power Limit                   : 400.00 W\n    Power Samples\n        Duration                          : 2.42 sec\n        Number of Samples                 : 119\n        Max                               : 463.84 W\n        Min                               : 66.96 W\n        Avg                               : 181.92 W\n    GPU Memory Power Readings \n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : N/A\n    Module Power Readings\n        Average Power Draw                : N/A\n        Instantaneous Power Draw          : N/A\n        Current Power Limit               : N/A\n        Requested Power Limit             : N/A\n        Default Power Limit               : N/A\n        Min Power Limit                   : N/A\n        Max Power Limit                   : N/A\n    Clocks\n        Graphics                          : 1410 MHz\n        SM                                : 1410 MHz\n        Memory                            : 1215 MHz\n        Video                             : 1275 MHz\n    Applications Clocks\n        Graphics                          : 1095 MHz\n        Memory                            : 1215 MHz\n    Default Applications Clocks\n        Graphics                          : 1095 MHz\n        Memory                            : 1215 MHz\n    Deferred Clocks\n        Memory                            : N/A\n    Max Clocks\n        Graphics                          : 1410 MHz\n        SM                                : 1410 MHz\n        Memory                            : 1215 MHz\n        Video                             : 1290 MHz\n    Max Customer Boost Clocks\n        Graphics                          : 1410 MHz\n    SM Clock Samples\n        Duration                          : Not Found\n        Number of Samples                 : Not Found\n        Max                               : Not Found\n        Min                               : Not Found\n        Avg                               : Not Found\n    Memory Clock Samples\n        Duration                          : Not Found\n        Number of Samples                 : Not Found\n        Max                               : Not Found\n        Min                               : Not Found\n        Avg                               : Not Found\n    Clock Policy\n        Auto Boost                        : N/A\n        Auto Boost Default                : N/A\n\n"
+}

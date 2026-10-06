@@ -1,0 +1,36 @@
+{
+ "schema": "kiln.phys.dram/1",
+ "id": "custom",
+ "e_core_pj_per_bit": {
+  "v": 4.0,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "DRAM core + IO energy, counted on the board (fit: e_dram_core)"
+ },
+ "e_act_nj": {
+  "v": 0.9,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed"
+ },
+ "footprint_w_mm": {
+  "v": 11.0,
+  "q": "asm",
+  "c": "M",
+  "src": "kiln_assumed"
+ },
+ "footprint_h_mm": {
+  "v": 11.0,
+  "q": "asm",
+  "c": "M",
+  "src": "kiln_assumed"
+ },
+ "background_w": {
+  "v": 2.0,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "standby + refresh power per stack/device (board level)"
+ }
+}

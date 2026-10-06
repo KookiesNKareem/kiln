@@ -1,0 +1,36 @@
+tpuv6e [58f8dbbf06bbf532] suite=all stream=src:f411fa1153adf939 peak=918 TFLOPS, HBM 1640 GB/s, on-chip 129 MiB, ~251 mm2 ~328 W (placeholder model)
+  phase          time/step       tok/s   TFLOPS  roofline  status
+  prefill_b1     51.171 ms     40022.4    601.7      0.75  ok
+  decode_b1       9.458 ms       105.7      1.7      0.99  ok
+  decode_b8      10.731 ms       745.5     12.0      0.98  ok
+  decode_b32     14.959 ms      2139.2     34.4      0.97  ok
+  op                      key                          x        us  TFLOPS floorC us floorM us  checks
+  prefill_b1/qkv          gemm_2048_6144_4096         32     123.8   832.3     112.3      40.9  ok
+  prefill_b1/attn_score   bmm_1_8192_2048_128        256      25.2   170.6       4.7       1.6  ok
+  prefill_b1/attn_av      bmm_1_8192_128_2048        256      27.3   157.6       4.7      20.8  ok
+  prefill_b1/o_proj       gemm_2048_4096_4096         32      83.0   827.8      74.9      30.7  ok
+  prefill_b1/ffn_gate_up  gemm_2048_14336_4096        64     305.4   787.5     262.1      81.8  ok
+  prefill_b1/ffn_down     gemm_2048_4096_14336        32     341.9   703.4     262.1     107.4  ok
+  prefill_b1/lm_head      gemm_1_128256_4096           1     641.8     1.6       1.1     640.7  ok
+  decode_b1/qkv           gemm_1_6144_4096            32      31.4     1.6       0.1      30.7  ok
+  decode_b1/attn_score    bmm_8_4_2048_128            32       2.8     6.0       0.0       2.6  ok
+  decode_b1/attn_av       bmm_8_4_128_2048            32       2.9     5.7       0.0       2.6  ok
+  decode_b1/o_proj        gemm_1_4096_4096            32      20.9     1.6       0.0      20.5  ok
+  decode_b1/ffn_gate_up   gemm_1_14336_4096           64      72.5     1.6       0.1      71.6  ok
+  decode_b1/ffn_down      gemm_1_4096_14336           32      72.5     1.6       0.1      71.6  ok
+  decode_b1/lm_head       gemm_1_128256_4096           1     641.8     1.6       1.1     640.7  ok
+  decode_b8/qkv           gemm_8_6144_4096            32      31.7    12.7       0.4      30.7  ok
+  decode_b8/attn_score    bmm_64_4_2048_128           32      21.7     6.2       0.1      20.5  ok
+  decode_b8/attn_av       bmm_64_4_128_2048           32      22.1     6.1       0.1      21.1  ok
+  decode_b8/o_proj        gemm_8_4096_4096            32      21.1    12.7       0.3      20.5  ok
+  decode_b8/ffn_gate_up   gemm_8_14336_4096           64      72.9    12.9       1.0      71.7  ok
+  decode_b8/ffn_down      gemm_8_4096_14336           32      72.8    12.9       1.0      71.7  ok
+  decode_b8/lm_head       gemm_8_128256_4096           1     642.8    13.1       9.2     640.7  ok
+  decode_b32/qkv          gemm_32_6144_4096           32      32.6    49.4       1.8      30.8  ok
+  decode_b32/attn_score   bmm_256_4_2048_128          32      85.2     6.3       0.6      82.0  ok
+  decode_b32/attn_av      bmm_256_4_128_2048          32      85.2     6.3       0.6      84.4  ok
+  decode_b32/o_proj       gemm_32_4096_4096           32      21.7    49.4       1.2      20.6  ok
+  decode_b32/ffn_gate_up  gemm_32_14336_4096          64      74.3    50.6       4.1      71.8  ok
+  decode_b32/ffn_down     gemm_32_4096_14336          32      74.0    50.8       4.1      72.2  ok
+  decode_b32/lm_head      gemm_32_128256_4096          1     647.6    51.9      36.6     640.8  ok
+  valid=True  stream calls=27  wall=144.9s

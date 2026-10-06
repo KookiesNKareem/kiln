@@ -1,0 +1,602 @@
+{
+  "a100-sm/llama3_8b:decode_b8/layers.qkv": {
+    "cycles": 102984,
+    "issue": 16384,
+    "stall": 86303,
+    "fill_drain": 297,
+    "useful_macs": 4194304,
+    "issued_macs": 16777216,
+    "mode": 2,
+    "limiter": {
+      "port": {
+        "level": 3,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00007303829787234043,
+    "energy_j": 0.00004118913024,
+    "level_rw_bytes": [
+      [
+        0,
+        3143680,
+        2228224
+      ],
+      [
+        1,
+        1116160,
+        1116160
+      ],
+      [
+        2,
+        1114112,
+        1050624
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:decode_b8/layers.o_proj": {
+    "cycles": 103233,
+    "issue": 16384,
+    "stall": 86303,
+    "fill_drain": 546,
+    "useful_macs": 4194304,
+    "issued_macs": 16777216,
+    "mode": 2,
+    "limiter": {
+      "port": {
+        "level": 3,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00007321489361702128,
+    "energy_j": 0.00004142374912,
+    "level_rw_bytes": [
+      [
+        0,
+        4192256,
+        3407872
+      ],
+      [
+        1,
+        1116160,
+        1116160
+      ],
+      [
+        2,
+        1114112,
+        1050624
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:decode_b8/layers.gate_up": {
+    "cycles": 102984,
+    "issue": 16384,
+    "stall": 86303,
+    "fill_drain": 297,
+    "useful_macs": 4194304,
+    "issued_macs": 16777216,
+    "mode": 2,
+    "limiter": {
+      "port": {
+        "level": 3,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00007303829787234043,
+    "energy_j": 0.00004118913024,
+    "level_rw_bytes": [
+      [
+        0,
+        3143680,
+        2228224
+      ],
+      [
+        1,
+        1116160,
+        1116160
+      ],
+      [
+        2,
+        1114112,
+        1050624
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:decode_b8/layers.down": {
+    "cycles": 359699,
+    "issue": 57344,
+    "stall": 302058,
+    "fill_drain": 297,
+    "useful_macs": 14680064,
+    "issued_macs": 58720256,
+    "mode": 2,
+    "limiter": {
+      "port": {
+        "level": 3,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00025510567375886526,
+    "energy_j": 0.00014411952128,
+    "level_rw_bytes": [
+      [
+        0,
+        11010048,
+        7569408
+      ],
+      [
+        1,
+        3901440,
+        3901440
+      ],
+      [
+        2,
+        3899392,
+        3672064
+      ],
+      [
+        3,
+        3670016,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:prefill_b1/layers.qkv": {
+    "cycles": 131954,
+    "issue": 131072,
+    "stall": 0,
+    "fill_drain": 882,
+    "useful_macs": 134217728,
+    "issued_macs": 134217728,
+    "mode": 2,
+    "limiter": "compute",
+    "latency_s": 0.00009358439716312056,
+    "energy_j": 0.00010229121024,
+    "level_rw_bytes": [
+      [
+        0,
+        83820544,
+        46137344
+      ],
+      [
+        1,
+        6356992,
+        6356992
+      ],
+      [
+        2,
+        6291456,
+        1114112
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:prefill_b1/layers.o_proj": {
+    "cycles": 131648,
+    "issue": 131072,
+    "stall": 0,
+    "fill_drain": 576,
+    "useful_macs": 134217728,
+    "issued_macs": 134217728,
+    "mode": 2,
+    "limiter": "compute",
+    "latency_s": 0.00009336737588652482,
+    "energy_j": 0.0001029832704,
+    "level_rw_bytes": [
+      [
+        0,
+        83820544,
+        52428800
+      ],
+      [
+        1,
+        6356992,
+        6356992
+      ],
+      [
+        2,
+        6291456,
+        1114112
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:prefill_b1/layers.gate_up": {
+    "cycles": 131954,
+    "issue": 131072,
+    "stall": 0,
+    "fill_drain": 882,
+    "useful_macs": 134217728,
+    "issued_macs": 134217728,
+    "mode": 2,
+    "limiter": "compute",
+    "latency_s": 0.00009358439716312056,
+    "energy_j": 0.00010229121024,
+    "level_rw_bytes": [
+      [
+        0,
+        83820544,
+        46137344
+      ],
+      [
+        1,
+        6356992,
+        6356992
+      ],
+      [
+        2,
+        6291456,
+        1114112
+      ],
+      [
+        3,
+        1048576,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "a100-sm/llama3_8b:prefill_b1/layers.down": {
+    "cycles": 459634,
+    "issue": 458752,
+    "stall": 0,
+    "fill_drain": 882,
+    "useful_macs": 469762048,
+    "issued_macs": 469762048,
+    "mode": 2,
+    "limiter": "compute",
+    "latency_s": 0.00032598156028368797,
+    "energy_j": 0.00035746217984,
+    "level_rw_bytes": [
+      [
+        0,
+        293535744,
+        161480704
+      ],
+      [
+        1,
+        22085632,
+        22085632
+      ],
+      [
+        2,
+        22020096,
+        3735552
+      ],
+      [
+        3,
+        3670016,
+        0
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:decode_b8/layers.qkv": {
+    "cycles": 92449,
+    "issue": 6144,
+    "stall": 86016,
+    "fill_drain": 289,
+    "useful_macs": 201326592,
+    "issued_macs": 402653184,
+    "mode": 0,
+    "limiter": {
+      "port": {
+        "level": 2,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00006163266666666666,
+    "energy_j": 0.00188175712256,
+    "level_rw_bytes": [
+      [
+        0,
+        63504384,
+        57278464
+      ],
+      [
+        1,
+        50987008,
+        51118080
+      ],
+      [
+        2,
+        50331648,
+        0
+      ],
+      [
+        3,
+        201326592,
+        201326592
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:decode_b8/layers.o_proj": {
+    "cycles": 61729,
+    "issue": 4096,
+    "stall": 57344,
+    "fill_drain": 289,
+    "useful_macs": 134217728,
+    "issued_macs": 268435456,
+    "mode": 0,
+    "limiter": {
+      "port": {
+        "level": 2,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00004115266666666667,
+    "energy_j": 0.00125453991936,
+    "level_rw_bytes": [
+      [
+        0,
+        42336256,
+        38207488
+      ],
+      [
+        1,
+        34013184,
+        34078720
+      ],
+      [
+        2,
+        33554432,
+        0
+      ],
+      [
+        3,
+        134217728,
+        134217728
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:decode_b8/layers.gate_up": {
+    "cycles": 430369,
+    "issue": 28672,
+    "stall": 401408,
+    "fill_drain": 289,
+    "useful_macs": 939524096,
+    "issued_macs": 1879048192,
+    "mode": 0,
+    "limiter": {
+      "port": {
+        "level": 2,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00028691266666666665,
+    "energy_j": 0.008781146357759999,
+    "level_rw_bytes": [
+      [
+        0,
+        296353792,
+        267059200
+      ],
+      [
+        1,
+        237699072,
+        238551040
+      ],
+      [
+        2,
+        234881024,
+        0
+      ],
+      [
+        3,
+        939524096,
+        939524096
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:decode_b8/layers.down": {
+    "cycles": 215329,
+    "issue": 14336,
+    "stall": 200704,
+    "fill_drain": 289,
+    "useful_macs": 469762048,
+    "issued_macs": 939524096,
+    "mode": 0,
+    "limiter": {
+      "port": {
+        "level": 2,
+        "port": 0
+      }
+    },
+    "latency_s": 0.00014355266666666667,
+    "energy_j": 0.004391108608,
+    "level_rw_bytes": [
+      [
+        0,
+        146735104,
+        135790592
+      ],
+      [
+        1,
+        121110528,
+        117506048
+      ],
+      [
+        2,
+        117440512,
+        0
+      ],
+      [
+        3,
+        469762048,
+        469762048
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:prefill_b1/layers.qkv": {
+    "cycles": 891204,
+    "issue": 786432,
+    "stall": 104448,
+    "fill_drain": 324,
+    "useful_macs": 51539607552,
+    "issued_macs": 51539607552,
+    "mode": 0,
+    "limiter": "compute",
+    "latency_s": 0.000594136,
+    "energy_j": 0.02324223229952,
+    "level_rw_bytes": [
+      [
+        0,
+        4026531840,
+        4026531840
+      ],
+      [
+        1,
+        2441084928,
+        1677721600
+      ],
+      [
+        2,
+        67108864,
+        25165824
+      ],
+      [
+        3,
+        201326592,
+        201326592
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:prefill_b1/layers.o_proj": {
+    "cycles": 524815,
+    "issue": 524288,
+    "stall": 0,
+    "fill_drain": 527,
+    "useful_macs": 34359738368,
+    "issued_macs": 34359738368,
+    "mode": 0,
+    "limiter": "compute",
+    "latency_s": 0.0003498766666666667,
+    "energy_j": 0.013793052590079999,
+    "level_rw_bytes": [
+      [
+        0,
+        2281701376,
+        2281701376
+      ],
+      [
+        1,
+        1207959552,
+        1107296256
+      ],
+      [
+        2,
+        33554432,
+        0
+      ],
+      [
+        3,
+        33554432,
+        33554432
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:prefill_b1/layers.gate_up": {
+    "cycles": 3670371,
+    "issue": 3670016,
+    "stall": 0,
+    "fill_drain": 355,
+    "useful_macs": 240518168576,
+    "issued_macs": 240518168576,
+    "mode": 0,
+    "limiter": "compute",
+    "latency_s": 0.002446914,
+    "energy_j": 0.10029033848832,
+    "level_rw_bytes": [
+      [
+        0,
+        18673041408,
+        18790481920
+      ],
+      [
+        1,
+        11391729664,
+        369098752
+      ],
+      [
+        2,
+        251658240,
+        117440512
+      ],
+      [
+        3,
+        30064771072,
+        30064771072
+      ]
+    ],
+    "truncated": false
+  },
+  "v5e-tc/llama3_8b:prefill_b1/layers.down": {
+    "cycles": 1835537,
+    "issue": 1835008,
+    "stall": 0,
+    "fill_drain": 529,
+    "useful_macs": 120259084288,
+    "issued_macs": 120259084288,
+    "mode": 0,
+    "limiter": "compute",
+    "latency_s": 0.0012236913333333334,
+    "energy_j": 0.04334788018176,
+    "level_rw_bytes": [
+      [
+        0,
+        3841982464,
+        3841982464
+      ],
+      [
+        1,
+        2919235584,
+        1115684864
+      ],
+      [
+        2,
+        176160768,
+        16777216
+      ],
+      [
+        3,
+        117440512,
+        117440512
+      ]
+    ],
+    "truncated": false
+  }
+}

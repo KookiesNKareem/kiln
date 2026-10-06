@@ -1,0 +1,22 @@
+[package]
+name = "kiln-map"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-ir = { path = "../kiln-ir" }
+kiln-wl = { path = "../kiln-wl" }
+kiln-phys = { path = "../kiln-phys" }
+kiln-cost = { path = "../kiln-cost" }
+kiln-trace = { path = "../kiln-trace" }
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

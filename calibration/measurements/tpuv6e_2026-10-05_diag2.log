@@ -1,0 +1,15 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+23:02:42 gemv_1x4096x4096       loop_x1=    30.7us( 1093GB/s,    1TF) loop_x2=    30.7us( 1094GB/s,    1TF) pipelined_same=    30.4us( 1106GB/s,    1TF) pipelined_rot=    34.0us(  986GB/s,    1TF)
+23:02:44 gemv_1x14336x4096      loop_x1=   106.6us( 1102GB/s,    1TF) loop_x2=   106.1us( 1108GB/s,    1TF) pipelined_same=   104.1us( 1128GB/s,    1TF) pipelined_rot=   106.0us( 1109GB/s,    1TF)
+23:02:47 gemv_1x4096x14336      loop_x1=   106.8us( 1099GB/s,    1TF) loop_x2=   104.2us( 1127GB/s,    1TF) pipelined_same=   105.4us( 1115GB/s,    1TF) pipelined_rot=   105.6us( 1112GB/s,    1TF)
+23:02:49 read_256MiB            loop_x1=   241.8us( 1110GB/s,    1TF) loop_x2=   238.0us( 1128GB/s,    1TF) pipelined_same=   237.5us( 1130GB/s,    1TF) pipelined_rot=   242.2us( 1108GB/s,    1TF)
+23:02:55 gemm_2048x4096x4096    loop_x1=   104.4us(  643GB/s,  658TF) loop_x2=   104.2us(  644GB/s,  659TF) pipelined_same=    90.8us(  739GB/s,  757TF) pipelined_rot=   113.2us(  593GB/s,  607TF)
+23:03:00 gemm_2048x6144x4096    loop_x1=   145.5us(  634GB/s,  709TF) loop_x2=   145.2us(  635GB/s,  710TF) pipelined_same=   131.4us(  702GB/s,  784TF) pipelined_rot=   164.5us(  561GB/s,  627TF)
+23:03:05 gemm_2048x14336x4096   loop_x1=   334.8us(  576GB/s,  718TF) loop_x2=   339.4us(  568GB/s,  709TF) pipelined_same=   293.2us(  658GB/s,  820TF) pipelined_rot=   304.7us(  633GB/s,  789TF)
+23:03:11 gemm_2048x4096x14336   loop_x1=   330.1us(  584GB/s,  729TF) loop_x2=   329.3us(  586GB/s,  730TF) pipelined_same=   319.7us(  603GB/s,  752TF) pipelined_rot=   357.7us(  539GB/s,  672TF)
+23:03:16 gemm_4096x4096x4096    loop_x1=   183.9us(  547GB/s,  747TF) loop_x2=   183.6us(  548GB/s,  748TF) pipelined_same=   168.5us(  597GB/s,  815TF) pipelined_rot=   191.3us(  526GB/s,  719TF)
+23:03:21 gemm_8192x8192x8192    loop_x1=  1498.2us(  269GB/s,  734TF) loop_x2=  1497.7us(  269GB/s,  734TF) pipelined_same=  1503.1us(  268GB/s,  732TF) pipelined_rot=  1501.6us(  268GB/s,  732TF)
+23:03:27 gemm_8192x4096x4096    loop_x1=   362.6us(  463GB/s,  758TF) loop_x2=   362.6us(  463GB/s,  758TF) pipelined_same=   327.9us(  512GB/s,  838TF) pipelined_rot=   371.6us(  451GB/s,  740TF)
+23:03:29 gemm_8192^3 sustained 0.02s: 1500.1us 733TF cv=0.001
+23:03:39 gemm_8192^3 sustained 2.0s: 1496.2us 735TF cv=0.000

@@ -1,0 +1,1142 @@
+{
+ "schema": "kiln.trust.published_ratios/1",
+ "accessed": "2026-10-05",
+ "notes": "Per-accelerator throughput = published system-level MLPerf Inference loadgen result (Offline 'Samples per second', or Server 'Completed samples per second') divided by the accelerators-per-node count in the submission's system json; ratio = numerator per-accelerator / denominator per-accelerator. GPT-J MLPerf values are samples/s (summarization samples), not tokens/s; ratios are unaffected within the same benchmark. All values were read from raw mlperf_log_summary.txt files in the mlcommons/inference_results_* GitHub repos (via the GitHub API) and system json files; vendor claims were read from the quoted pages on the access date. Confounders: MLPerf pairs are per-system with different software stacks and rounds (the same H100 DGX gave 13.29 samples/s/GPU on GPT-J in v3.1 but 29.99 in v4.0), unknown or mixed precision (FP8 on H100 likely vs INT8/FP16 elsewhere; submission metadata does not state it for GPT-J), different host CPUs, and Preview vs Available status (TPU v5e GPT-J v3.1 and TPU v6 SDXL v4.1 are Preview). Coverage gaps: no V100 or TPU v4 MLPerf Inference LLM results; A100 LLM data exists only for GPT-J in v3.1 (Dell); Llama-2-70B and Llama-3.1-8B have no A100 or TPU entries; Google's TPU submissions after v4.0 are SDXL (non-LLM). Entries with comparable=false (per-dollar, sparsity+MIG, configuration-free claims) should not be used as backtest targets. Prefer the G4 same-round same-submitter entries (h100_vs_a100 GPT-J Dell, SDXL v6e_vs_v5e) as highest-trust.",
+ "entries": [
+  {
+   "id": "mlperf_v3_1_gptj_offline_h100_vs_a100",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 2.4065,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "Offline",
+    "precision": {
+     "h100_sxm5_80gb": "not stated (likely FP8)",
+     "a100_sxm4_80gb": "not stated (likely INT8/FP16)"
+    },
+    "details": "Same submitter (Dell), same chassis (XE9680), same TensorRT 9.0.0/CUDA 12.2, both Available. Precision is not stated in the submission metadata (measurements json lists weight_data_types fp16, 'quantization'); NVIDIA's own TensorRT-LLM blog describes H100 FP8 vs A100 FP16 for GPT-J, not verified for these submissions. Metric is loadgen 'Samples per second' (GPT-J summarization samples)."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Dell/results/XE9680_H100_SXM_80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Dell",
+    "system": "Dell PowerEdge XE9680 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 101.832,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 12.729,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8470",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Dell/results/XE9680_A100_SXM_80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Dell",
+    "system": "Dell PowerEdge XE9680 (8x A100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 42.3161,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 5.28951,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480+"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 101.832/8=12.729 vs 42.3161/8=5.28951",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "different host CPUs (8470 vs 8480+)",
+    "driver 525.85 vs 535.86",
+    "possible FP8 vs INT8/FP16 precision difference",
+    "both are 8-GPU systems so NVLink scaling similar"
+   ],
+   "confidence": "high",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v3_1_gptj_offline_h100_vs_a100_nvidia_h100",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 2.5124,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "Offline",
+    "precision": {
+     "h100_sxm5_80gb": "not stated",
+     "a100_sxm4_80gb": "not stated"
+    },
+    "details": "NVIDIA did not submit an A100 GPT-J result in v3.1; this pairs NVIDIA's DGX H100 with Dell's A100 system (cross-submitter, same software stack TRT 9.0.0). Redundant with the Dell/Dell entry; provided as sensitivity."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "NVIDIA",
+    "system": "NVIDIA DGX H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 106.315,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 13.28937,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480C",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Dell/results/XE9680_A100_SXM_80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Dell",
+    "system": "Dell PowerEdge XE9680 (8x A100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 42.3161,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 5.28951,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480+"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 106.315/8=13.28937 vs 42.3161/8=5.28951",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "cross-submitter",
+    "different host CPUs",
+    "driver differences"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v3_1_gptj_offline_h100_vs_v5e",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "tpu_v5e",
+   "ratio": 5.4174,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "Offline",
+    "precision": {
+     "h100_sxm5_80gb": "not stated",
+     "tpu_v5e": "int8 weights (Google calibration.md, GPTQ-style 8-bit)"
+    },
+    "details": "Same round; v5e submission is Preview and Offline throughput per chip from a 4-chip system."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "NVIDIA",
+    "system": "NVIDIA DGX H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 106.315,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 13.28937,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480C",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Google/results/TPU-v5e-4_SAX/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4 (SAX)",
+    "accelerators": 4,
+    "value": 9.81226,
+    "unit": "samples/s",
+    "category": "Preview",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.45307,
+    "software": "SAX, JAX TPU runtime cl/558232756",
+    "host_cpu": "AMD EPYC 7B13",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 106.315/8=13.28937 vs 9.81226/4=2.45307",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "cross-vendor, different software stacks (TensorRT vs SAX)",
+    "v5e is Preview",
+    "different host CPUs",
+    "8-GPU vs 4-chip system"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v3_1_gptj_offline_v5e_vs_a100",
+   "kind": "ratio",
+   "numerator": "tpu_v5e",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 0.4638,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v5e": "int8 weights",
+     "a100_sxm4_80gb": "not stated"
+    },
+    "details": "Same round, cross-vendor, cross-submitter."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Google/results/TPU-v5e-4_SAX/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4 (SAX)",
+    "accelerators": 4,
+    "value": 9.81226,
+    "unit": "samples/s",
+    "category": "Preview",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.45307,
+    "software": "SAX, JAX TPU runtime cl/558232756",
+    "host_cpu": "AMD EPYC 7B13",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.1/blob/main/closed/Dell/results/XE9680_A100_SXM_80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.1",
+    "submitter": "Dell",
+    "system": "Dell PowerEdge XE9680 (8x A100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 42.3161,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 5.28951,
+    "software": "TensorRT 9.0.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480+"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 9.81226/4=2.45307 vs 42.3161/8=5.28951",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "cross-vendor, different software",
+    "v5e is Preview",
+    "different host CPUs",
+    "8-chip vs 4-chip system"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v4_0_gptj_offline_h100_vs_v5e",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "tpu_v5e",
+   "ratio": 11.8173,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "Offline",
+    "precision": {
+     "h100_sxm5_80gb": "not stated",
+     "tpu_v5e": "not stated (Saxml)"
+    },
+    "details": "Same round (v4.0). NOTE the same DGX H100 hardware scored 106.3 samples/s (13.29/GPU) in v3.1 and 239.9 (29.99/GPU) in v4.0 (TensorRT 9.0.0 -> 9.3.0), so cross-round comparisons are dominated by software."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.0/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/gptj-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.0",
+    "submitter": "NVIDIA",
+    "system": "NVIDIA DGX H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 239.895,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 29.98688,
+    "software": "TensorRT 9.3.0, CUDA 12.2",
+    "host_cpu": "Xeon Platinum 8480C",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.0/blob/main/closed/Google/results/tpu_v5e_x4/gptj-99/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.0",
+    "submitter": "Google",
+    "system": "tpu_v5e_x4 (Saxml 1.1.0, libtpu_nightly 0.1.dev20231006)",
+    "accelerators": 4,
+    "value": 10.1502,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.53755,
+    "host_cpu": "AMD EPYC 7B13"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 239.895/8=29.98688 vs 10.1502/4=2.53755",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "software version drift on H100 (2.26x between v3.1 and v4.0)",
+    "cross-vendor",
+    "different host CPUs"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v4_1_sdxl_offline_v6e_vs_v5e",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 3.102,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Same submitter (Google), same round, same chip count (4), same framework versions (flax 0.8.5, jax 0.4.30). v6 system is Preview and labelled 'TPU v6' (Trillium)."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v6_x4_flax/stable-diffusion-xl/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v6-4 (accelerator_model_name 'TPU v6', i.e. Trillium; flax 0.8.5, jax 0.4.30)",
+    "accelerators": 4,
+    "value": 5.43896,
+    "unit": "samples/s",
+    "category": "Preview",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 1.35974,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v5e_x4_flax/stable-diffusion-xl/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4 (flax 0.8.5, jax 0.4.30)",
+    "accelerators": 4,
+    "value": 1.75335,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 0.43834,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 5.43896/4=1.35974 vs 1.75335/4=0.43834",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM (SDXL)",
+    "v6 is Preview",
+    "different host CPUs (EPYC 9B14 vs 7B13)"
+   ],
+   "confidence": "high",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v4_1_sdxl_server_v6e_vs_v5e",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 2.8968,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Server",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Server scenario completed samples/s; same submitter/round/chip count."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v6_x4_flax/stable-diffusion-xl/server/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v6-4",
+    "accelerators": 4,
+    "value": 4.49,
+    "unit": "completed samples/s",
+    "category": "Preview",
+    "division": "Closed",
+    "scenario": "Server",
+    "per_accelerator": 1.1225,
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v5e_x4_flax/stable-diffusion-xl/server/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4",
+    "accelerators": 4,
+    "value": 1.55,
+    "unit": "completed samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Server",
+    "per_accelerator": 0.3875
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 4.49/4=1.1225 vs 1.55/4=0.3875",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM (SDXL)",
+    "v6 is Preview",
+    "server-scenario latency bound"
+   ],
+   "confidence": "high",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v4_1_sdxl_offline_v6e_vs_h100",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "h100_sxm5_80gb",
+   "ratio": 0.6654,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "h100_sxm5_80gb": "not stated"
+    },
+    "details": "Same round, cross-vendor."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v6_x4_flax/stable-diffusion-xl/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v6-4 (accelerator_model_name 'TPU v6', i.e. Trillium; flax 0.8.5, jax 0.4.30)",
+    "accelerators": 4,
+    "value": 5.43896,
+    "unit": "samples/s",
+    "category": "Preview",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 1.35974,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/stable-diffusion-xl/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "NVIDIA",
+    "system": "NVIDIA DGX H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 16.3484,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.04355,
+    "software": "TensorRT 10.2.0, CUDA 12.4"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 5.43896/4=1.35974 vs 16.3484/8=2.04355",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": false,
+   "confounders": [
+    "non-LLM (SDXL)",
+    "cross-vendor software",
+    "v6 is Preview",
+    "8-GPU vs 4-chip system"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v4_1_sdxl_offline_v5e_vs_h100",
+   "kind": "ratio",
+   "numerator": "tpu_v5e",
+   "denominator": "h100_sxm5_80gb",
+   "ratio": 0.2145,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v5e": "not stated",
+     "h100_sxm5_80gb": "not stated"
+    },
+    "details": "Same round, cross-vendor."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v5e_x4_flax/stable-diffusion-xl/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4 (flax 0.8.5, jax 0.4.30)",
+    "accelerators": 4,
+    "value": 1.75335,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 0.43834,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/stable-diffusion-xl/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "NVIDIA",
+    "system": "NVIDIA DGX H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 16.3484,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.04355,
+    "software": "TensorRT 10.2.0, CUDA 12.4"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 1.75335/4=0.43834 vs 16.3484/8=2.04355",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM (SDXL)",
+    "cross-vendor software",
+    "8-GPU vs 4-chip system"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v5_0_sdxl_offline_v6e_vs_h100_hpe",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "h100_sxm5_80gb",
+   "ratio": 0.6759,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "h100_sxm5_80gb": "not stated"
+    },
+    "details": "Same round (v5.0, Trillium GA). NVIDIA submitted no H100 in v5.0; HPE's H100 system used. Cisco C885A H100x8 gave 18.375 samples/s (2.2969/GPU), not used in the ratio."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v5.0/blob/main/closed/Google/results/trillium_x4_flax/stable-diffusion-xl/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v5.0",
+    "submitter": "Google",
+    "system": "tpu-v6e-4 (accelerator 'TPU Trillium'; flax 0.10.2, jax 0.5.0)",
+    "accelerators": 4,
+    "value": 6.07925,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 1.51981,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v5.0/blob/main/closed/HPE/results/HPE_Cray_XD670_H100_SXM_80GBx8_TRT/stable-diffusion-xl/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v5.0",
+    "submitter": "HPE",
+    "system": "HPE Cray XD670 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 17.9889,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 2.24861,
+    "software": "TensorRT 10.8, CUDA 12.8"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 6.07925/4=1.51981 vs 17.9889/8=2.24861",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": false,
+   "confounders": [
+    "non-LLM",
+    "cross-submitter, cross-vendor",
+    "8-GPU vs 4-chip"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_cross_round_sdxl_v6e_v5_0_vs_v5e_v4_1",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 3.4672,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Cross-round (v5.0 Trillium GA vs v4.1 v5e), same submitter and chip count; Google itself states 3.5x using these two rounds. Google submitted no v5e in v5.0."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v5.0/blob/main/closed/Google/results/trillium_x4_flax/stable-diffusion-xl/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v5.0",
+    "submitter": "Google",
+    "system": "tpu-v6e-4 (accelerator 'TPU Trillium'; flax 0.10.2, jax 0.5.0)",
+    "accelerators": 4,
+    "value": 6.07925,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 1.51981,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v4.1/blob/main/closed/Google/results/tpu_v5e_x4_flax/stable-diffusion-xl/offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v4.1",
+    "submitter": "Google",
+    "system": "tpu-v5e-4 (flax 0.8.5, jax 0.4.30)",
+    "accelerators": 4,
+    "value": 1.75335,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 0.43834,
+    "model": "stable-diffusion-xl",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 6.07925/4=1.51981 vs 1.75335/4=0.43834",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "cross-round software drift",
+    "non-LLM"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "mlperf_v3_0_bert99_offline_h100_vs_a100",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 2.5855,
+   "metric": "samples_per_s_per_accel",
+   "workload": {
+    "model": "bert-large (bert-99)",
+    "benchmark_class": "non_llm",
+    "scenario": "Offline",
+    "precision": {
+     "h100_sxm5_80gb": "not stated (MLPerf closed BERT; likely INT8)",
+     "a100_sxm4_80gb": "not stated"
+    },
+    "details": "Same submitter (NVIDIA), same round, same TensorRT 8.6.0. BERT is non-LLM; included as the H100/A100 same-vendor sanity pair."
+   },
+   "numerator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.0/blob/main/closed/NVIDIA/results/DGX-H100_H100-SXM-80GBx8_TRT/bert-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.0",
+    "submitter": "NVIDIA",
+    "system": "DGX-H100 (8x H100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 73107.6,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 9138.45,
+    "software": "TensorRT 8.6.0, CUDA 12.0",
+    "host_cpu": "Xeon Platinum 8480C",
+    "note": "per_accelerator = value/accelerators"
+   },
+   "denominator_source": {
+    "url": "https://github.com/mlcommons/inference_results_v3.0/blob/main/closed/NVIDIA/results/DGX-A100_A100-SXM-80GBx8_TRT/bert-99/Offline/performance/run_1/mlperf_log_summary.txt",
+    "round": "v3.0",
+    "submitter": "NVIDIA",
+    "system": "DGX-A100 (8x A100-SXM-80GB, TensorRT)",
+    "accelerators": 8,
+    "value": 28275.7,
+    "unit": "samples/s",
+    "category": "Available",
+    "division": "Closed",
+    "scenario": "Offline",
+    "per_accelerator": 3534.4625,
+    "software": "TensorRT 8.6.0, CUDA 12.0",
+    "host_cpu": "AMD EPYC 7742"
+   },
+   "normalization": "per-accelerator = published system value / accelerator count: 73107.6/8=9138.45 vs 28275.7/8=3534.4625",
+   "grade": "G4",
+   "tolerance": 0.25,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM",
+    "different host CPUs (EPYC 7742 vs Xeon 8480C)"
+   ],
+   "confidence": "high",
+   "comparable": true
+  },
+  {
+   "id": "nvidia_trtllm_gptj_maxthroughput_h100_fp8_vs_a100_fp16",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 2.9647,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "gpt-j-6b",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "h100_sxm5_80gb": "FP8",
+     "a100_sxm4_80gb": "FP16"
+    },
+    "details": "Single GPU (TP1), SXM 80GB, batch 64, input 128 / output 128, TensorRT-LLM v0.5.0, TensorRT 9.1. Table: H100 10,907 out tok/s vs A100 3,679 out tok/s (page states 3.0x; 10907/3679=2.965)."
+   },
+   "source": {
+    "url": "https://nvidia.github.io/TensorRT-LLM/blogs/H100vsA100.html",
+    "quote": "GPT-J 6B | 64 | 128 | 128 | H100 10,907 | A100 3,679 | Speedup 3.0x ... 'FP8 H100, FP16 A100, SXM 80GB GPUs, TP1, ISL/OSL's provided, TensorRT LLM v0.5.0., TensorRT 9.1'",
+    "date": "page has no explicit date (TensorRT-LLM v0.5.0 era, ~late 2023)"
+   },
+   "normalization": "per-GPU already (TP1); ratio recomputed from tabulated tok/s",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "FP8 on H100 vs FP16 on A100 (precision advantage)",
+    "vendor-tuned software"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "nvidia_trtllm_gptj_same_dtype_h100_vs_a100",
+   "kind": "ratio",
+   "numerator": "h100_sxm5_80gb",
+   "denominator": "a100_sxm4_80gb",
+   "ratio": 2.0,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "gpt-j-6b/MLPerf",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "h100_sxm5_80gb": "same data type as A100",
+     "a100_sxm4_80gb": "same"
+    },
+    "details": "Statement summarizing MLPerf inference results; no per-model configuration given, so low specificity."
+   },
+   "source": {
+    "url": "https://nvidia.github.io/TensorRT-LLM/blogs/H100vsA100.html",
+    "quote": "In the most recent MLPerf results, NVIDIA demonstrated up to 4.5x speedup in model inference performance on the NVIDIA H100 compared to previous results on the NVIDIA A100 Tensor Core GPU. Using the same data types, the H100 showed a 2x increase over the A100. Switching to FP8 resulted in yet another 2x increase in speed.",
+    "date": "undated"
+   },
+   "normalization": "no normalization given; read as per-GPU",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "'up to' / unspecific model",
+    "approximate"
+   ],
+   "confidence": "low",
+   "comparable": true
+  },
+  {
+   "id": "google_trillium_sdxl_offline_v6e_vs_v5e",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 3.1,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Google benchmark, images/second, MaxDiffusion reference implementation; also 2.9x for server inference. Consistent with the MLPerf v4.1 4-chip ratio (3.10 offline / 2.90 server). Per-chip normalization not explicitly stated."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/trillium-tpu-is-ga/",
+    "quote": "The graph below demonstrates 3.1x higher relative throughput (images per second) for offline inference and 2.9x higher relative throughput for server inference for Stable Diffusion XL compared to Cloud TPU v5e.",
+    "date": "2024-12-11"
+   },
+   "normalization": "",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM",
+    "'relative throughput' normalization unstated"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "google_trillium_llama2_70b_nearly2x_v6e_vs_v5e",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 2.0,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "llama-2-70b",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Chart claim with no configuration given on the page (chip counts, sequence lengths unstated). 'nearly 2x' so ratio 2.0 is an upper bound approximation."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/trillium-tpu-is-ga/",
+    "quote": "nearly 2x higher relative inference throughput (tokens per second) for Llama2-70B compared to Cloud TPU v5e",
+    "date": "2024-12-11"
+   },
+   "normalization": "",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "no configuration",
+    "approximate",
+    "superseded by JetStream 2.9x figure (May 2025)"
+   ],
+   "confidence": "low",
+   "comparable": false
+  },
+  {
+   "id": "google_jetstream_llama2_70b_v6e8_vs_v5e8",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 2.9,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "llama-2-70b",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "Llama2-70B (MaxText) on Cloud TPU v5e-8 and Trillium 8 chips; max input length 1024, max output length 1024; as of April 2025; JetStream. Equal chip counts (8 vs 8) so per-chip ratio = system ratio. Same page also claims 2.8x for Mixtral 8x7B."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/ai-hypercomputer-inference-updates-for-google-cloud-tpu-and-gpu",
+    "quote": "When using JetStream, our sixth-generation Trillium TPU now exceeds throughput performance by 2.9x for Llama 2 70B and 2.8x for Mixtral 8x7B compared to TPU v5e (using our reference implementation MaxText).",
+    "date": "2025-05-09"
+   },
+   "normalization": "equal chip counts (8 vs 8), so system ratio = per-chip ratio",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "vendor-tuned software, post-launch optimizations",
+    "precision unstated"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "google_mlperf50_sdxl_v6e_vs_v5e_qps",
+   "kind": "ratio",
+   "numerator": "tpu_v6e",
+   "denominator": "tpu_v5e",
+   "ratio": 3.5,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "stable-diffusion-xl",
+    "benchmark_class": "non_llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v6e": "not stated",
+     "tpu_v5e": "not stated"
+    },
+    "details": "SDXL on Cloud TPU v5e-4 and Trillium 4-chip; 1024x1024, batch size per device 16, 20 decode steps, as of April 2025. Compares MLPerf 5.0 Trillium to the last v5e round (v4.1). My own computation from the MLPerf logs gives 3.47 (see mlperf_cross_round_sdxl entry)."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/ai-hypercomputer-inference-updates-for-google-cloud-tpu-and-gpu",
+    "quote": "As demonstrated on MLPerf 5.0, Trillium now delivers 3.5x throughput improvement for queries/second on Stable Diffusion XL (SDXL) compared to last performance round for its predecessor, TPU v5e.",
+    "date": "2025-05-09"
+   },
+   "normalization": "4-chip vs 4-chip",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "non-LLM",
+    "cross-round"
+   ],
+   "confidence": "medium",
+   "comparable": true
+  },
+  {
+   "id": "google_v5e_vs_v4_inference_perf_per_dollar",
+   "kind": "ratio",
+   "numerator": "tpu_v5e",
+   "denominator": "tpu_v4",
+   "ratio": 2.5,
+   "metric": "per_dollar_inference",
+   "workload": {
+    "model": "llm/genai (Llama 2, GPT-3, SD 2.1)",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v5e": "int8",
+     "tpu_v4": "not stated"
+    },
+    "details": "Performance per dollar, not per chip; not comparable to a per-chip throughput ratio. Google's v5e launch blog states normalization to single-chip throughput (Google internal data, Aug 2023) but the stated figure is per dollar."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/announcing-cloud-tpu-v5e-and-a3-gpus-in-ga",
+    "quote": "TPU v5e delivers up to 2x higher training performance per dollar and up to 2.5x inference performance per dollar for LLMs and gen AI models compared to Cloud TPU v4.",
+    "date": "2023-08/11 (GA post; footnote data Aug 2023)"
+   },
+   "normalization": "per dollar; non-comparable",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "per-dollar, depends on list prices",
+    "'up to'"
+   ],
+   "confidence": "medium",
+   "comparable": false
+  },
+  {
+   "id": "google_v5e_vs_v4_mlperf31_inference_perf_per_dollar",
+   "kind": "ratio",
+   "numerator": "tpu_v5e",
+   "denominator": "tpu_v4",
+   "ratio": 2.7,
+   "metric": "per_dollar_inference",
+   "workload": {
+    "model": "llm (MLPerf Inference 3.1 GPT-J)",
+    "benchmark_class": "llm",
+    "scenario": "vendor",
+    "precision": {
+     "tpu_v5e": "int8",
+     "tpu_v4": "not stated"
+    },
+    "details": "Per-dollar. Note: the MLPerf v3.1 Inference repository contains no TPU v4 result under Closed, so the v4 baseline is not independently verifiable. Using the same page's quoted prices (v5e $1.2/chip/hr, v4 $3.22/chip/hr, Nov 2023) the implied per-chip throughput ratio would be about 2.7*1.2/3.22=1.01, but that is a derived figure that assumes the same price basis, so NOT recorded as a ratio."
+   },
+   "source": {
+    "url": "https://cloud.google.com/blog/products/compute/announcing-cloud-tpu-v5e-and-a3-gpus-in-ga",
+    "quote": "This builds upon the 2.7X price performance advantage over TPU v4 for LLM inference that we demonstrated in September for the MLPerf Inference 3.1 benchmark.",
+    "date": "2023-11-08"
+   },
+   "normalization": "per dollar; non-comparable",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "per-dollar",
+    "baseline not in MLPerf repo"
+   ],
+   "confidence": "low",
+   "comparable": false
+  },
+  {
+   "id": "nvidia_a100_whitepaper_bert_large_inference_vs_v100",
+   "kind": "ratio",
+   "numerator": "a100_sxm4_40gb",
+   "denominator": "v100_sxm2_32gb",
+   "ratio": 7.0,
+   "metric": "vendor_claim_throughput",
+   "workload": {
+    "model": "bert-large",
+    "benchmark_class": "non_llm",
+    "scenario": "vendor",
+    "precision": {
+     "a100_sxm4_40gb": "INT8 with structured sparsity (pre-production TRT)",
+     "v100_sxm2_32gb": "INT8/FP16, TRT 7.1"
+    },
+    "details": "Figure 4 of the A100 whitepaper (BERT-LARGE inference, sequences/s): 'A100 (7 MIG)' bar labelled 7X vs V100 1X, batch size 256 for T4/V100, batch size 94 for A100, INT8 with sparsity; 7X is read from a bar-chart image (A100 about 6,200 vs V100 about 900 seq/s, read visually). Sparsity and MIG use are not modelled by a spec-only simulator."
+   },
+   "source": {
+    "url": "https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf",
+    "quote": "Figure 4. Unified AI Acceleration for BERT-LARGE Training and Inference (page 13); chart label 7X; footnote: 'BERT Large inference uses TRT 7.1 for T4/V100, with INT8/FP16 at batch size 256. Pre-production TRT for A100, uses batch size 94 and INT8 with sparsity'",
+    "date": "undated in extracted text (A100 launch whitepaper)"
+   },
+   "normalization": "whole A100 (7 MIG instances) vs one V100",
+   "grade": "G3",
+   "tolerance": 0.2,
+   "fit_device": true,
+   "confounders": [
+    "structured sparsity on A100 only",
+    "7 MIG instances",
+    "pre-production software",
+    "number read from chart image",
+    "non-LLM"
+   ],
+   "confidence": "low",
+   "comparable": false
+  }
+ ],
+ "rankings": [
+  {
+   "id": "rank_mlperf_v3_1_gptj_offline",
+   "round": "v3.1",
+   "benchmark": "gpt-j-6b",
+   "scenario": "Offline",
+   "order": [
+    "h100_sxm5_80gb",
+    "a100_sxm4_80gb",
+    "tpu_v5e"
+   ],
+   "values": {
+    "h100_sxm5_80gb": {
+     "nvidia_dgx": 13.2894,
+     "dell_xe9680": 12.729
+    },
+    "a100_sxm4_80gb": 5.2895,
+    "tpu_v5e": 2.4531
+   },
+   "unit": "samples/s per accelerator",
+   "source": "see entries mlperf_v3_1_gptj_*"
+  },
+  {
+   "id": "rank_mlperf_v4_1_sdxl_offline",
+   "round": "v4.1",
+   "benchmark": "stable-diffusion-xl (non_llm)",
+   "scenario": "Offline",
+   "order": [
+    "h100_sxm5_80gb",
+    "tpu_v6e",
+    "tpu_v5e"
+   ],
+   "values": {
+    "h100_sxm5_80gb": 2.0436,
+    "tpu_v6e": 1.3597,
+    "tpu_v5e": 0.4383
+   },
+   "unit": "samples/s per accelerator",
+   "source": "see entries mlperf_v4_1_sdxl_*"
+  },
+  {
+   "id": "rank_mlperf_v4_0_gptj_offline",
+   "round": "v4.0",
+   "benchmark": "gpt-j-6b",
+   "scenario": "Offline",
+   "order": [
+    "h100_sxm5_80gb",
+    "tpu_v5e"
+   ],
+   "values": {
+    "h100_sxm5_80gb": 29.9869,
+    "tpu_v5e": 2.5375
+   },
+   "unit": "samples/s per accelerator",
+   "source": "see entry mlperf_v4_0_gptj_offline_h100_vs_v5e"
+  }
+ ],
+ "rejected": [
+  {
+   "claim": "V100 SXM2 vs A100 in MLPerf Inference",
+   "url": "https://github.com/mlcommons/inference_results_v1.1",
+   "reason": "No V100 SXM2 results exist in Inference v0.7-v3.0 closed submissions I listed; only V100S-PCIE-32GBx8 (LTechKorea, v1.1, 3d-unet) appears, a different chip and a non-matching benchmark. A100-vs-V100 therefore rests on the vendor whitepaper claim only."
+  },
+  {
+   "claim": "TPU v4 vs TPU v5e in MLPerf Inference",
+   "url": "https://github.com/mlcommons/inference_results_v3.1",
+   "reason": "No TPU v4 submissions in Inference v3.1/v4.x (searched trees); v5e/v4 only has per-dollar vendor claims."
+  },
+  {
+   "claim": "A100/TPU results on Llama-2-70B (v4.0+) and Llama-3.1-8B (v5.1)",
+   "url": "https://github.com/mlcommons/inference_results_v4.0",
+   "reason": "Trees for v4.0, v4.1, v5.0, v5.1 show Llama workloads only on H100/H200/GH200/B200 systems; no A100 or TPU entries (Google's v4.1+ TPU submissions are SDXL only; its v4.x/v5.x GPT-J/Llama entries are NVIDIA H100/H200 re-submissions). v5.1 and v6.0 contain no TPU system at all. So no LLM-class cross-generation pair exists for A100/v5e/v6e on Llama; GPT-J v3.1 is the only LLM A100 pair."
+  },
+  {
+   "claim": "Trillium 4.7x peak compute per chip vs v5e",
+   "url": "https://cloud.google.com/blog/products/compute/introducing-trillium-6th-gen-tpus/",
+   "reason": "Peak spec ratio, not a throughput claim (excluded by task rule)."
+  },
+  {
+   "claim": "NVIDIA TensorRT-LLM blog: BS=1 GPT-J throughput 185 vs 111 tok/s listed as 2.4x speedup",
+   "url": "https://nvidia.github.io/TensorRT-LLM/blogs/H100vsA100.html",
+   "reason": "Internally inconsistent: 185/111 = 1.67, not the stated 2.4x. Not used."
+  },
+  {
+   "claim": "NVIDIA blog headline 'H100 FP8 up to 4.6x max throughput and 4.4x faster 1st token latency than A100'",
+   "url": "https://nvidia.github.io/TensorRT-LLM/blogs/H100vsA100.html",
+   "reason": "'Up to' headline, config not tabulated (only GPT-J 64-batch row is), FP8 vs FP16; recorded only via the tabulated GPT-J row."
+  },
+  {
+   "claim": "TPU v5e 'up to 1.7x speedup on latency' vs v4",
+   "url": "https://cloud.google.com/blog/products/compute/how-cloud-tpu-v5e-accelerates-large-scale-ai-inference",
+   "reason": "Latency claim, not throughput; configuration unspecified (Google internal data, Aug 2023)."
+  },
+  {
+   "claim": "AssemblyAI 'up to 4X greater performance per dollar' and Gridspace 5x/6x on v5e",
+   "url": "https://cloud.google.com/blog/products/compute/announcing-cloud-tpu-v5e-and-a3-gpus-in-ga",
+   "reason": "Customer testimonials vs unspecified baselines, not chip-to-chip."
+  },
+  {
+   "claim": "A100 product page: 249X BERT inference over CPU",
+   "url": "https://www.nvidia.com/en-us/data-center/a100/",
+   "reason": "Compared to CPU, not V100. The page's V100 comparison is not stated as a multiplier."
+  },
+  {
+   "claim": "Secondary-source claims that A100 is 2.5x faster than V100 on BERT inference (from search summaries of Dell/Spheron pages)",
+   "url": "https://www.spheron.network/blog/nvidia-a100-vs-v100/",
+   "reason": "Not fetched/verified at the primary source; search snippet only."
+  },
+  {
+   "claim": "H100 PCIe vs SXM or vs A100",
+   "url": "https://github.com/mlcommons/inference_results_v3.1",
+   "reason": "Only NVIDIA H100-PCIe-80GBx8 MaxQ (power-limited) in v3.1 GPT-J; not fetched. No PCIe pair recorded."
+  },
+  {
+   "claim": "v5e vs v4 'implied per-chip ratio ~1.0' from 2.7x per-dollar and list prices",
+   "url": "https://cloud.google.com/blog/products/compute/announcing-cloud-tpu-v5e-and-a3-gpus-in-ga",
+   "reason": "Derived by me, assumes price basis equals MLPerf comparison basis; not a published ratio."
+  },
+  {
+   "claim": "MLPerf v3.1 GPT-J Server scenario pairs",
+   "url": "https://github.com/mlcommons/inference_results_v3.1",
+   "reason": "Not collected; Offline preferred. Server only recorded for SDXL v6e/v5e."
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+22:59:40 TPU_0(process=0,(0,0,0,0)) 1 33550237184
+22:59:41 gemv/kn/1x4096x6144                              46.20 us     1090 GB/s  cv=0.005 R=11
+22:59:42 gemv/kn/1x4096x4096                              30.95 us     1085 GB/s  cv=0.022 R=16
+22:59:43 gemv/kn/1x4096x14336                            108.21 us     1086 GB/s  cv=0.015 R=5
+22:59:44 gemv/kn/1x14336x4096                            108.41 us     1084 GB/s  cv=0.007 R=5
+22:59:45 gemv/kn/1x4096x28672                            215.37 us     1091 GB/s  cv=0.005 R=3
+22:59:45 gemv/kn/1x4096x3072                              23.53 us     1070 GB/s  cv=0.008 R=22
+22:59:46 gemv/kn/1x4096x8192                              61.63 us     1089 GB/s  cv=0.004 R=8
+22:59:47 gemv/kn/1x4096x10240                             77.11 us     1088 GB/s  cv=0.022 R=7
+22:59:48 gemv/kn/1x4096x20480                            155.10 us     1082 GB/s  cv=0.026 R=4
+22:59:49 gemv/kn/1x4096x57344                            428.25 us     1097 GB/s  cv=0.017 R=2
+22:59:49 gemv/kn/8x4096x6144                              46.87 us     1077 GB/s  cv=0.006 R=11
+22:59:50 gemv/kn/8x4096x4096                              31.15 us     1081 GB/s  cv=0.023 R=16
+22:59:51 gemv/kn/8x14336x4096                            203.08 us      580 GB/s  cv=0.016 R=5
+22:59:51 gemv/kn/32x4096x6144                             46.93 us     1087 GB/s  cv=0.011 R=11
+22:59:52 gemv/kn/32x4096x4096                             31.34 us     1088 GB/s  cv=0.003 R=16
+22:59:53 gemv/kn/32x14336x4096                           204.02 us      581 GB/s  cv=0.003 R=5
+22:59:54 gemv/nk/1x4096x128256                           965.77 us     1088 GB/s  cv=0.040 R=1
+22:59:54 gemv/nk/8x4096x128256                             2.92 us   360476 GB/s  cv=0.112 R=1
+22:59:55 gemv/kn/1x4096x4096/foot2G                       31.14 us     1078 GB/s  cv=0.006 R=64
+22:59:56 gemv/kn/1x4096x14336/foot2G                     107.60 us     1092 GB/s  cv=0.040 R=19
+22:59:56 part gemv done at 15s
+22:59:56 read/sum_rows1024/16MiB                          16.38 us     1024 GB/s  cv=0.001 R=32
+22:59:57 read/sum_rows1024/32MiB                          30.98 us     1083 GB/s  cv=0.009 R=16
+22:59:58 read/sum_rows1024/48MiB                          46.75 us     1077 GB/s  cv=0.008 R=11
+22:59:59 read/sum_rows1024/64MiB                          62.11 us     1080 GB/s  cv=0.014 R=8
+22:59:59 read/sum_rows1024/96MiB                          92.15 us     1092 GB/s  cv=0.010 R=6
+23:00:00 read/sum_rows1024/128MiB                        123.89 us     1083 GB/s  cv=0.012 R=4
+23:00:01 read/sum_rows1024/160MiB                        154.38 us     1087 GB/s  cv=0.016 R=4
+23:00:01 read/sum_rows1024/192MiB                        185.75 us     1084 GB/s  cv=0.019 R=3
+23:00:02 read/sum_rows1024/256MiB                        246.62 us     1088 GB/s  cv=0.042 R=2
+23:00:03 read/sum_rows1024/320MiB                        316.51 us     1060 GB/s  cv=0.025 R=2
+23:00:04 read/sum_rows1024/384MiB                        370.55 us     1087 GB/s  cv=0.004 R=2
+23:00:04 read/sum_rows1024/448MiB                        426.55 us     1101 GB/s  cv=0.025 R=2
+23:00:05 read/sum_rows1024/512MiB                        489.86 us     1096 GB/s  cv=0.025 R=1
+23:00:06 read/sum_rows1024/768MiB                        737.56 us     1092 GB/s  cv=0.043 R=1
+23:00:07 read/sum_rows1024/1024MiB                       986.02 us     1089 GB/s  cv=0.005 R=1
+23:00:07 read/sum_rows1024/2048MiB                      1975.17 us     1087 GB/s  cv=0.018 R=1
+23:00:08 read/colsum_rows1024/64MiB                       62.34 us     1077 GB/s  cv=0.016 R=8
+23:00:08 read/sum_rows8192/64MiB                          62.04 us     1082 GB/s  cv=0.018 R=8
+23:00:09 read/colsum_rows1024/256MiB                     246.32 us     1090 GB/s  cv=0.001 R=2
+23:00:10 read/sum_rows8192/256MiB                        245.60 us     1093 GB/s  cv=0.007 R=2
+23:00:10 read/colsum_rows1024/512MiB                     490.98 us     1093 GB/s  cv=0.025 R=1
+23:00:11 read/sum_rows8192/512MiB                        489.73 us     1096 GB/s  cv=0.028 R=1
+23:00:11 read/colsum_rows1024/1024MiB                    990.35 us     1084 GB/s  cv=0.018 R=1
+23:00:12 read/sum_rows8192/1024MiB                       988.96 us     1086 GB/s  cv=0.025 R=1
+23:00:14 read/sum_512MiB_as_4x128                       2310.60 us      232 GB/s  cv=0.004 R=1
+23:00:14 read/sum_rows1024/128MiB/foot2G                 122.50 us     1096 GB/s  cv=0.021 R=16
+23:00:15 read/sum_rows1024/512MiB/foot2G                 488.80 us     1098 GB/s  cv=0.007 R=4
+23:00:15 part read done at 35s
+23:00:17 chain/L1/m1                                     396.45 us     1100 GB/s  cv=0.013 R=1
+23:00:22 chain/L4/m1                                    1592.25 us     1096 GB/s  cv=0.010 R=1
+23:00:40 chain/L16/m1                                   6291.08 us     1109 GB/s  cv=0.012 R=1
+23:00:40 chain/L1/independent                            399.64 us     1092 GB/s  cv=0.010 R=1
+23:00:40 part chain done at 60s
+23:00:41 gemm/2048x4096x4096                              47.53 us     1412 GB/s  cv=0.050 R=4
+23:00:41    1445.9 TF/s
+23:00:42 gemm/2048x6144x4096                              62.85 us     1468 GB/s  cv=0.102 R=3
+23:00:42    1640.1 TF/s
+23:00:43 gemm/2048x14336x4096                            224.67 us      859 GB/s  cv=0.025 R=2
+23:00:43    1070.5 TF/s
+23:00:44 gemm/2048x4096x14336                            268.00 us      720 GB/s  cv=0.010 R=2
+23:00:44    897.4 TF/s
+23:00:44 gemm/2048x28672x4096                             15.10 us    24449 GB/s  cv=0.017 R=1
+23:00:44    31864.2 TF/s
+23:00:45 gemm/8192x4096x4096                              68.97 us     2433 GB/s  cv=0.199 R=2
+23:00:45    3985.7 TF/s
+23:00:46 gemm/8192x6144x4096                              83.95 us     2598 GB/s  cv=0.015 R=2
+23:00:46    4911.5 TF/s
+23:00:46 gemm/4096x4096x4096                              62.81 us     1603 GB/s  cv=0.018 R=3
+23:00:46    2188.1 TF/s
+23:00:47 gemm/8192x8192x8192                             231.78 us     1737 GB/s  cv=0.118 R=1
+23:00:47    4743.8 TF/s
+23:00:47 gemm/8192x8192x8192/sustain0.01s                187.43 us     2148 GB/s  cv=0.012 R=1
+23:00:47    5866.4 TF/s
+23:00:48 gemm/8192x8192x8192/sustain0.5s                 228.83 us     1760 GB/s  cv=0.010 R=1
+23:00:48    4804.9 TF/s
+23:00:50 gemm/8192x8192x8192/sustain2.0s                 229.70 us     1753 GB/s  cv=0.001 R=1
+23:00:50    4786.7 TF/s
+23:00:50 read/sum_rows1024/256MiB/sustain0.005s          287.43 us      934 GB/s  cv=0.243 R=2
+23:00:57 read/sum_rows1024/256MiB/sustain1.0s            245.86 us     1092 GB/s  cv=0.002 R=2
+23:00:57 part gemm done at 77s

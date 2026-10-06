@@ -1,0 +1,119 @@
+// "ember": chiplets + HBM4-PIM + mesh NoC + 3D SRAM + CIM (01 §20.5). All numbers assumed unless tagged.
+{
+  schema: "kiln.hw/1.0",
+  name: "ember",
+  // 01 §2 / 03 §4.4: scratchpads only (no caches, no hardware-managed coherence), tiles fed by explicit NoC
+  // transfers: a compiler must schedule every DMA and tile program ahead of time, as on a TPU. Host-launched
+  // kernels (GPU) and device queues presume hardware-managed memory and a dispatcher ember does not have.
+  exec_model: "static_dataflow",
+  meta: {
+    citations: {
+      jedec: "JEDEC JESD270-4 HBM4 (2048-bit interface, up to 8 Gb/s/pin)",
+      derived: "arithmetic from this document's assumed structure (ember is not a published chip)",
+    },
+    // Not in 01's example: the reference profile requires peak and off-chip claims.
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 1.7301e15, rel_tol: 0.01, source: "derived" },
+      // mx 3329.2 + CIM 512 macros x 1024 MAC/cycle (1677.7) + HBM PIM 131.1 TOPS
+      { metric: "peak_ops.int8", scope: "", value: 5.1380e15, rel_tol: 0.01, source: "derived" },
+      { metric: "offchip_bw", scope: "", value: 8.192e12, rel_tol: 0.01, source: "jedec" },
+    ],
+  },
+  tech: "tsmc_n3e",
+  params: { tiles: 8, arr: 64, clk: "1.6GHz", tile_sram: "1.5MiB" },
+  templates: {
+    tile: { kind: "cluster", body: {
+      units: [
+        { id: "mx", kind: "matrix", geometry: { systolic: { rows: "=arr", cols: "=arr" } },
+          dataflow: ["weight_stationary", "output_stationary"],       // mapper picks per op
+          precisions: ["mxfp8_e4m3*mxfp8_e4m3+fp32", "mxfp6_e2m3*mxfp6_e2m3+fp32@2",
+                       "mxfp4*mxfp4+fp32@4", "bf16*bf16+fp32@0.5", "int8*int8+int32", "bf16*mxfp4+fp32@0.5"],
+          local: [ { id: "w", holds: "b", capacity: "= 2 * arr * arr", double_buffered: true },
+                   { id: "acc", holds: "o", capacity: "= arr * arr * 4" } ],
+          feeds: { a: "sram", b: "sram", o: "sram" } },
+        { id: "vec", kind: "vector", lanes: 32, precisions: ["fp32@1", "bf16@2", "mxfp8_e4m3@2"],
+          reduce_tree: true, feeds: { any: "sram" } },
+        { id: "sfu", kind: "special", lanes: 8, functions: ["exp2", "rsqrt", "recip", "silu", "gelu"],
+          precisions: ["fp32@1"], feeds: { any: "sram" } },
+      ],
+      memories: [ { id: "sram", kind: "scratchpad", capacity: "=tile_sram", banks: 16, word_bits: 512,
+                    ports: [ { dir: "rw", count: 2, width_bits: 512, per_bank: false } ] } ],
+    } },
+    cim_tile: { kind: "cluster", body: {
+      // Bit-serial digital macro, 1-bit cells, 4 weight sets per compute column (TSMC ISSCC'21 16.4 style):
+      // int8*int4 = 256 * (256/4) / 8 = 2048 MAC/cycle, int8*int8 = 1024 (01 §9.3).
+      units: [ { id: "cim", kind: "cim", rows: 256, cols: 256, weight_sets: 4, weight_capacity: "32KiB",
+                 style: "digital", precisions: ["int8*int4+int32", "int8*int8+int32"],
+                 near: { memory: "act", granularity: "per_bank" } } ],   // one CIM macro per act bank: count 16 implied
+      memories: [ { id: "act", kind: "scratchpad", capacity: "512KiB", banks: 16, word_bits: 256,
+                    ports: [ { dir: "rw", count: 2, width_bits: 1024 } ] } ],
+    } },
+    chiplet: { kind: "die", body: {
+      clocks: [ { id: "core", freq: "=clk", base: "1.0GHz",
+                  vf: [ { freq: "1.0GHz", voltage: "0.60V" }, { freq: "1.6GHz", voltage: "0.80V" } ] } ],
+      default_clock: "core",
+      floorplan: { outline: { type: "max_area", area: "400mm2", aspect: [0.8, 1.25] } },
+      clusters: [
+        { id: "t", use: "tile", layout: { grid: ["=tiles", "=tiles"] }, placement: { mode: "array" } },
+        { id: "c", use: "cim_tile", layout: { grid: ["=tiles", 1] } },
+      ],
+      networks: [ {
+        id: "noc", topology: { type: "mesh", dims: ["=tiles", "= tiles + 1"] },
+        endpoints: [ { select: "t*.sram", at: "layout" },
+                     { select: "c*.act", at: { layout_offset: [0, "=tiles"] } } ],
+        link: { width_bits: 1024 },          // latency/energy derived from placed tile pitch (04)
+        router: { pipeline: 2, vcs: 2, input_buffer_flits: 8 },
+        routing: "default",
+        features: { multicast: true, broadcast: true, in_network_reduce: ["fp32", "bf16"] },
+      } ],
+      ports: [
+        { id: "ucie", count: 2, kind: "d2d", internal: "noc" },
+        { id: "up", kind: "vertical", internal: "noc" },
+        { id: "xlink", count: 8, kind: "serdes", internal: "noc",
+          link: { phys: { type: "serdes", protocol: "custom", lanes: 8, lane_rate_bits_per_s: "224Gbps" } } },
+      ],
+    } },
+  },
+  system: { package: {
+    id: "pkg",
+    substrate: { kind: "silicon_interposer" },
+    power: { cap: "700W", policy: "dvfs" },
+    layers: [ { id: "base", index: 0, bond: "microbump", pitch_um: 36 },
+              { id: "top", index: 1, bond: "hybrid", pitch_um: 9 } ],
+    dies: [
+      { id: "cc", use: "chiplet", layout: { grid: [2, 2] }, layer: "base",
+        disabled: ["cc0_0.t3_5", "cc0_0.t6_1"] },                       // harvested tiles; routers kept
+      { id: "sram", layout: { grid: [2, 2] }, layer: "top", tech: "tsmc_n5", role: "sram",
+        over: "cc[{i}]", placement: { mode: "pinned", x: 0, y: 0 },     // relative to the die below
+        clocks: [ { id: "core", freq: "=clk" } ], default_clock: "core", // assumed: clocked with the chiplet below
+        floorplan: { outline: { type: "fixed", w: "18mm", h: "18mm" } },
+        memories: [ { id: "l3", kind: "scratchpad", capacity: "64MiB", banks: 64, word_bits: 512,
+                      ports: [ { dir: "rw", count: 8, width_bits: 1024 } ] } ],
+        ports: [ { id: "down", kind: "vertical", internal: "l3", link: { width_bits: 8192, clock: "v_clk" } } ] },
+    ],
+    links: [
+      { id: "v", count: 4, a: "cc[{i}].up", b: "sram[{i}].down",
+        link: { phys: { type: "vertical", bond: "hybrid", pitch_um: 9 }, width_bits: 8192, clock: "v_clk" } }, // assumed: chiplet clock
+    ],
+    networks: [ {
+      id: "d2d", topology: { type: "mesh", dims: [2, 2] },
+      endpoints: [ { select: "cc*", at: "layout", ports: "ucie*" } ],
+      link: { phys: { type: "d2d", standard: "ucie_advanced", modules: 4, pin_rate_bits_per_s: "32Gbps" } },
+      // 4 modules x 64 lanes x 32 Gb/s / 8 = 1024 GB/s per direction
+    } ],
+    mem_stacks: [ {
+      id: "hbm", count: 4, kind: "hbm4", capacity: "36GiB", dies_high: 12,
+      io_width_bits: 2048, pin_rate_bits_per_s: "8Gbps",                 // pub:jedec -> 2.048 TB/s per stack
+      attach: { network: "cc[{i}].noc" },                               // controllers on the chiplet's NoC
+      logic_die: {
+        tech: "tsmc_n12", area_budget: "30mm2", power_budget: "8W",
+        units: [ { id: "pim", kind: "matrix", geometry: { mma: { m: 1, n: 16, k: 16 } },  // GEMV engine
+                   precisions: ["bf16*bf16+fp32", "fp8_e4m3*fp8_e4m3+fp32@2", "int8*int8+int32@2"],
+                   clock: "pim_clk",
+                   near: { memory: "hbm[{^i}]", granularity: "per_pseudo_channel", access_mode: "exclusive_per_bank",
+                           residency: "weights", result_path: "write_back" } } ],
+      },
+    } ],
+  } },
+  clocks: [ { id: "pim_clk", freq: "500MHz" }, { id: "v_clk", freq: "=clk" } ],
+}

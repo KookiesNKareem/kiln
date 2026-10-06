@@ -1,0 +1,31 @@
+// M4 fixture (06 §12.2): two pinned dies joined by one d2d link; the relation halves the die offset.
+{
+  schema: "kiln.hw/1.0",
+  name: "m4-two-die",
+  tech: "tsmc_n5",
+  templates: {
+    half: { kind: "die", body: {
+      clocks: [ { id: "core", freq: "1GHz" } ],
+      default_clock: "core",
+      units: [ { id: "mx", kind: "matrix", geometry: { systolic: { rows: 64, cols: 64 } }, dataflow: "weight_stationary",
+                 precisions: ["bf16*bf16+fp32"], local: [ { id: "w", holds: "b", capacity: "16KiB" } ], feeds: { any: "sram" } } ],
+      memories: [ { id: "sram", kind: "scratchpad", capacity: "8MiB", ports: [ { dir: "rw", count: 2, width_bits: 4096 } ] } ],
+      networks: [ { id: "noc", topology: "crossbar", endpoints: ["sram"], link: { width_bits: 4096 } } ],
+      ports: [ { id: "d2d", kind: "d2d", internal: "noc" } ],
+      floorplan: { outline: { type: "fixed", w: "10mm", h: "10mm" } },
+    } },
+  },
+  system: { package: {
+    id: "pkg",
+    substrate: { kind: "silicon_interposer" },
+    power: { cap: "100W", policy: "dvfs" },
+    dies: [
+      { id: "a", use: "half", placement: { mode: "pinned", x: "0mm", y: "0mm" } },
+      { id: "b", use: "half", placement: { mode: "pinned", x: "40mm", y: "0mm" } },
+    ],
+    links: [ { id: "ab", a: "a.d2d", b: "b.d2d",
+               link: { phys: { type: "d2d", standard: "ucie_advanced", modules: 1, pin_rate_bits_per_s: "16Gbps" } } } ],
+    mem_stacks: [ { id: "hbm", kind: "hbm3", capacity: "16GiB", io_width_bits: 1024, pin_rate_bits_per_s: "6.4Gbps",
+                    attach: { network: "a.noc" } } ],
+  } },
+}

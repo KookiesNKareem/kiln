@@ -1,0 +1,97 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&one, &spec(v), &sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Floorplan  tpu_v5e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">UNPLACED (hierarchy layout, nominal sizes, not physical) | color: utilization | all phases | tier A</text>
+<rect x="133" y="60" width="484" height="484" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="142.68" y="89.04" width="464.64" height="445.28" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="151.59" y="115.76" width="254.39" height="99.75" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="153.58" y="121.74" width="19.45" height="22.94" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="153.58" y="144.68" width="19.45" height="22.94" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="153.58" y="167.63" width="19.45" height="22.94" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="153.58" y="190.57" width="19.45" height="22.94" fill="#e2cc54" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="173.03" y="121.74" width="12.16" height="18.35" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="173.03" y="140.1" width="12.16" height="18.35" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="173.03" y="158.45" width="12.16" height="18.35" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="173.03" y="176.8" width="12.16" height="18.35" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="173.03" y="195.16" width="12.16" height="18.35" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="185.18" y="121.74" width="218.79" height="91.77" fill="#f6f6f8" stroke="#a0a4ac" stroke-width="1"/>
+<rect x="187.02" y="127.25" width="23.9" height="16.89" fill="#00224e" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="187.02" y="144.13" width="23.9" height="67.54" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="210.92" y="127.25" width="38.24" height="42.21" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="210.92" y="169.46" width="38.24" height="42.21" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="249.17" y="127.25" width="52.59" height="30.7" fill="#3f4c6c" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="249.17" y="157.95" width="52.59" height="53.73" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="301.75" y="127.25" width="71.71" height="5.63" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<rect x="301.75" y="132.88" width="71.71" height="78.8" fill="#002d69" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="373.46" y="127.25" width="28.68" height="28.14" fill="#00224e" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="373.46" y="155.39" width="28.68" height="56.29" fill="#002a60" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="151.59" y="215.51" width="254.39" height="309.91" fill="#fce63a" stroke="#ffffff" stroke-width="0.5"/>
+<rect x="405.97" y="115.76" width="192.44" height="409.66" fill="#fce63a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="136" y="69.31" font-size="10" text-anchor="start" fill="#6e727c">board</text>
+<text x="145.68" y="98.35" font-size="10" text-anchor="start" fill="#6e727c">chip</text>
+<text x="275.46" y="146.58" font-size="12" text-anchor="middle" fill="#f5f5f8">mxu3</text>
+<text x="275.46" y="188.79" font-size="12" text-anchor="middle" fill="#6e727c">smem</text>
+<text x="337.6" y="176.25" font-size="12" text-anchor="middle" fill="#f5f5f8">vmem</text>
+<text x="278.78" y="374.44" font-size="12" text-anchor="middle" fill="#141418">hbm0</text>
+<text x="502.19" y="324.56" font-size="12" text-anchor="middle" fill="#141418">hbm1</text>
+<text x="750" y="82.15" font-size="11" text-anchor="start" fill="#1c1e24">busy fraction</text>
+<rect x="750" y="90" width="16" height="7.38" fill="#fbe43c"/>
+<rect x="750" y="96.88" width="16" height="7.38" fill="#f4dc43"/>
+<rect x="750" y="103.75" width="16" height="7.38" fill="#ecd44b"/>
+<rect x="750" y="110.62" width="16" height="7.38" fill="#e3cd54"/>
+<rect x="750" y="117.5" width="16" height="7.38" fill="#dac65b"/>
+<rect x="750" y="124.38" width="16" height="7.38" fill="#d1bf60"/>
+<rect x="750" y="131.25" width="16" height="7.38" fill="#c9b865"/>
+<rect x="750" y="138.12" width="16" height="7.38" fill="#c0b16a"/>
+<rect x="750" y="145" width="16" height="7.38" fill="#b8ab6e"/>
+<rect x="750" y="151.88" width="16" height="7.38" fill="#afa471"/>
+<rect x="750" y="158.75" width="16" height="7.38" fill="#a79d73"/>
+<rect x="750" y="165.62" width="16" height="7.38" fill="#9f9775"/>
+<rect x="750" y="172.5" width="16" height="7.38" fill="#979177"/>
+<rect x="750" y="179.38" width="16" height="7.38" fill="#908b78"/>
+<rect x="750" y="186.25" width="16" height="7.38" fill="#888578"/>
+<rect x="750" y="193.12" width="16" height="7.38" fill="#817f78"/>
+<rect x="750" y="200" width="16" height="7.38" fill="#7a7977"/>
+<rect x="750" y="206.88" width="16" height="7.38" fill="#737374"/>
+<rect x="750" y="213.75" width="16" height="7.38" fill="#6c6d72"/>
+<rect x="750" y="220.62" width="16" height="7.38" fill="#656870"/>
+<rect x="750" y="227.5" width="16" height="7.38" fill="#5e626f"/>
+<rect x="750" y="234.38" width="16" height="7.38" fill="#575d6e"/>
+<rect x="750" y="241.25" width="16" height="7.38" fill="#4f576d"/>
+<rect x="750" y="248.12" width="16" height="7.38" fill="#47516c"/>
+<rect x="750" y="255" width="16" height="7.38" fill="#3f4b6c"/>
+<rect x="750" y="261.88" width="16" height="7.38" fill="#36466d"/>
+<rect x="750" y="268.75" width="16" height="7.38" fill="#2c406e"/>
+<rect x="750" y="275.62" width="16" height="7.38" fill="#203b6f"/>
+<rect x="750" y="282.5" width="16" height="7.38" fill="#14366e"/>
+<rect x="750" y="289.38" width="16" height="7.38" fill="#07316b"/>
+<rect x="750" y="296.25" width="16" height="7.38" fill="#002b63"/>
+<rect x="750" y="303.12" width="16" height="7.38" fill="#002555"/>
+<rect x="750" y="90" width="16" height="220" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<polyline points="766,310 770,310" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="772" y="313.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<polyline points="766,255 770,255" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="772" y="258.31" font-size="10" text-anchor="start" fill="#6e727c">25%</text>
+<polyline points="766,200 770,200" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="772" y="203.31" font-size="10" text-anchor="start" fill="#6e727c">50%</text>
+<polyline points="766,145 770,145" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="772" y="148.31" font-size="10" text-anchor="start" fill="#6e727c">75%</text>
+<polyline points="766,90 770,90" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="772" y="93.31" font-size="10" text-anchor="start" fill="#6e727c">100%</text>
+<rect x="750" y="330" width="14" height="14" fill="#00224e"/>
+<polyline points="750,342 752,344" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="750,338 756,344" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="750,334 760,344" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="750,330 764,344" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="754,330 764,340" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="758,330 764,336" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="762,330 764,332" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<text x="770" y="340.65" font-size="11" text-anchor="start" fill="#1c1e24">idle (0%)</text>
+<rect x="750" y="350" width="14" height="14" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<text x="770" y="360.65" font-size="11" text-anchor="start" fill="#1c1e24">no data</text>
+<text x="884" y="550.31" font-size="10" text-anchor="end" fill="#6e727c">25 blocks drawn of 25 placed</text>
+</svg>

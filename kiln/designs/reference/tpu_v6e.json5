@@ -1,0 +1,40 @@
+// Google TPU v6e (Trillium) as a variant of v5e (01 §20.3).
+{
+  schema: "kiln.hw/1.0",
+  name: "tpu-v6e",
+  family: "tpu_v6e",                                   // overrides the inherited key
+  extends: "tpu_v5e.json5",
+  meta: {
+    citations: {
+      v6e: "Google Cloud TPU v6e docs, docs.cloud.google.com/tpu/docs/v6e (accessed 2026-10-04)",
+      trillium: "Google Cloud blog, Introducing Trillium, sixth-generation TPUs (May 2024): 4.7x peak compute per chip and over 67% more energy-efficient than TPU v5e; no power figure published",
+    },
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 918e12, rel_tol: 0.01, source: "v6e" },
+      { metric: "peak_ops.int8", scope: "", value: 1836e12, rel_tol: 0.01, source: "v6e" },
+      { metric: "offchip_bw", scope: "", value: 1638e9, rel_tol: 0.01, source: "v6e" },
+    ],
+  },
+  params: {
+    mxu_edge: 256, n_mxu: 2, clk: "3500MHz",          // edge pub:sysarch; 2 MXUs pub:v6e; clock derived from 918 TFLOPS (owner ruling, 08 §C)
+    hbm_kind: "hbm3", hbm_cap: "16GiB", hbm_pin: "6.4Gbps",   // 32 GB, 1638 GB/s pub:v6e; 2 x HBM3 split assumed
+    ici_lane_rate: "200Gbps",                          // derived: 100 GB/s/dir/port; lane split assumed
+    vpu_precisions: ["fp32@1", "int32@1", "bf16@2"],   // assumed bf16 VALU on v6e
+    vmem_rd_ports: 3,                                  // assumed: keeps 45.6 TB/s VMEM read bandwidth at the 2x clock
+    tdp: "450W", tdp_lo: "300W", tdp_hi: "700W",       // assumed: Google publishes no v6e power (01 §12 `assumed`, never enforced);
+                                                       // range = v5e's [120, 250] W x 4.7 (peak compute) / 1.67 (energy
+                                                       // efficiency), pub:trillium, rounded outward
+  },
+  set: [
+    { "board.chip.die#clusters+": [ {
+        id: "sc", count: 2,                            // 2 SparseCores pub:v6e (count); internals assumed
+        units: [ { id: "tile", count: 16, kind: "vector", lanes: 16,   // assumed
+                   precisions: ["fp32@1", "int32@1", "bf16@2"],
+                   ops: ["elementwise", "gather_scatter", "reduction", "sort_topk", "convert"],
+                   feeds: { any: "spmem" } } ],
+        memories: [ { id: "spmem", kind: "scratchpad", capacity: "8MiB", banks: 16, // capacity and banking assumed (one port per bank)
+                      ports: [ { dir: "rw", count: 16, width_bits: 512 } ] } ],
+      } ] },
+    { "board.chip.die.dma#endpoints+": ["sc*.spmem"] },
+  ],
+}

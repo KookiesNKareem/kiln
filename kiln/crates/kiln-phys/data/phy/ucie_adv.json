@@ -1,0 +1,38 @@
+{
+ "schema": "kiln.phys.phy/1",
+ "id": "ucie_adv",
+ "unit": "module",
+ "shoreline_mm": {
+  "v": 0.39,
+  "q": "asm",
+  "c": "L",
+  "src": "ucie_1.0"
+ },
+ "e_pj_per_bit": {
+  "v": 0.25,
+  "q": "pub",
+  "c": "H",
+  "src": "ucie_1.0"
+ },
+ "area_mm2_n7": {
+  "v": 0.35,
+  "q": "asm",
+  "c": "L",
+  "src": "ucie_1.0",
+  "note": "area per unit at N7; other nodes scale with sqrt(a_GE ratio) (analog/IO-dominated)"
+ },
+ "latency_ns": {
+  "v": 2.0,
+  "q": "asm",
+  "c": "L",
+  "src": "ucie_1.0"
+ },
+ "leak_w": {
+  "v": 0.0175,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "PHY bias/leakage per unit (0.05 W/mm2 of PHY)"
+ },
+ "note": "x64 advanced-package module (25-55 um bumps)"
+}

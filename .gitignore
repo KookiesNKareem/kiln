@@ -1,0 +1,14 @@
+.cache/
+.colab/
+.hashseed_scratch/
+third_party/
+kiln/target/
+workloads/build/
+__pycache__/
+*.pyc
+.DS_Store
+kiln/.venv/
+kiln/crates/kiln-py/python/kiln/*.so
+.pytest_cache/
+kiln/evolve/runs/
+.codex-review/

@@ -1,0 +1,38 @@
+{
+ "schema": "kiln.phys.phy/1",
+ "id": "nvlink_c2c",
+ "unit": "module",
+ "shoreline_mm": {
+  "v": 1.0,
+  "q": "asm",
+  "c": "L",
+  "src": "nvidia_gh200"
+ },
+ "e_pj_per_bit": {
+  "v": 1.3,
+  "q": "pub",
+  "c": "L",
+  "src": "nvidia_gh200"
+ },
+ "area_mm2_n7": {
+  "v": 1.0,
+  "q": "asm",
+  "c": "L",
+  "src": "nvidia_gh200",
+  "note": "area per unit at N7; other nodes scale with sqrt(a_GE ratio) (analog/IO-dominated)"
+ },
+ "latency_ns": {
+  "v": 5.0,
+  "q": "asm",
+  "c": "L",
+  "src": "nvidia_gh200"
+ },
+ "leak_w": {
+  "v": 0.05,
+  "q": "asm",
+  "c": "L",
+  "src": "kiln_assumed",
+  "note": "PHY bias/leakage per unit (0.05 W/mm2 of PHY)"
+ },
+ "note": "C2C-class D2D"
+}

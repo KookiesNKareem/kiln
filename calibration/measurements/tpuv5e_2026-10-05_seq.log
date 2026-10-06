@@ -1,0 +1,15 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+15:55:45 sanity start {'gemm_8192^3': {'loop_s': 0.0060935451666731906, 'cv': 0.00401458325512078, 'tflops': 180.43874258772178, 'gbps': 66.07864108437077}, 'copy_1GiB': {'loop_s': 0.003263517555549495, 'cv': 0.004105493614100209, 'tflops': None, 'gbps': 658.0273007412756}}
+15:55:45 plan {'decode_b1': 16, 'decode_b8': 16, 'decode_b32': 16, 'prefill_b1': 16}
+15:55:53 weights 16 layers in 8.0s
+15:56:03 seq/decode_b1/step                           best=  10832.71us single=  11463.3us loop_cv=0.001     0.0TF       0GB/s ok
+15:56:05 seq/decode_b1/layer1                         best=    658.12us single=    989.6us loop_cv=0.000     0.0TF       0GB/s ok
+15:56:21 seq/decode_b8/step                           best=  12129.07us single=  12891.8us loop_cv=0.001     0.0TF       0GB/s ok
+15:56:24 seq/decode_b8/layer1                         best=    722.50us single=   1070.4us loop_cv=0.001     0.0TF       0GB/s ok
+15:56:40 seq/decode_b32/step                          best=  16641.37us single=  17607.0us loop_cv=0.002     0.0TF       0GB/s ok
+15:56:43 seq/decode_b32/layer1                        best=   1019.29us single=   1257.5us loop_cv=0.000     0.0TF       0GB/s ok
+15:57:01 seq/prefill_b1/step                          best= 143810.38us single= 145639.3us loop_cv=0.000     0.0TF       0GB/s ok
+15:57:06 seq/prefill_b1/layer1                        best=   8924.63us single=  10167.5us loop_cv=0.000     0.0TF       0GB/s ok
+15:57:08 sanity end {'gemm_8192^3': {'loop_s': 0.006108179166668985, 'cv': 0.004422037448904479, 'tflops': 180.0064467289692, 'gbps': 65.9203296126596}, 'copy_1GiB': {'loop_s': 0.00326768066666874, 'cv': 0.007953529435883634, 'tflops': None, 'gbps': 657.1889566520181}}
+15:57:08 DONE

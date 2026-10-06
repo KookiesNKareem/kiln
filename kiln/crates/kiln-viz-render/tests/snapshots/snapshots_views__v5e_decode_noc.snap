@@ -1,0 +1,87 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&one, &spec(v), &sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">NoC / links  tpu_v5e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">Tier A: utilization per link over the phase (no time axis); the link x time heatmap needs a Tier B trace (`full` level, M4)</text>
+<text x="413" y="78.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm0_phy-board.chip.die.hbm0_mc</text>
+<rect x="421" y="70" width="333.05" height="12" fill="#e2cc54"/>
+<text x="760.05" y="79.31" font-size="10" text-anchor="start" fill="#6e727c">89%</text>
+<text x="413" y="94.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm1_phy-board.chip.die.hbm1_mc</text>
+<rect x="421" y="86" width="333.05" height="12" fill="#e2cc54"/>
+<text x="760.05" y="95.31" font-size="10" text-anchor="start" fill="#6e727c">89%</text>
+<text x="413" y="110.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.hbm0-board.chip.die.hbm0_phy</text>
+<rect x="421" y="102" width="333.05" height="12" fill="#e2cc54"/>
+<text x="760.05" y="111.31" font-size="10" text-anchor="start" fill="#6e727c">89%</text>
+<text x="413" y="126.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.hbm1-board.chip.die.hbm1_phy</text>
+<rect x="421" y="118" width="333.05" height="12" fill="#e2cc54"/>
+<text x="760.05" y="127.31" font-size="10" text-anchor="start" fill="#6e727c">89%</text>
+<text x="413" y="142.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.dma.r0-board.chip.die.tc.vmem</text>
+<rect x="421" y="134" width="177.63" height="12" fill="#777776"/>
+<text x="604.63" y="143.31" font-size="10" text-anchor="start" fill="#6e727c">47%</text>
+<text x="413" y="158.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm0_mc-board.chip.die.dma.r0</text>
+<rect x="421" y="150" width="88.81" height="12" fill="#3f4c6c"/>
+<text x="515.81" y="159.31" font-size="10" text-anchor="start" fill="#6e727c">24%</text>
+<text x="413" y="174.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm1_mc-board.chip.die.dma.r0</text>
+<rect x="421" y="166" width="88.81" height="12" fill="#3f4c6c"/>
+<text x="515.81" y="175.31" font-size="10" text-anchor="start" fill="#6e727c">24%</text>
+<text x="413" y="190.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vmem-board.chip.die.tc.vreg</text>
+<rect x="421" y="182" width="14.81" height="12" fill="#002a60"/>
+<text x="441.81" y="191.31" font-size="10" text-anchor="start" fill="#6e727c">4%</text>
+<text x="413" y="206.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.mxu0</text>
+<rect x="421" y="198" width="11.15" height="12" fill="#00285b"/>
+<text x="438.15" y="207.31" font-size="10" text-anchor="start" fill="#6e727c">3%</text>
+<text x="413" y="222.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.mxu1</text>
+<rect x="421" y="214" width="11.15" height="12" fill="#00285b"/>
+<text x="438.15" y="223.31" font-size="10" text-anchor="start" fill="#6e727c">3%</text>
+<text x="413" y="238.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.mxu2</text>
+<rect x="421" y="230" width="11.14" height="12" fill="#00285b"/>
+<text x="438.14" y="239.31" font-size="10" text-anchor="start" fill="#6e727c">3%</text>
+<text x="413" y="254.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.mxu3</text>
+<rect x="421" y="246" width="11.14" height="12" fill="#00285b"/>
+<text x="438.14" y="255.31" font-size="10" text-anchor="start" fill="#6e727c">3%</text>
+<text x="413" y="270.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.mxu0-board.chip.die.tc.vreg</text>
+<rect x="421" y="262" width="1" height="12" fill="#00224e"/>
+<text x="427.2" y="271.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="286.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.mxu1-board.chip.die.tc.vreg</text>
+<rect x="421" y="278" width="1" height="12" fill="#00224e"/>
+<text x="427.2" y="287.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="302.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.mxu2-board.chip.die.tc.vreg</text>
+<rect x="421" y="294" width="1" height="12" fill="#00224e"/>
+<text x="427.2" y="303.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="318.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.mxu3-board.chip.die.tc.vreg</text>
+<rect x="421" y="310" width="1" height="12" fill="#00224e"/>
+<text x="427.2" y="319.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="334.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.vpu</text>
+<rect x="421" y="326" width="1" height="12" fill="#00224e"/>
+<text x="427.04" y="335.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="350.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vpu-board.chip.die.tc.vreg</text>
+<rect x="421" y="342" width="1" height="12" fill="#00224e"/>
+<text x="427.02" y="351.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="366.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vreg-board.chip.die.tc.vmem</text>
+<rect x="421" y="358" width="1" height="12" fill="#00224e"/>
+<text x="427.01" y="367.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="382.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm0_mc-board.chip.die.hbm0_phy</text>
+<rect x="421" y="374" width="1" height="12" fill="#00224e"/>
+<text x="427" y="383.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="398.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm0_phy-board.chip.hbm0</text>
+<rect x="421" y="390" width="1" height="12" fill="#00224e"/>
+<text x="427" y="399.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="414.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm1_mc-board.chip.die.hbm1_phy</text>
+<rect x="421" y="406" width="1" height="12" fill="#00224e"/>
+<text x="427" y="415.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="430.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.hbm1_phy-board.chip.hbm1</text>
+<rect x="421" y="422" width="1" height="12" fill="#00224e"/>
+<text x="427" y="431.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="446.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.tc.vmem-board.chip.die.dma.r0</text>
+<rect x="421" y="438" width="1" height="12" fill="#00224e"/>
+<text x="427" y="447.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="462.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.dma.r0-board.chip.die.hbm0_mc</text>
+<rect x="421" y="454" width="1" height="12" fill="#00224e"/>
+<text x="427" y="463.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<text x="413" y="478.97" font-size="10" text-anchor="end" fill="#1c1e24" font-family="Hack, 'DejaVu Sans Mono', monospace">board.chip.die.dma.r0-board.chip.die.hbm1_mc</text>
+<rect x="421" y="470" width="1" height="12" fill="#00224e"/>
+<text x="427" y="479.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+</svg>

@@ -1,0 +1,21 @@
+{
+ "schema": "kiln.phys.aliases/1",
+ "aliases": {
+  "tsmc_n4p": {
+   "to": "tsmc_n4",
+   "note": "N4P uses the N4 table"
+  },
+  "nvidia_4n": {
+   "to": "tsmc_n4",
+   "note": "NVIDIA 4N is a TSMC N4-class custom process (H100 whitepaper)"
+  },
+  "tsmc_n12": {
+   "to": "tsmc_n16",
+   "note": "N12 is an optical shrink of 16FF+ (pub-mkt); uses the N16 table"
+  },
+  "dram_1b": {
+   "to": "dram_logic_1y",
+   "note": "DRAM-process logic"
+  }
+ }
+}

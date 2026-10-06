@@ -1,0 +1,88 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&one, &spec(v), &sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Roofline  tpu_v5e</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">reference level: DRAM | all phases | per execution group (labelled by its largest op) | color = binding term, size = time, bars = slow/fast corners</text>
+<polyline points="90,64 90,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="90" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">0.1</text>
+<polyline points="202,64 202,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="202" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">1</text>
+<polyline points="314,64 314,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="314" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">10</text>
+<polyline points="426,64 426,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="426" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">100</text>
+<polyline points="538,64 538,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="538" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">1000</text>
+<polyline points="650,64 650,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="650" y="515.15" font-size="11" text-anchor="middle" fill="#6e727c">10000</text>
+<polyline points="90,500 650,500" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="84" y="503.65" font-size="11" text-anchor="end" fill="#6e727c">100 GFLOP/s</text>
+<polyline points="90,391 650,391" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="84" y="394.65" font-size="11" text-anchor="end" fill="#6e727c">1 TFLOP/s</text>
+<polyline points="90,282 650,282" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="84" y="285.65" font-size="11" text-anchor="end" fill="#6e727c">10 TFLOP/s</text>
+<polyline points="90,173 650,173" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="84" y="176.65" font-size="11" text-anchor="end" fill="#6e727c">100 TFLOP/s</text>
+<polyline points="90,64 650,64" fill="none" stroke="#e2e4e9" stroke-width="1"/>
+<text x="84" y="67.65" font-size="11" text-anchor="end" fill="#6e727c">1 PFLOP/s</text>
+<rect x="90" y="64" width="560" height="436" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="370" y="533.98" font-size="12" text-anchor="middle" fill="#1c1e24">arithmetic intensity (FLOP/B w.r.t. DRAM)</text>
+<text x="28" y="279.98" font-size="12" text-anchor="middle" fill="#1c1e24" transform="rotate(-90 28 282)">attained FLOP/s</text>
+<clipPath id="c1"><rect x="90" y="64" width="560" height="436"/></clipPath><g clip-path="url(#c1)">
+<polyline points="90,329.22 283.41,141" fill="none" stroke="#6e727c" stroke-width="1" stroke-dasharray="4"/>
+<text x="127.6" y="290.84" font-size="10" text-anchor="start" fill="#6e727c">L1 smem 36.9 TB/s</text>
+<polyline points="90,348.43 303.15,141" fill="none" stroke="#6e727c" stroke-width="1" stroke-dasharray="4"/>
+<text x="155.6" y="282.8" font-size="10" text-anchor="start" fill="#6e727c">L2 vmem 24.6 TB/s</text>
+<polyline points="90,509.44 468.58,141" fill="none" stroke="#1c1e24" stroke-width="2"/>
+<text x="183.6" y="416.55" font-size="10" text-anchor="start" fill="#1c1e24">DRAM 819 GB/s</text>
+<polyline points="468.58,141 650,141" fill="none" stroke="#1c1e24" stroke-width="2"/>
+<text x="646" y="136.31" font-size="10" text-anchor="end" fill="#1c1e24">peak bf16 197 TFLOP/s</text>
+<polyline points="502.3,108.19 650,108.19" fill="none" stroke="#6e727c" stroke-width="1" stroke-dasharray="4"/>
+<text x="646" y="103.5" font-size="10" text-anchor="end" fill="#6e727c">peak int8 393 TFLOP/s</text>
+<circle cx="201.98" cy="405.01" r="8.94" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.98" cy="405.35" r="5.82" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.98" cy="405.35" r="5.82" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.98" cy="405.35" r="5.82" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.99" cy="405.8" r="5" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.99" cy="405.8" r="5" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.99" cy="405.8" r="5" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="406.97" r="4.33" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="406.97" r="4.33" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="406.97" r="4.33" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="407.97" r="4.09" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="407.97" r="4.09" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="201.95" cy="407.97" r="4.09" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="269.34" cy="350.47" r="3.6" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="269.34" cy="350.47" r="3.6" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<circle cx="269.34" cy="350.47" r="3.6" fill="#e69f00" fill-opacity="0.82" stroke="#ffffff" stroke-width="0.75"/>
+<polygon points="203.49,392.44 215.19,404.14 203.49,415.84 191.79,404.14" fill="none" stroke="#1c1e24" stroke-width="2"/>
+<text x="215.49" y="407.78" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1</text>
+<polyline points="543.34,130.61 543.34,130.48" fill="none" stroke="#6e727c" stroke-width="0.75"/>
+<circle cx="543.34" cy="130.61" r="4" fill="none" stroke="#d53228" stroke-width="1.25"/>
+<circle cx="543.34" cy="130.48" r="1.5" fill="#d53228"/>
+<polyline points="202,371.05 202,368.09" fill="none" stroke="#6e727c" stroke-width="0.75"/>
+<circle cx="202" cy="371.05" r="4" fill="none" stroke="#d53228" stroke-width="1.25"/>
+<circle cx="202" cy="368.09" r="1.5" fill="#d53228"/>
+<text x="209.98" y="395.32" font-size="10" text-anchor="start" fill="#1c1e24">lm_head.k0</text>
+<text x="209.98" y="395.67" font-size="10" text-anchor="start" fill="#1c1e24">layers.gate_up.i0.k0</text>
+<text x="209.98" y="395.67" font-size="10" text-anchor="start" fill="#1c1e24">layers.gate_up.i1.k0</text>
+<text x="209.98" y="395.67" font-size="10" text-anchor="start" fill="#1c1e24">layers.gate_up.i2.k0</text>
+<text x="209.99" y="396.11" font-size="10" text-anchor="start" fill="#1c1e24">layers.down.i0.k0</text>
+<text x="209.99" y="396.11" font-size="10" text-anchor="start" fill="#1c1e24">layers.down.i1.k0</text>
+<text x="209.99" y="396.11" font-size="10" text-anchor="start" fill="#1c1e24">layers.down.i2.k0</text>
+<text x="209.95" y="397.29" font-size="10" text-anchor="start" fill="#1c1e24">layers.qkv.i0.k0</text>
+</g>
+<text x="674" y="79.15" font-size="11" text-anchor="start" fill="#1c1e24">binding term</text>
+<rect x="674" y="90" width="12" height="12" fill="#e69f00" stroke="#a0a4ac" stroke-width="0.5"/>
+<text x="692" y="99.65" font-size="11" text-anchor="start" fill="#1c1e24">off-chip memory bw</text>
+<text x="674" y="129.15" font-size="11" text-anchor="start" fill="#1c1e24">phase (marker)</text>
+<circle cx="680" cy="146" r="5" fill="#999999" stroke="#ffffff" stroke-width="0.5"/>
+<text x="692" y="149.65" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1</text>
+<polygon points="680,158.2 687.8,166 680,173.8 672.2,166" fill="none" stroke="#1c1e24" stroke-width="2"/>
+<text x="692" y="169.65" font-size="11" text-anchor="start" fill="#1c1e24">phase aggregate</text>
+<circle cx="680" cy="186" r="4" fill="none" stroke="#d53228" stroke-width="1.25"/>
+<text x="692" y="189.65" font-size="11" text-anchor="start" fill="#1c1e24">measured (a100_40gb), line to prediction</text>
+</svg>

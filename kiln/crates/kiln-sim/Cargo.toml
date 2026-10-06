@@ -1,0 +1,22 @@
+[package]
+name = "kiln-sim"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kiln-ir = { path = "../kiln-ir" }
+kiln-wl = { path = "../kiln-wl" }
+kiln-map = { path = "../kiln-map" }
+kiln-phys = { path = "../kiln-phys" }
+kiln-trace = { path = "../kiln-trace" }
+serde.workspace = true
+serde_json.workspace = true
+serde_path_to_error.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

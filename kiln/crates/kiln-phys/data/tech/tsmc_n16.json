@@ -1,0 +1,457 @@
+{
+ "schema": "kiln.phys.tech/1",
+ "id": "tsmc_n16",
+ "kind": "foundry",
+ "family": "tsmc_n16",
+ "logic": {
+  "peak_density_mtr_mm2": {
+   "v": 28.9,
+   "q": "pub",
+   "c": "M",
+   "src": "wikichip_n16"
+  },
+  "nand2_area_um2": {
+   "v": 0.13841,
+   "q": "der",
+   "c": "M",
+   "src": "wikichip_n16",
+   "note": "4 / 28.9 MTr/mm2"
+  },
+  "util_std_cell": {
+   "v": 0.65,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    0.45,
+    0.85
+   ],
+   "fit": true,
+   "note": "prior used only if this node is fitted itself; otherwise util = util(N7) x density_realization (04 \u00a74.1)"
+  },
+  "density_realization": {
+   "v": 1.206,
+   "q": "der",
+   "c": "M",
+   "src": "nvidia_p100_wp",
+   "note": "same-class product (HBM datacenter GPU; the N16 area target, not held out): GP100 15.3 B / 610 mm2 = 25.1 MTr/mm2 = 0.868 of the 28.9 peak, vs GA100 54.2 B / 826 mm2 = 0.720 of N7's 91.2 -> 1.206 (both from the A100 whitepaper table). Peak-density ratios overstate the realized N16 -> N7 shrink of NVIDIA's HBM GPUs (2.6x vs 3.16x)"
+  },
+  "vdd_nom_v": {
+   "v": 0.8,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed"
+  },
+  "s_e": {
+   "v": 2.5,
+   "q": "pub",
+   "c": "M",
+   "src": "tsmc_n7_press",
+   "note": "N7 claims -60% power vs 16FF+ at iso-speed: 1/0.4"
+  },
+  "c_ge_ff": {
+   "v": 2.5,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "switched capacitance per gate equivalent (input + local wire); N7 1.0 fF x s_E"
+  }
+ },
+ "sram": {
+  "bitcell_hd_um2": {
+   "v": 0.074,
+   "q": "pub",
+   "c": "M",
+   "src": "tsmc_iedm2014"
+  },
+  "hc_factor": {
+   "v": 1.25,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "high-current cell area / HD cell"
+  },
+  "aspect_w_over_h": {
+   "v": 2.0,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "FinFET HD cells are wide and short"
+  },
+  "n_hp": {
+   "v": 60.0,
+   "q": "asm",
+   "c": "L",
+   "src": "cacti7",
+   "bounds": [
+    20,
+    150
+   ],
+   "note": "periphery height in cell rows (sense amps, column mux, write drivers); data-build prior"
+  },
+  "n_wp": {
+   "v": 30.0,
+   "q": "asm",
+   "c": "L",
+   "src": "cacti7",
+   "bounds": [
+    10,
+    100
+   ],
+   "note": "periphery width in cell columns (row decoder, wordline drivers)"
+  },
+  "a_fix_um2": {
+   "v": 6311.4,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    1577.9,
+    31557.1
+   ],
+   "note": "control/BIST/redundancy/pins per macro; N7 2,000 um2 scaled by a_GE"
+  },
+  "g_ctrl": {
+   "v": 0.06,
+   "q": "asm",
+   "c": "L",
+   "src": "cacti7",
+   "note": "per-subarray control overhead"
+  },
+  "t_s0_ns": {
+   "v": 0.2666,
+   "q": "asm",
+   "c": "L",
+   "src": "cacti7",
+   "note": "N7 0.20 ns, x sqrt(linear scale)"
+  },
+  "t_s1_ns": {
+   "v": 0.01999,
+   "q": "asm",
+   "c": "L",
+   "src": "cacti7",
+   "note": "per doubling of bank bits"
+  },
+  "p_ls_mw_per_mib": {
+   "v": 1.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    0.2,
+    5.0
+   ],
+   "fit": true,
+   "note": "SRAM leakage at V_nom, 85 C (fit, 04 \u00a712.1)"
+  }
+ },
+ "rf": {
+  "a_bit_flop_um2": {
+   "v": 0.7889,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "flop with write mux ~5.5 GE; N7 0.25 um2 scaled by a_GE"
+  },
+  "a_bit_latch_um2": {
+   "v": 0.3787,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "latch array bit; N7 0.12 um2 scaled by a_GE"
+  },
+  "k_w": {
+   "v": 0.5,
+   "q": "asm",
+   "c": "M",
+   "src": "rixner_hpca2000",
+   "note": "cell grows linearly per port in both dimensions"
+  },
+  "e_rf0_fj_per_bit": {
+   "v": 10.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "N7 4 fJ/bit x s_E"
+  }
+ },
+ "wires": {
+  "local": {
+   "layers": {
+    "v": 3.0,
+    "q": "asm",
+    "c": "M",
+    "src": "asap7_mej2016"
+   },
+   "pitch_nm": {
+    "v": 64.0,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 pitch x linear scale sqrt(a_GE/a_GE(N7))"
+   },
+   "r_ohm_um": {
+    "v": 30.5082,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 r x (pitch ratio)^2.2"
+   },
+   "c_ff_um": {
+    "v": 0.18,
+    "q": "asm",
+    "c": "M",
+    "src": "ho_wires_2001",
+    "note": "total line capacitance is nearly scale-invariant"
+   },
+   "routing_frac": {
+    "v": 0.0,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "tracks available for inter-block signals"
+   }
+  },
+  "intermediate": {
+   "layers": {
+    "v": 4.0,
+    "q": "asm",
+    "c": "M",
+    "src": "asap7_mej2016"
+   },
+   "pitch_nm": {
+    "v": 99.5,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 pitch x linear scale sqrt(a_GE/a_GE(N7))"
+   },
+   "r_ohm_um": {
+    "v": 8.4745,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 r x (pitch ratio)^2.2"
+   },
+   "c_ff_um": {
+    "v": 0.19,
+    "q": "asm",
+    "c": "M",
+    "src": "ho_wires_2001",
+    "note": "total line capacitance is nearly scale-invariant"
+   },
+   "routing_frac": {
+    "v": 0.15,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "tracks available for inter-block signals"
+   }
+  },
+  "semi_global": {
+   "layers": {
+    "v": 4.0,
+    "q": "asm",
+    "c": "M",
+    "src": "asap7_mej2016"
+   },
+   "pitch_nm": {
+    "v": 213.2,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 pitch x linear scale sqrt(a_GE/a_GE(N7))"
+   },
+   "r_ohm_um": {
+    "v": 0.6497,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 r x (pitch ratio)^2.2"
+   },
+   "c_ff_um": {
+    "v": 0.2,
+    "q": "asm",
+    "c": "M",
+    "src": "ho_wires_2001",
+    "note": "total line capacitance is nearly scale-invariant"
+   },
+   "routing_frac": {
+    "v": 0.5,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "tracks available for inter-block signals"
+   }
+  },
+  "global": {
+   "layers": {
+    "v": 2.0,
+    "q": "asm",
+    "c": "M",
+    "src": "asap7_mej2016"
+   },
+   "pitch_nm": {
+    "v": 720.0,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 pitch x linear scale sqrt(a_GE/a_GE(N7))"
+   },
+   "r_ohm_um": {
+    "v": 0.07,
+    "q": "der",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "N7 r x (pitch ratio)^2.2"
+   },
+   "c_ff_um": {
+    "v": 0.22,
+    "q": "asm",
+    "c": "M",
+    "src": "ho_wires_2001",
+    "note": "total line capacitance is nearly scale-invariant"
+   },
+   "routing_frac": {
+    "v": 0.15,
+    "q": "asm",
+    "c": "L",
+    "src": "kiln_assumed",
+    "note": "tracks available for inter-block signals"
+   }
+  }
+ },
+ "driver": {
+  "r0c0_ps": {
+   "v": 4.2,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "min inverter R0*C0; N7 FO4 ~10 ps = 3.45 R0C0"
+  },
+  "gamma": {
+   "v": 1.0,
+   "q": "asm",
+   "c": "M",
+   "src": "ho_wires_2001",
+   "note": "Cp/C0"
+  },
+  "t_setup_clkq_ps": {
+   "v": 43.4,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "flop setup + clk-to-q, ~3 FO4"
+  },
+  "f_logic": {
+   "v": 0.3,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "fraction of a cycle used by endpoint logic (04 \u00a77.2)"
+  }
+ },
+ "leakage": {
+  "p_ll_w_mm2": {
+   "v": 0.04,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "bounds": [
+    0.01,
+    0.15
+   ],
+   "fit": true,
+   "note": "logic leakage at V_nom, 85 C (fit, 04 \u00a712.1)"
+  },
+  "k_v": {
+   "v": 3.0,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "1/V"
+  },
+  "k_t": {
+   "v": 0.02,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed",
+   "note": "1/K: leakage doubles per ~35 K"
+  }
+ },
+ "dvfs": {
+  "v_th": {
+   "v": 0.35,
+   "q": "asm",
+   "c": "L",
+   "src": "sakurai_1990",
+   "bounds": [
+    0.2,
+    0.45
+   ],
+   "fit": true,
+   "note": "alpha-power law threshold"
+  },
+  "alpha": {
+   "v": 1.3,
+   "q": "asm",
+   "c": "L",
+   "src": "sakurai_1990",
+   "bounds": [
+    1.0,
+    2.0
+   ],
+   "fit": true,
+   "note": "velocity-saturation index"
+  },
+  "v_min": {
+   "v": 0.65,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed"
+  },
+  "v_max": {
+   "v": 1.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed"
+  }
+ },
+ "clock": {
+  "c_clk_flop_ff": {
+   "v": 1.5,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "clock pin + local buffer per flop; N7 0.6 fF x s_E"
+  },
+  "c_clk_area_pf_mm2": {
+   "v": 125.0,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "clock grid/spine per clocked mm2; N7 50 pF/mm2 x s_E"
+  }
+ },
+ "misc": {
+  "d0_per_cm2": {
+   "v": 0.06,
+   "q": "asm",
+   "c": "L",
+   "src": "kiln_assumed",
+   "note": "defect density (TSMC symposium statements '< 0.1' for N7/N5)"
+  },
+  "wafer_usd": {
+   "v": 3984.0,
+   "q": "pub",
+   "c": "L",
+   "src": "cset_2020"
+  },
+  "seal_ring_um": {
+   "v": 50.0,
+   "q": "asm",
+   "c": "M",
+   "src": "kiln_assumed"
+  }
+ }
+}

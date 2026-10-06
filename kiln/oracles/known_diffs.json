@@ -1,0 +1,37 @@
+{
+  "oracle": "zigzag-dse",
+  "version": "3.8.5",
+  "entries": [],
+  "intended": [
+    {
+      "topic": "ragged spatial unrolling",
+      "zigzag": "fractional unroll factors (size / ceil(size / unroll)) averaged over the whole layer",
+      "kiln": "full and remainder tile classes costed separately (03 §2.3); zigzag_compat pads instead",
+      "corpus": "divisible unrollings only"
+    },
+    {
+      "topic": "memory word granularity",
+      "zigzag": "accesses counted in bandwidth_min-bit words, scaled by bandwidth_min / bandwidth_max",
+      "kiln": "bytes at the port width (compat: one word = one port-width transfer)",
+      "corpus": "bandwidth_min == bandwidth_max on every port, one port width per memory"
+    },
+    {
+      "topic": "latency model",
+      "zigzag": "double buffering inferred from 50% effective memory utilization; onload of every level's first tile with surplus-bandwidth borrowing; per-port stall/slack with memory-updating-window union",
+      "kiln": "double buffering is a mapping choice that halves capacity; port busy over all periods vs compute (unbuffered transfers serialize); startup and drain of one level-0 tile through the hierarchy, not of every level's whole tile (03 §2.5 deviation, see report)",
+      "corpus": "compared only under zigzag_compat, which ports ZigZag's model exactly"
+    },
+    {
+      "topic": "partially relevant (halo) loops",
+      "zigzag": "pr loops decoupled into relevant and irrelevant parts",
+      "kiln": "affine footprints with halo; stationarity treats a partially relevant loop as relevant",
+      "corpus": "not covered (GEMM only)"
+    },
+    {
+      "topic": "mac energy",
+      "zigzag": "unit_energy x total MACs",
+      "kiln": "useful MACs x e_mac plus padding MACs x e_mac x idle ratio (03 §2.6); compat: useful only",
+      "corpus": "compat"
+    }
+  ]
+}

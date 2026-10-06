@@ -1,0 +1,68 @@
+{
+ "name": "tpuv5e",
+ "clock_mhz": 1500.0,
+ "tech_node": "n5",
+ "compute": [
+  {
+   "name": "mxu",
+   "kind": "matrix",
+   "rows": 128,
+   "cols": 128,
+   "count": 4,
+   "attach": "vmem",
+   "precision": "bf16",
+   "accumulator": "fp32",
+   "buffer_kib": 16384,
+   "buffer_gbps": 19545.65625,
+   "regfile_kib": 0.0,
+   "regfile_gbps": 0.0,
+   "ops": null
+  },
+  {
+   "name": "vpu",
+   "kind": "vector",
+   "rows": 8,
+   "cols": 128,
+   "count": 1,
+   "attach": "vmem",
+   "precision": "fp32",
+   "accumulator": "fp32",
+   "buffer_kib": 512,
+   "buffer_gbps": 19545.65625,
+   "regfile_kib": 256,
+   "regfile_gbps": 19545.65625,
+   "ops": null
+  }
+ ],
+ "memory": [
+  {
+   "name": "vmem",
+   "size_mib": 64,
+   "bandwidth_gbps": 19545.65625,
+   "count": 1
+  }
+ ],
+ "offchip": {
+  "capacity_gib": 16,
+  "bandwidth_gbps": 819,
+  "attach": [
+   "vmem"
+  ],
+  "kind": "HBM2e",
+  "stacks": 2
+ },
+ "links": [
+  {
+   "name": "tc_bus",
+   "endpoints": [
+    "mxu",
+    "vpu",
+    "vmem"
+   ],
+   "bandwidth_gbps": 19545.65625,
+   "kind": "bus",
+   "scope": "global"
+  }
+ ],
+ "notes": "Google TPU v5e: 1 TensorCore x (4 MXU 128x128 + VPU + 128 MiB VMEM), 16 GiB HBM."
+}

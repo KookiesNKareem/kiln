@@ -1,0 +1,68 @@
+{
+ "name": "a100_40gb",
+ "clock_mhz": 1410.0,
+ "tech_node": "n7",
+ "compute": [
+  {
+   "name": "sm_cluster",
+   "kind": "matrix",
+   "rows": 72,
+   "cols": 96,
+   "count": 16,
+   "attach": "l2",
+   "precision": "bf16",
+   "accumulator": "fp32",
+   "buffer_kib": 3024,
+   "buffer_gbps": 4872.96,
+   "regfile_kib": 0.0,
+   "regfile_gbps": 0.0,
+   "ops": null
+  },
+  {
+   "name": "cuda_cores",
+   "kind": "vector",
+   "rows": 27,
+   "cols": 64,
+   "count": 4,
+   "attach": "l2",
+   "precision": "fp32",
+   "accumulator": "fp32",
+   "buffer_kib": 2048,
+   "buffer_gbps": 7219.2,
+   "regfile_kib": 256,
+   "regfile_gbps": 9188.08875,
+   "ops": null
+  }
+ ],
+ "memory": [
+  {
+   "name": "l2",
+   "size_mib": 10,
+   "bandwidth_gbps": 7219.2,
+   "count": 4
+  }
+ ],
+ "offchip": {
+  "capacity_gib": 40,
+  "bandwidth_gbps": 1555,
+  "attach": [
+   "l2"
+  ],
+  "kind": "HBM2",
+  "stacks": 5
+ },
+ "links": [
+  {
+   "name": "l2_xbar",
+   "endpoints": [
+    "sm_cluster",
+    "cuda_cores",
+    "l2"
+   ],
+   "bandwidth_gbps": 7219.2,
+   "kind": "bus",
+   "scope": "global"
+  }
+ ],
+ "notes": "NVIDIA A100-SXM4-40GB (the Colab A100): as a100 but 40 GiB HBM2 at 1555 GB/s."
+}

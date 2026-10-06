@@ -1,0 +1,415 @@
+{
+  "schema": "kiln.calib/1",
+  "id": "platform:tpu_v6e",
+  "version": 2,
+  "kind": "platform",
+  "platform": "tpu_v6e",
+  "parameters": [
+    {
+      "name": "eta_res",
+      "key": {
+        "dram_kind": "hbm3"
+      },
+      "value": 0.7231750530758783,
+      "unit": "1",
+      "bounds": [
+        0.5,
+        1.0
+      ],
+      "prior": 0.91,
+      "ci95": [
+        0.7134362102613864,
+        0.7375351089079912
+      ],
+      "range": {
+        "lower": 0.6684434499448131,
+        "upper": 0.7779066562069434,
+        "basis": "single_device"
+      },
+      "pess_dir": "lower",
+      "status": "fit",
+      "source": "stage D on 95 calib-micro fit records (tpuv6e_2026-10-05_micro.json)",
+      "diagnostics": {
+        "stage": "D",
+        "n_records": 95,
+        "loss": 86.99135765307827,
+        "abs_err_median": 0.05122875565418383,
+        "abs_err_p90": 0.1544192705073876,
+        "at_bound": false,
+        "iterations": 16,
+        "per_device": {
+          "tpu_v6e": 0.7231750530758783
+        }
+      }
+    },
+    {
+      "name": "t_dram_ramp",
+      "key": {
+        "dram_kind": "hbm3"
+      },
+      "value": 2e-6,
+      "unit": "s",
+      "bounds": [
+        0.0,
+        0.000019999999999999998
+      ],
+      "prior": 2e-6,
+      "range": {
+        "lower": 1e-6,
+        "upper": 3e-6,
+        "basis": "band"
+      },
+      "pess_dir": "upper",
+      "status": "frozen",
+      "frozen_reason": "fit converged onto its bound (0.0000e0 in [0.0000e0, 2.0000e-5]): the structural model is wrong for this mechanism on this platform (03 §9 principle 2); frozen at its prior and the stage refit without it",
+      "source": "stage D on 95 calib-micro fit records (tpuv6e_2026-10-05_micro.json)",
+      "diagnostics": {
+        "stage": "D",
+        "n_records": 95,
+        "loss": 86.99135765307827,
+        "abs_err_median": 0.05122875565418383,
+        "abs_err_p90": 0.1544192705073876,
+        "at_bound": true,
+        "iterations": 16,
+        "per_device": {
+          "tpu_v6e": 2e-6
+        }
+      }
+    },
+    {
+      "name": "t_program",
+      "key": {
+        "exec_model": "static_dataflow"
+      },
+      "value": 0.000019999999999999998,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.00019999999999999998
+      ],
+      "prior": 0.000019999999999999998,
+      "range": {
+        "lower": 4.9999999999999996e-6,
+        "upper": 0.000049999999999999996,
+        "basis": "band"
+      },
+      "pess_dir": "upper",
+      "status": "frozen",
+      "frozen_reason": "frozen at prior: loop-mode records never start a program; host dispatch (`single`) is not a program start"
+    },
+    {
+      "name": "t_sync",
+      "key": {
+        "exec_model": "static_dataflow"
+      },
+      "value": 2.419290019763407e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000049999999999999996
+      ],
+      "prior": 1e-6,
+      "ci95": [
+        2.0735759159049818e-6,
+        2.500489422377787e-6
+      ],
+      "range": {
+        "lower": 2.135674988222811e-6,
+        "upper": 2.702905051304003e-6,
+        "basis": "single_device"
+      },
+      "pess_dir": "upper",
+      "status": "fit",
+      "source": "stage L on 15 calib-micro fit records (tpuv6e_2026-10-05_micro.json)",
+      "diagnostics": {
+        "stage": "L",
+        "n_records": 15,
+        "loss": 16.38338682689837,
+        "abs_err_median": 0.05339718981325503,
+        "abs_err_p90": 0.16167144041150658,
+        "at_bound": false,
+        "iterations": 21,
+        "per_device": {
+          "tpu_v6e": 2.419290019763407e-6
+        }
+      }
+    },
+    {
+      "name": "unit_eff",
+      "key": {
+        "unit_template": "tpu_v6e/mxu:systolic256x256"
+      },
+      "value": 0.896940874497566,
+      "unit": "1",
+      "bounds": [
+        0.7,
+        1.0
+      ],
+      "prior": 0.95,
+      "ci95": [
+        0.841524273188019,
+        0.9828333864928468
+      ],
+      "range": {
+        "lower": 0.751363076266037,
+        "upper": 1.0,
+        "basis": "single_device"
+      },
+      "pess_dir": "lower",
+      "status": "fit",
+      "source": "stage U on 24 calib-micro fit records (tpuv6e_2026-10-05_micro.json)",
+      "diagnostics": {
+        "stage": "U",
+        "n_records": 24,
+        "loss": 49.061933719283445,
+        "abs_err_median": 0.10983782551160559,
+        "abs_err_p90": 0.22156804479173176,
+        "at_bound": false,
+        "iterations": 19,
+        "per_device": {
+          "tpu_v6e": 0.896940874497566
+        }
+      }
+    }
+  ],
+  "fit": {
+    "kiln_version": "0.0.1",
+    "git_hash": "unknown",
+    "method": "staged P,L,D,U (03 §9); bounded Levenberg-Marquardt on log(pred/meas), Tier A re-cost at fixed mapping; bootstrap 200",
+    "loss": "huber(delta=0.05)/delta^2 + gaussian prior (sigma = bound width / 4)",
+    "split_id": "m2-2026-10-05",
+    "split_hash": "split1-a23ee5afbfa3908fa6883a3f52d15416",
+    "fit_records": [
+      "rec1-001f0c783c1cb631b0613e00e7236735",
+      "rec1-0190a0aec69993b3070ad7118491049d",
+      "rec1-01b15d2edb2f39dee4c65c6e150a35bf",
+      "rec1-02eb7d9bf9928c3958e4f8842856c623",
+      "rec1-03757da13183aae41425a82d234283c3",
+      "rec1-096b8676ecfd0dff8a8b431f9c399a47",
+      "rec1-0a62076a92958ecf0056c68ca6afb0e4",
+      "rec1-0b49adc490a88220ceb17caecea13265",
+      "rec1-0bd6d5c1ddcf2c031819450598d92da2",
+      "rec1-0c01237d17d5119f294540dde14603f7",
+      "rec1-11108314653dc0958e3fa8c16b253fc1",
+      "rec1-114e412c6d7de85dd63f9be5b0be6485",
+      "rec1-15a43a6acbc2d0e602634d2a17d43d57",
+      "rec1-15ba9df3e0ab02346d395ce5965bcb45",
+      "rec1-15d61f727761b0b50447884915ca8731",
+      "rec1-17595a79a256e852047e68f61d0e815a",
+      "rec1-198bb01779ef2768fe7e92ec112e8a33",
+      "rec1-1df280f6c4dc96412fcbfbae90e581eb",
+      "rec1-24ebffcdab2269a47a5d45c7c626e39e",
+      "rec1-2d79257eafb2283c02d9945d3292505a",
+      "rec1-2fb8877586b6998a2d1c1e807ef310bd",
+      "rec1-3041c416a39f63226d05fa34964857f2",
+      "rec1-306de40b2102802abb4140029b5f3776",
+      "rec1-30e62727095ad7be52138ab254624ec3",
+      "rec1-31048df441ae868dd8df682a81a86900",
+      "rec1-331c0aaa1d21b75037acc5dcc9d9be97",
+      "rec1-356a6a657402e9a203553158723064ae",
+      "rec1-3733f2369942e53065a64322d056815c",
+      "rec1-37a0305b58e43d3eecc351283733475c",
+      "rec1-3803026a0949e257bd81cb45779d361f",
+      "rec1-3837bf83192930b0761cf32f1a214aa2",
+      "rec1-395a9aedc729484e6bd933d94aa1c156",
+      "rec1-3a7e78a465c4a0cd36c421d6de3ce9ba",
+      "rec1-3d5ef62b95217e2e8ccf63d959a5c65f",
+      "rec1-3f9fde0121cccac4b6d4dc395329ffad",
+      "rec1-3ff2ccc28c1e9ee93aff66361a630e71",
+      "rec1-403d3a9626a2315a226347db5c0c25f6",
+      "rec1-416e94ab8e4bb72faabe974be987bbd3",
+      "rec1-4203da356ae83c5dddd72e2b2ca11167",
+      "rec1-42e8d17546ea21225ac00212c2937105",
+      "rec1-45f1d5c072df3f1579054345d995d160",
+      "rec1-46dfb7e4f01162e34a60a0a81d309b39",
+      "rec1-46f55024cfaf09a9bb5e8e2ddd18fa88",
+      "rec1-473d261db05b217c4ad6fc54394eb46a",
+      "rec1-47fcfefc25708e0c2ddea3d118cc14fa",
+      "rec1-503d059efa67d1dd4610952e7fbe0f21",
+      "rec1-510e820d9c9a38cd8229236035f4a07b",
+      "rec1-51845bb9c2a58e78932a3d32ac9cf074",
+      "rec1-51bcb5ed08b9886e88b214468f7b8a3a",
+      "rec1-528ba97660170e435dea216121d0717b",
+      "rec1-59aa93ca59eb813de6f90f2f66e8a9e2",
+      "rec1-59cd3d828b40e7f975c5fe35ab730c39",
+      "rec1-5ad022cce30fe9e4cb5d51ff33758357",
+      "rec1-5e55b50a154d7b52fd01c682ba5c72ed",
+      "rec1-5e6972a9b3d86f6e73aa0ed5ce765f4b",
+      "rec1-612442bf000c536a495622b85c1f18f5",
+      "rec1-653486ddd1f48ef5b07900c0cb8648b9",
+      "rec1-661da662ae0b74a883ddee5cdd3f73f4",
+      "rec1-6a77a1ac274af429dbeb6d012555dacf",
+      "rec1-77f7b18bf991ac13c15377d40d03a247",
+      "rec1-7e82afa72a70110a893c954f097eacfe",
+      "rec1-8130c5163b45b23a5b65be92d5dd5edb",
+      "rec1-8211d76705976430318ae680ecb4d9f2",
+      "rec1-8219acaadb23b4181fe2f806b368cedd",
+      "rec1-852f0985c552fdfaceecb9baf7ef94f4",
+      "rec1-85f932d422d162ef646e66f853c0aae7",
+      "rec1-8816aafaf917fb32883d07f565b863c6",
+      "rec1-88b0a1b2cd36e2204af187ff7b1dd20f",
+      "rec1-89c52b5bf26b3a12b4dac1b16061218a",
+      "rec1-8a5fc3165cc85e96705317f61fed56fd",
+      "rec1-8c33360484eb905a9bd5cedb3d9c01a1",
+      "rec1-8eb64fb2fc1ba4986d65ff83779d2c5a",
+      "rec1-8f1f68b63ac711177fc2f0c39c758ca5",
+      "rec1-8f7a2ee7085ee7e429aecb62aaa4aa4e",
+      "rec1-8fe46e8849a09b87cd0d28e648a34c39",
+      "rec1-90dbb4f039a9ef1635c564a7eeb4a885",
+      "rec1-9180957778f322400071ebe6405a1e93",
+      "rec1-93594f5d34b4d79e23c72f8584bf588b",
+      "rec1-93c9fdb8345736a4047804a9dcfc22ea",
+      "rec1-95a9f22540812f4922eefa6f562c69b0",
+      "rec1-95f0fea2ac3ab24ad2cb61f46fcf8839",
+      "rec1-9814c29889f2cfa3abbe4dcffffca00c",
+      "rec1-985c9b065d9ff03097295aae743c1d1a",
+      "rec1-99df6df1cb37e301b7e2072360c82aa2",
+      "rec1-9ae72d128600b8d1be72031396284171",
+      "rec1-9d7e5be950c3c2e799d9de8f0f8e1740",
+      "rec1-9df02bfd4bf4c313ffa63d029a613e09",
+      "rec1-a10d2c626a666d5939ed42e59d63ad5d",
+      "rec1-a17160ee9403438b300a2dfe309528d3",
+      "rec1-a868a32aecf00abbfde8190aaad6fa81",
+      "rec1-a927516c4deb47712729a807ce73c664",
+      "rec1-aad9480e29467c87ff2e9462d902821d",
+      "rec1-ab5f45efeb9ab70529be0f6827003e7c",
+      "rec1-ab7d28e505154cd2aa835e70e613dc5b",
+      "rec1-acb6f44cb51d2754878f2464a6dc5284",
+      "rec1-acd827ca2a71021c34b53d6e0b80ab0d",
+      "rec1-ae32053441e517e980d00fd7500e6d32",
+      "rec1-b01073128c83014114636652d90578be",
+      "rec1-b122d573fe5a7f8131236be9dfe221df",
+      "rec1-b2243fba9ecb5ce45353a704e60e2ba0",
+      "rec1-b2d7a0e457d7af7f237b3602d05ed166",
+      "rec1-b52a513f2f63e6122120e958c944c36f",
+      "rec1-ba6e27a78af354d6f890db57fb34d574",
+      "rec1-bc2870670edde8084baf28992b67076b",
+      "rec1-bf62b66e68f78e43c1935a09684eee8f",
+      "rec1-bffe6d434f78f1da75bc72343db7aef2",
+      "rec1-c0545928e4212bf397c881639f2c5857",
+      "rec1-c1f1b902991e814548b46e3322e90349",
+      "rec1-c5d45a4c93d5bee952230744b953bc63",
+      "rec1-c66cb75bc1d34284a8f8e2decf36554a",
+      "rec1-c7397ff9b676faba4e2d610fa8c95f17",
+      "rec1-c85dcfebc3e4e373657bc2aec8ef8469",
+      "rec1-c920180e62cad4e4c7f16da4c887371f",
+      "rec1-c96b376ff3d93a1a0aa5b0a9fa19e84e",
+      "rec1-c9f9ad880b9748be4c3643ee86ff1e2f",
+      "rec1-cb43a3de8db67e41181e06ea87ecde87",
+      "rec1-ccec3c322cfca96db09df694aa104029",
+      "rec1-cf43d7219820a58d1e4205724fe993b5",
+      "rec1-d376ebd941ddbb47503a5df0729b448a",
+      "rec1-d39b576e65d102c2829aa9d9f3f9b837",
+      "rec1-d3dc28b23c2ba2fbd400609407504243",
+      "rec1-d59b62939e9712e98e136063f9f9655f",
+      "rec1-d729606c7e44f7c81a0aa1620bc80e76",
+      "rec1-d908de7ee4fd62333e056ba33439ab30",
+      "rec1-dc6b49cdbb4f854160ec93252ad814d0",
+      "rec1-ddb4e2d2be8e2ef3350eb57a3acf2de0",
+      "rec1-e5c9d1106a90f8c2abd53be010a21ca6",
+      "rec1-e60e9e506fab016132395b7e108e82ca",
+      "rec1-eaed66a00b8ff8d6ef127d9354fe8f0a",
+      "rec1-f200882b3f8dbca9857bd5906eae8f91",
+      "rec1-fb87d3286b3166ec82dbbedb4789ac5d",
+      "rec1-fc5551e471c985704a4ed5e05f729d65",
+      "rec1-fe8773bba5171cbff6ccb8797d389510",
+      "rec1-febc69c432fe88393c1ed10ddbebf9c0"
+    ],
+    "test_records": [
+      "rec1-0161ca0e3815493ba6d9bed813bc6325",
+      "rec1-0175319bcba5059c55cca30b7dae3e33",
+      "rec1-0667e76c73d1cca1c9d2c2249b548e4f",
+      "rec1-14f2b87991fb76567ce12fd42d26ddec",
+      "rec1-16cb1e53f32f2cdf6d49acce4fbba685",
+      "rec1-173727179465828cca0dd4326d2bc733",
+      "rec1-188380eee3a24956badcba7c4ab6df2d",
+      "rec1-19da89f52149ab772f6c036b287504a2",
+      "rec1-19fcd4cf135ac0449468f677d30ee9b5",
+      "rec1-1a65324a31c482937d35d6d926ac625a",
+      "rec1-1a8cc3bee4b69b5b0a748267a25a6d3a",
+      "rec1-25474e2dbf6a70b271e46187f6c28f85",
+      "rec1-2cadd93d26acc9a9852cf45d7ad82ac6",
+      "rec1-2cea3c89624ddbddf4816f161cf4994f",
+      "rec1-31d032d75eb9f5c7e83eab677750c37e",
+      "rec1-37233223f8818db6829e2cab9db1bfc1",
+      "rec1-39f247443d82aaf44416c80c22a4af29",
+      "rec1-3c46b1ef6262ccb6c7c8d7b9595cbd5a",
+      "rec1-3da4f79b4111c9148b66618938e4a8b8",
+      "rec1-45e0c8ac085b2d30735a1b9ce328bc77",
+      "rec1-485e4ce2ae96066d20b7f17f775feece",
+      "rec1-4a5a1b3b66efe9a126aef8ed092ea79d",
+      "rec1-4afb885efacce460e7ea1b8a3a6b9420",
+      "rec1-4b3fd7e891a83c69390f4a398f7949b1",
+      "rec1-4e5fff38489cace4cf92f7068c769b96",
+      "rec1-4e77a7daa2a53198105674110cf4265e",
+      "rec1-51e8646aba50e402a9d608087129e6a0",
+      "rec1-579245e6491993e5a9917891ef08bf04",
+      "rec1-5973628711d4114992255d59058669f8",
+      "rec1-5fbd366b2f04fb54e5b88ed695061d4f",
+      "rec1-6bd391ff1d413c204f57a79a3249b91e",
+      "rec1-6d1adab5256f6ab7c8efab6a8220c956",
+      "rec1-717d0c550c5205e0e7f1161cb8ab1400",
+      "rec1-74280507f48e63a5438baabfa91ff157",
+      "rec1-7a214c263dbdfe95ebafa81334d5984b",
+      "rec1-7d8f8bb4e850b0a8a40c1464579ee5e3",
+      "rec1-8a5c337628867455a00df86abb0bf62d",
+      "rec1-8b71001e27ce9810d228aa74cd724ee2",
+      "rec1-922bf761a8f1c54b847617de0fd420ff",
+      "rec1-92d3514b80063405a484959aff0ad845",
+      "rec1-93ec4937ef8cf3dcb2db97de5be76d1c",
+      "rec1-95243c4bf15217ed8c95883e3fe20d40",
+      "rec1-9dd547956e624271f964535f1839d7ab",
+      "rec1-9ed4ae4a0759e98f123d5c590b0b02e3",
+      "rec1-a2184c4e0506418b07c78742f5fcabae",
+      "rec1-a27363e613bdd7f2fe9237d0ee9b1209",
+      "rec1-a352736069b85c7c420afb12c21a38b5",
+      "rec1-b1dab248d637344ea5abb3d95434566b",
+      "rec1-b9e72fc8fc09f073e3fed6dfb2831c2b",
+      "rec1-bdd3611e647e51cf9dbf326c36fa0ede",
+      "rec1-c04657d0001245f6743d88504889fd50",
+      "rec1-d5fa88aadfe599d0703bc28248e343d9",
+      "rec1-d6d326b448486110a395854944ddbc75",
+      "rec1-d74b52db5564a850056d50855223e0af",
+      "rec1-e4c4264931eb6711e6cae9bcc7a2df4d",
+      "rec1-eda02648f6ed7567bf10ef32996eefe4",
+      "rec1-f17f3292c7c1a9baed5e5782f25d6989",
+      "rec1-f29e8628b475ac38f51e677a6e0ebe7d",
+      "rec1-f7c0900518fe06d82ac7524af56000b8",
+      "rec1-f8110cba87d53131b9c2eed315717443",
+      "rec1-f8b372215cd4fc0bef7ce2714b5aa8c7"
+    ],
+    "measurement_sessions": [
+      "tpuv6e_2026-10-05_micro.json:meas-sha256-168ad97c1ae9012dfb22f4823f070c46"
+    ],
+    "residuals_by_class": {
+      "tpu_v6e/D/bmm": 1.1058876563076756,
+      "tpu_v6e/D/elementwise": 1.0858467287244327,
+      "tpu_v6e/D/gemv": 0.9953645074151624,
+      "tpu_v6e/D/hbm": 1.0501822612274403,
+      "tpu_v6e/L/elementwise": 1.0427335763975334,
+      "tpu_v6e/U/bmm": 1.1523070454920326,
+      "tpu_v6e/U/gemm": 1.0438109137384444
+    },
+    "bootstrap_seed": 118100534914354,
+    "fit_devices": [
+      "tpu_v6e"
+    ],
+    "notes": [
+      "tpu_v6e: canonical per-op timing mode loop (06 §4.3, 08 §F)",
+      "tpu_v6e: chip state tpuv6e_2026-10-05_micro.json: sanity GEMM 8192^3 start 606.4 TF end 591.8 TF (+2.5%, gate 3%): steady; 0 compute-bound records excluded",
+      "E-CAL-BOUND: hw1-7785c98eb12259abbab221b5cd5ad258 t_dram_ramp: fit converged onto its bound (0.0000e0 in [0.0000e0, 2.0000e-5]): the structural model is wrong for this mechanism on this platform (03 §9 principle 2); frozen at its prior and the stage refit without it"
+    ]
+  },
+  "test_access_log": [
+    {
+      "command": "kiln calibrate report",
+      "devices": [
+        "tpu_v6e"
+      ],
+      "set_hash": "cal1-92eee612d58cb7ca06213ea62daf39b6",
+      "kiln_version": "0.0.1"
+    }
+  ],
+  "created": "2026-10-05",
+  "hash": "cal1-aa533f26915d2788ac5d2f1898f472bb"
+}

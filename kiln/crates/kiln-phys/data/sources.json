@@ -1,0 +1,275 @@
+{
+ "schema": "kiln.phys.sources/1",
+ "sources": {
+  "horowitz_isscc2014": {
+   "citation": "M. Horowitz, \"Computing's energy problem (and what we can do about it)\", ISSCC 2014, pp. 10-14",
+   "url": "https://doi.org/10.1109/ISSCC.2014.6757323",
+   "accessed": "2026-10-05"
+  },
+  "wikichip_n16": {
+   "citation": "WikiChip, \"16 nm lithography process\" (TSMC 16FF+ density 28.88 MTr/mm2)",
+   "url": "https://en.wikichip.org/wiki/16_nm_lithography_process",
+   "accessed": "2026-10-05"
+  },
+  "wikichip_n7": {
+   "citation": "WikiChip, \"7 nm lithography process\" (TSMC N7 HD density 91.2 MTr/mm2)",
+   "url": "https://en.wikichip.org/wiki/7_nm_lithography_process",
+   "accessed": "2026-10-05"
+  },
+  "wikichip_n5": {
+   "citation": "WikiChip, \"5 nm lithography process\" (TSMC N5 density 138.2 MTr/mm2)",
+   "url": "https://en.wikichip.org/wiki/5_nm_lithography_process",
+   "accessed": "2026-10-05"
+  },
+  "wikichip_n3": {
+   "citation": "WikiChip, \"3 nm lithography process\" (TSMC N3E density estimates)",
+   "url": "https://en.wikichip.org/wiki/3_nm_lithography_process",
+   "accessed": "2026-10-05"
+  },
+  "wikichip_iedm2022": {
+   "citation": "WikiChip Fuse, \"IEDM 2022: Did we just witness the death of SRAM?\" (N3B 0.0199 um2, N3E 0.021 um2, 31.8 Mib/mm2)",
+   "url": "https://fuse.wikichip.org/news/7343/iedm-2022-did-we-just-witness-the-death-of-sram/",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_iedm2014": {
+   "citation": "S.-Y. Wu et al., \"An enhanced 16nm CMOS technology featuring 2nd generation FinFET transistors\", IEDM 2014 (HD 6T 0.074 um2)",
+   "url": "https://doi.org/10.1109/IEDM.2014.7046976",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_iedm2016": {
+   "citation": "S.-Y. Wu et al., \"A 7nm CMOS platform technology featuring 4th generation FinFET transistors with a 0.027um2 high density 6-T SRAM cell\", IEDM 2016",
+   "url": "https://doi.org/10.1109/IEDM.2016.7838333",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_iedm2019": {
+   "citation": "G. Yeap et al., \"5nm CMOS production technology platform featuring full-fledged EUV, and high mobility channel FinFETs with densest 0.021um2 SRAM cells\", IEDM 2019",
+   "url": "https://doi.org/10.1109/IEDM19573.2019.8993577",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_isscc2025": {
+   "citation": "TSMC, N2 HD SRAM macro 38.1 Mb/mm2 at 0.0175 um2 cell, ISSCC 2025 session 29",
+   "url": "https://www.isscc.org/",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_n7_press": {
+   "citation": "TSMC N7 technology page: \"-60% power vs 16FF+ at iso-speed\"",
+   "url": "https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_7nm",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_n5_press": {
+   "citation": "TSMC N5 technology page: \"-30% power vs N7 at iso-speed\"",
+   "url": "https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_5nm",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_n4_press": {
+   "citation": "TSMC N4 announcement: \"N4 offers ~6% die-size reduction vs N5\" (2020 technology symposium)",
+   "url": "https://pr.tsmc.com/english/news/2033",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_n3e_press": {
+   "citation": "TSMC N3 technology page: \"N3E -30..35% power vs N5 at iso-speed\"",
+   "url": "https://www.tsmc.com/english/dedicatedFoundry/technology/logic/l_3nm",
+   "accessed": "2026-10-05"
+  },
+  "nangate45": {
+   "citation": "NanGate FreePDK45 Open Cell Library, NAND2_X1 0.798 um2",
+   "url": "https://si2.org/open-cell-library/",
+   "accessed": "2026-10-05"
+  },
+  "stillmaker_2017": {
+   "citation": "A. Stillmaker, B. Baas, \"Scaling equations for the accurate prediction of CMOS device performance from 180 nm to 7 nm\", Integration 58, 2017",
+   "url": "https://doi.org/10.1016/j.vlsi.2017.02.002",
+   "accessed": "2026-10-05"
+  },
+  "asap7_mej2016": {
+   "citation": "L. T. Clark et al., \"ASAP7: A 7-nm finFET predictive process design kit\", Microelectronics Journal 53, 2016",
+   "url": "https://doi.org/10.1016/j.mejo.2016.04.006",
+   "accessed": "2026-10-05"
+  },
+  "ocp_mx_v1": {
+   "citation": "OCP Microscaling Formats (MX) Specification v1.0, 2023",
+   "url": "https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf",
+   "accessed": "2026-10-05"
+  },
+  "ieee754": {
+   "citation": "IEEE 754-2019 floating-point arithmetic",
+   "url": "https://doi.org/10.1109/IEEESTD.2019.8766229",
+   "accessed": "2026-10-05"
+  },
+  "cacti7": {
+   "citation": "R. Balasubramonian et al., \"CACTI 7: New tools for interconnect exploration in innovative off-chip memories\", ACM TACO 14(2), 2017",
+   "url": "https://doi.org/10.1145/3085572",
+   "accessed": "2026-10-05"
+  },
+  "orram_2607.12244": {
+   "citation": "ORRAM: OpenROAD-integrated RAM generator, arXiv 2607.12244 (OpenRAM SKY130 512 B macro 38,299 bit/mm2)",
+   "url": "https://arxiv.org/abs/2607.12244",
+   "accessed": "2026-10-05"
+  },
+  "rixner_hpca2000": {
+   "citation": "S. Rixner et al., \"Register organization for media processing\", HPCA 2000",
+   "url": "https://doi.org/10.1109/HPCA.2000.824366",
+   "accessed": "2026-10-05"
+  },
+  "bakoglu_1990": {
+   "citation": "H. B. Bakoglu, \"Circuits, Interconnections, and Packaging for VLSI\", Addison-Wesley 1990",
+   "url": "",
+   "accessed": "2026-10-05"
+  },
+  "ho_wires_2001": {
+   "citation": "R. Ho, K. Mai, M. Horowitz, \"The future of wires\", Proc. IEEE 89(4), 2001",
+   "url": "https://doi.org/10.1109/5.920580",
+   "accessed": "2026-10-05"
+  },
+  "banerjee_2002": {
+   "citation": "K. Banerjee, A. Mehrotra, \"A power-optimal repeater insertion methodology for global interconnects in nanometer designs\", IEEE TED 49(11), 2002",
+   "url": "https://doi.org/10.1109/TED.2002.804706",
+   "accessed": "2026-10-05"
+  },
+  "orion2_2009": {
+   "citation": "A. Kahng et al., \"ORION 2.0: A fast and accurate NoC power and area model for early-stage design space exploration\", DATE 2009",
+   "url": "https://doi.org/10.1109/DATE.2009.5090700",
+   "accessed": "2026-10-05"
+  },
+  "dsent_2012": {
+   "citation": "C. Sun et al., \"DSENT - a tool connecting emerging photonics with electronics for opto-electronic networks-on-chip modeling\", NOCS 2012",
+   "url": "https://doi.org/10.1109/NOCS.2012.31",
+   "accessed": "2026-10-05"
+  },
+  "rudy_2007": {
+   "citation": "P. Spindler, F. Johannes, \"Fast and accurate routing demand estimation for efficient routability-driven placement\", DATE 2007",
+   "url": "https://doi.org/10.1109/DATE.2007.364463",
+   "accessed": "2026-10-05"
+  },
+  "fm_1982": {
+   "citation": "C. Fiduccia, R. Mattheyses, \"A linear-time heuristic for improving network partitions\", DAC 1982",
+   "url": "https://doi.org/10.1109/DAC.1982.1585498",
+   "accessed": "2026-10-05"
+  },
+  "stockmeyer_1983": {
+   "citation": "L. Stockmeyer, \"Optimal orientations of cells in slicing floorplan designs\", Information and Control 57, 1983",
+   "url": "https://doi.org/10.1016/S0019-9958(83)80038-2",
+   "accessed": "2026-10-05"
+  },
+  "wong_liu_1986": {
+   "citation": "D. F. Wong, C. L. Liu, \"A new algorithm for floorplan design\", DAC 1986 (normalized Polish expressions, simulated annealing)",
+   "url": "https://doi.org/10.1145/318013.318030",
+   "accessed": "2026-10-05"
+  },
+  "hotspot_2006": {
+   "citation": "W. Huang et al., \"HotSpot: a compact thermal modeling methodology for early-stage VLSI design\", IEEE TVLSI 14(5), 2006",
+   "url": "https://doi.org/10.1109/TVLSI.2006.876103",
+   "accessed": "2026-10-05"
+  },
+  "sakurai_1990": {
+   "citation": "T. Sakurai, A. R. Newton, \"Alpha-power law MOSFET model and its applications to CMOS inverter delay and other formulas\", IEEE JSSC 25(2), 1990",
+   "url": "https://doi.org/10.1109/4.52187",
+   "accessed": "2026-10-05"
+  },
+  "oconnor_micro2017": {
+   "citation": "M. O'Connor et al., \"Fine-grained DRAM: energy-efficient DRAM for extreme bandwidth systems\", MICRO 2017 (HBM2 ~3.9 pJ/bit)",
+   "url": "https://doi.org/10.1145/3123939.3124545",
+   "accessed": "2026-10-05"
+  },
+  "jedec_hbm2e": {
+   "citation": "JEDEC JESD235 family (HBM2/HBM2E)",
+   "url": "https://www.jedec.org/standards-documents/docs/jesd235a",
+   "accessed": "2026-10-05"
+  },
+  "jedec_hbm3": {
+   "citation": "JEDEC JESD238 (HBM3)",
+   "url": "https://www.jedec.org/standards-documents/docs/jesd238a",
+   "accessed": "2026-10-05"
+  },
+  "synopsys_hbm3_phy": {
+   "citation": "Synopsys HBM3/3E PHY datasheet (9.6 Gb/s)",
+   "url": "https://www.synopsys.com/designware-ip/interface-ip/hbm.html",
+   "accessed": "2026-10-05"
+  },
+  "chipscalereview_2023": {
+   "citation": "Chip Scale Review 2023, HBM3 package width 11 mm, 96 um microbump pitch",
+   "url": "https://chipscalereview.com/",
+   "accessed": "2026-10-05"
+  },
+  "ucie_1.0": {
+   "citation": "UCIe 1.0 specification / D. Das Sharma overview (28-224 GB/s/mm standard, 165-1317 GB/s/mm advanced, 0.5/0.25 pJ/b, <2 ns)",
+   "url": "https://www.uciexpress.org/specifications",
+   "accessed": "2026-10-05"
+  },
+  "nvidia_a100_wp": {
+   "citation": "NVIDIA A100 Tensor Core GPU Architecture whitepaper (2020): GA100 826 mm2, 54.2 B transistors, 128 SMs (108 enabled), 40 MB L2, 6 HBM2 sites, 12 NVLink3",
+   "url": "https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf",
+   "accessed": "2026-10-05"
+  },
+  "nvidia_h100_wp": {
+   "citation": "NVIDIA H100 Tensor Core GPU Architecture whitepaper (2022): GH100 814 mm2, 80 B transistors, 144 SMs (132 enabled on SXM5), 50 MB L2, 700 W SXM5",
+   "url": "https://resources.nvidia.com/en-us-tensor-core",
+   "accessed": "2026-10-05"
+  },
+  "nvidia_gh200": {
+   "citation": "NVIDIA Grace Hopper Superchip whitepaper: NVLink-C2C 900 GB/s, 1.3 pJ/bit",
+   "url": "https://resources.nvidia.com/en-us-grace-cpu/nvidia-grace-hopper",
+   "accessed": "2026-10-05"
+  },
+  "nvidia_a100_ds": {
+   "citation": "NVIDIA A100 datasheet: SXM4 400 W, 1410 MHz boost",
+   "url": "https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf",
+   "accessed": "2026-10-05"
+  },
+  "tpuv4_isca2023": {
+   "citation": "N. Jouppi et al., \"TPU v4: An optically reconfigurable supercomputer for machine learning with hardware support for embeddings\", ISCA 2023 (arXiv 2304.01433): <600 mm2, 7 nm, 22 B transistors, 1050 MHz, 90/121/170/192 W",
+   "url": "https://arxiv.org/abs/2304.01433",
+   "accessed": "2026-10-05"
+  },
+  "tpuv4i_isca2021": {
+   "citation": "N. P. Jouppi, D. H. Yoon, M. Ashcraft, M. Gottscho, T. B. Jablin, G. Kurian, J. Laudon, S. Li, P. Ma, X. Ma, T. Norrie, N. Patil, S. Prasad, C. Young, Z. Zhou, D. Patterson, \"Ten Lessons From Three Generations Shaped Google's TPUv4i\", ISCA 2021, pp. 1-14. Table 1 (TPUv4i): die < 400 mm2, 7 nm, 16 B transistors, 1050 MHz, TDP chip/system 175/275 W, idle 55 W, 1 core, 4 128x128 MXUs, 138 TFLOPS bf16/int8, 144 MB on-chip (128 MB CMEM) / 8 GB HBM at 614 GB/s, 2 x 400 Gbit/s ICI links; Fig. 6 and text: CMEM 28% of the die area, MXUs 11% (Table 7)",
+   "url": "https://doi.org/10.1109/ISCA52012.2021.00010",
+   "accessed": "2026-10-05"
+  },
+  "cset_2020": {
+   "citation": "S. Khan, A. Mann, \"AI Chips: What they are and why they matter\", CSET 2020 (wafer prices)",
+   "url": "https://cset.georgetown.edu/publication/ai-chips-what-they-are-and-why-they-matter/",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_cowos": {
+   "citation": "TSMC CoWoS-S/L public statements (interposer up to ~3.3x reticle)",
+   "url": "https://3dfabric.tsmc.com/english/dedicatedFoundry/technology/cowos.htm",
+   "accessed": "2026-10-05"
+  },
+  "tsmc_soic": {
+   "citation": "TSMC SoIC public statements (hybrid bond pitch 9 um)",
+   "url": "https://3dfabric.tsmc.com/english/dedicatedFoundry/technology/SoIC.htm",
+   "accessed": "2026-10-05"
+  },
+  "asml_reticle": {
+   "citation": "ASML: 26 x 33 mm full-field exposure (858 mm2)",
+   "url": "https://www.asml.com/",
+   "accessed": "2026-10-05"
+  },
+  "pcie_spec": {
+   "citation": "PCI-SIG PCIe Base Specification 4.0/5.0/6.0 (16/32/64 GT/s, 128b/130b, FLIT 242/256)",
+   "url": "https://pcisig.com/specifications",
+   "accessed": "2026-10-05"
+  },
+  "kiln_a100_telemetry": {
+   "citation": "kiln calibration/measurements/a100_2026-10-05_{micro,micro_r2,seq,seq_r2}.json: NVML SM clock and board power (ClockLog, power_step records)",
+   "url": "calibration/measurements/",
+   "accessed": "2026-10-05"
+  },
+  "kiln_assumed": {
+   "citation": "kiln modelling assumption (04 \u00a71.3 q=asm); see the note on the value",
+   "url": "spec/04-physical-model.md",
+   "accessed": "2026-10-05"
+  },
+  "jia_volta_2018": {
+   "citation": "Z. Jia et al., \"Dissecting the NVIDIA Volta GPU Architecture via Microbenchmarking\", arXiv 1804.06826, 2018 (L2 hit latency ~193 cycles)",
+   "url": "https://arxiv.org/abs/1804.06826",
+   "accessed": "2026-10-05"
+  },
+  "nvidia_p100_wp": {
+   "citation": "NVIDIA Tesla P100 whitepaper WP-08019-001 (2016): GP100 15.3 B transistors, 610 mm2, 16 nm FinFET; 6 GPCs, 30 TPCs, 60 SMs (56 on P100), two 32-lane processing blocks per SM, 256 KB RF/SM, 64 KB shared memory/SM, 4096 KB L2 over eight 512-bit controllers, 4 HBM2 stacks, up to 4 NVLinks (8 pairs x 20 Gb/s per direction); also tabulated in the A100 whitepaper (16 nm FinFET+)",
+   "url": "https://images.nvidia.com/content/pdf/tesla/whitepaper/pascal-architecture-whitepaper.pdf",
+   "accessed": "2026-10-05"
+  }
+ }
+}

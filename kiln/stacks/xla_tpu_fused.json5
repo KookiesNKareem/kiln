@@ -1,0 +1,18 @@
+// XLA on TPU, the whole step jitted into one program. XLA fuses elementwise producers into their consumers
+// (loop and input fusions): RMSNorm's square/mean/rsqrt/scale run in f32 inside one fusion, RoPE's
+// slices/products/concat in one fusion, SiLU*mul into one fusion, residual adds into a neighbouring fusion,
+// the KV-cache update is an in-place dynamic-update-slice. Each kiln node is therefore at most one fusion with
+// no extra HBM round trip; launches inside a compiled program cost nothing per fusion (`static_dataflow`
+// charges `t_program` per step and `t_sync` per barrier). Elementwise fusions also join the neighbouring dot
+// (TPU convolution fusions take elementwise operand and output computations, run on the VPU while the MXU
+// streams), so `fuse_elementwise` groups each elementwise node with the adjacent contraction.
+{
+  schema: "kiln.stack/1",
+  id: "xla_tpu_fused",
+  exec_model: "static_dataflow",
+  description: "XLA-compiled TPU step: elementwise nodes fused with the adjacent contraction, no unfused intermediates",
+  sources: ["XLA fusion passes (instruction_fusion, multi_output_fusion); calibration/tpu_bench.py jitted step"],
+  onchip_fraction: 0.25,
+  fuse_elementwise: true,
+  rules: [],
+}

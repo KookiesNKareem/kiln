@@ -1,0 +1,188 @@
+---
+source: crates/kiln-viz-render/tests/snapshots_views.rs
+expression: "to_svg(&render(&cmp, &spec(ViewKind::Compare), &sel))"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Ubuntu, 'DejaVu Sans', Arial, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="16" y="26.97" font-size="18" text-anchor="start" fill="#1c1e24">Compare  tpu_v5e  vs  tpu_v5e_2x2</text>
+<text x="16" y="45.98" font-size="12" text-anchor="start" fill="#6e727c">floorplans share one utilization scale | deltas are B - A relative to A; intervals [low, high] from the parameter corners</text>
+<clipPath id="c1"><rect x="16" y="56" width="199" height="291.2"/></clipPath><g clip-path="url(#c1)">
+<text x="32" y="82.97" font-size="18" text-anchor="start" fill="#1c1e24">Floorplan  tpu_v5e</text>
+<text x="32" y="101.98" font-size="12" text-anchor="start" fill="#6e727c">UNPLACED (hierarchy layout, nominal sizes, not physical) | color: utilization | all phases | tier A</text>
+<rect x="32" y="215.1" width="17" height="17" fill="#4d566d" stroke="#ffffff" stroke-width="0.5"/>
+<text x="65" y="138.15" font-size="11" text-anchor="start" fill="#1c1e24">busy fraction</text>
+<rect x="65" y="146" width="16" height="7.38" fill="#fbe43c"/>
+<rect x="65" y="152.88" width="16" height="7.38" fill="#f4dc43"/>
+<rect x="65" y="159.75" width="16" height="7.38" fill="#ecd44b"/>
+<rect x="65" y="166.62" width="16" height="7.38" fill="#e3cd54"/>
+<rect x="65" y="173.5" width="16" height="7.38" fill="#dac65b"/>
+<rect x="65" y="180.38" width="16" height="7.38" fill="#d1bf60"/>
+<rect x="65" y="187.25" width="16" height="7.38" fill="#c9b865"/>
+<rect x="65" y="194.12" width="16" height="7.38" fill="#c0b16a"/>
+<rect x="65" y="201" width="16" height="7.38" fill="#b8ab6e"/>
+<rect x="65" y="207.88" width="16" height="7.38" fill="#afa471"/>
+<rect x="65" y="214.75" width="16" height="7.38" fill="#a79d73"/>
+<rect x="65" y="221.62" width="16" height="7.38" fill="#9f9775"/>
+<rect x="65" y="228.5" width="16" height="7.38" fill="#979177"/>
+<rect x="65" y="235.38" width="16" height="7.38" fill="#908b78"/>
+<rect x="65" y="242.25" width="16" height="7.38" fill="#888578"/>
+<rect x="65" y="249.12" width="16" height="7.38" fill="#817f78"/>
+<rect x="65" y="256" width="16" height="7.38" fill="#7a7977"/>
+<rect x="65" y="262.88" width="16" height="7.38" fill="#737374"/>
+<rect x="65" y="269.75" width="16" height="7.38" fill="#6c6d72"/>
+<rect x="65" y="276.62" width="16" height="7.38" fill="#656870"/>
+<rect x="65" y="283.5" width="16" height="7.38" fill="#5e626f"/>
+<rect x="65" y="290.38" width="16" height="7.38" fill="#575d6e"/>
+<rect x="65" y="297.25" width="16" height="7.38" fill="#4f576d"/>
+<rect x="65" y="304.12" width="16" height="7.38" fill="#47516c"/>
+<rect x="65" y="311" width="16" height="7.38" fill="#3f4b6c"/>
+<rect x="65" y="317.88" width="16" height="7.38" fill="#36466d"/>
+<rect x="65" y="324.75" width="16" height="7.38" fill="#2c406e"/>
+<rect x="65" y="331.62" width="16" height="7.38" fill="#203b6f"/>
+<rect x="65" y="338.5" width="16" height="7.38" fill="#14366e"/>
+<rect x="65" y="345.38" width="16" height="7.38" fill="#07316b"/>
+<rect x="65" y="352.25" width="16" height="7.38" fill="#002b63"/>
+<rect x="65" y="359.12" width="16" height="7.38" fill="#002555"/>
+<rect x="65" y="146" width="16" height="220" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<polyline points="81,366 85,366" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="87" y="369.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<polyline points="81,311 85,311" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="87" y="314.31" font-size="10" text-anchor="start" fill="#6e727c">25%</text>
+<polyline points="81,256 85,256" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="87" y="259.31" font-size="10" text-anchor="start" fill="#6e727c">50%</text>
+<polyline points="81,201 85,201" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="87" y="204.31" font-size="10" text-anchor="start" fill="#6e727c">75%</text>
+<polyline points="81,146 85,146" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="87" y="149.31" font-size="10" text-anchor="start" fill="#6e727c">100%</text>
+<rect x="65" y="386" width="14" height="14" fill="#00224e"/>
+<polyline points="65,398 67,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="65,394 71,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="65,390 75,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="65,386 79,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="69,386 79,396" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="73,386 79,392" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="77,386 79,388" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<text x="85" y="396.65" font-size="11" text-anchor="start" fill="#1c1e24">idle (0%)</text>
+<rect x="65" y="406" width="14" height="14" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<text x="85" y="416.65" font-size="11" text-anchor="start" fill="#1c1e24">no data</text>
+<text x="199" y="337.51" font-size="10" text-anchor="end" fill="#6e727c">1 blocks drawn of 25 placed</text>
+</g>
+<clipPath id="c2"><rect x="215" y="56" width="199" height="291.2"/></clipPath><g clip-path="url(#c2)">
+<text x="231" y="82.97" font-size="18" text-anchor="start" fill="#1c1e24">Floorplan  tpu_v5e_2x2</text>
+<text x="231" y="101.98" font-size="12" text-anchor="start" fill="#6e727c">UNPLACED (hierarchy layout, nominal sizes, not physical) | color: utilization | all phases | tier A</text>
+<rect x="231" y="215.1" width="17" height="17" fill="#1a386f" stroke="#ffffff" stroke-width="0.5"/>
+<text x="264" y="138.15" font-size="11" text-anchor="start" fill="#1c1e24">busy fraction</text>
+<rect x="264" y="146" width="16" height="7.38" fill="#fbe43c"/>
+<rect x="264" y="152.88" width="16" height="7.38" fill="#f4dc43"/>
+<rect x="264" y="159.75" width="16" height="7.38" fill="#ecd44b"/>
+<rect x="264" y="166.62" width="16" height="7.38" fill="#e3cd54"/>
+<rect x="264" y="173.5" width="16" height="7.38" fill="#dac65b"/>
+<rect x="264" y="180.38" width="16" height="7.38" fill="#d1bf60"/>
+<rect x="264" y="187.25" width="16" height="7.38" fill="#c9b865"/>
+<rect x="264" y="194.12" width="16" height="7.38" fill="#c0b16a"/>
+<rect x="264" y="201" width="16" height="7.38" fill="#b8ab6e"/>
+<rect x="264" y="207.88" width="16" height="7.38" fill="#afa471"/>
+<rect x="264" y="214.75" width="16" height="7.38" fill="#a79d73"/>
+<rect x="264" y="221.62" width="16" height="7.38" fill="#9f9775"/>
+<rect x="264" y="228.5" width="16" height="7.38" fill="#979177"/>
+<rect x="264" y="235.38" width="16" height="7.38" fill="#908b78"/>
+<rect x="264" y="242.25" width="16" height="7.38" fill="#888578"/>
+<rect x="264" y="249.12" width="16" height="7.38" fill="#817f78"/>
+<rect x="264" y="256" width="16" height="7.38" fill="#7a7977"/>
+<rect x="264" y="262.88" width="16" height="7.38" fill="#737374"/>
+<rect x="264" y="269.75" width="16" height="7.38" fill="#6c6d72"/>
+<rect x="264" y="276.62" width="16" height="7.38" fill="#656870"/>
+<rect x="264" y="283.5" width="16" height="7.38" fill="#5e626f"/>
+<rect x="264" y="290.38" width="16" height="7.38" fill="#575d6e"/>
+<rect x="264" y="297.25" width="16" height="7.38" fill="#4f576d"/>
+<rect x="264" y="304.12" width="16" height="7.38" fill="#47516c"/>
+<rect x="264" y="311" width="16" height="7.38" fill="#3f4b6c"/>
+<rect x="264" y="317.88" width="16" height="7.38" fill="#36466d"/>
+<rect x="264" y="324.75" width="16" height="7.38" fill="#2c406e"/>
+<rect x="264" y="331.62" width="16" height="7.38" fill="#203b6f"/>
+<rect x="264" y="338.5" width="16" height="7.38" fill="#14366e"/>
+<rect x="264" y="345.38" width="16" height="7.38" fill="#07316b"/>
+<rect x="264" y="352.25" width="16" height="7.38" fill="#002b63"/>
+<rect x="264" y="359.12" width="16" height="7.38" fill="#002555"/>
+<rect x="264" y="146" width="16" height="220" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<polyline points="280,366 284,366" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="286" y="369.31" font-size="10" text-anchor="start" fill="#6e727c">0%</text>
+<polyline points="280,311 284,311" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="286" y="314.31" font-size="10" text-anchor="start" fill="#6e727c">25%</text>
+<polyline points="280,256 284,256" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="286" y="259.31" font-size="10" text-anchor="start" fill="#6e727c">50%</text>
+<polyline points="280,201 284,201" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="286" y="204.31" font-size="10" text-anchor="start" fill="#6e727c">75%</text>
+<polyline points="280,146 284,146" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="286" y="149.31" font-size="10" text-anchor="start" fill="#6e727c">100%</text>
+<rect x="264" y="386" width="14" height="14" fill="#00224e"/>
+<polyline points="264,398 266,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="264,394 270,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="264,390 274,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="264,386 278,400" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="268,386 278,396" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="272,386 278,392" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<polyline points="276,386 278,388" fill="none" stroke="#bec1c8" stroke-width="0.75"/>
+<text x="284" y="396.65" font-size="11" text-anchor="start" fill="#1c1e24">idle (0%)</text>
+<rect x="264" y="406" width="14" height="14" fill="#eeeff2" stroke="#a0a4ac" stroke-width="0.75" stroke-dasharray="2"/>
+<text x="284" y="416.65" font-size="11" text-anchor="start" fill="#1c1e24">no data</text>
+<text x="398" y="337.51" font-size="10" text-anchor="end" fill="#6e727c">1 blocks drawn of 97 placed</text>
+</g>
+<text x="422" y="74.81" font-size="13" text-anchor="start" fill="#1c1e24">Headline</text>
+<text x="572" y="75.15" font-size="11" text-anchor="start" fill="#6e727c">tpu_v5e</text>
+<text x="675.33" y="75.15" font-size="11" text-anchor="start" fill="#6e727c">tpu_v5e_2x2</text>
+<text x="778.67" y="75.15" font-size="11" text-anchor="start" fill="#6e727c">delta B/A</text>
+<text x="422" y="95.15" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1 time</text>
+<text x="572" y="95.15" font-size="11" text-anchor="start" fill="#1c1e24">21 ms</text>
+<text x="572" y="106.48" font-size="9" text-anchor="start" fill="#6e727c">[21 ms, 29.2 ms]</text>
+<text x="675.33" y="95.15" font-size="11" text-anchor="start" fill="#1c1e24">30.1 ms</text>
+<text x="675.33" y="106.48" font-size="9" text-anchor="start" fill="#6e727c">[30.1 ms, 30.2 ms]</text>
+<text x="778.67" y="95.15" font-size="11" text-anchor="start" fill="#1c1e24">+43.2%</text>
+<text x="422" y="123.15" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1 energy</text>
+<text x="572" y="123.15" font-size="11" text-anchor="start" fill="#1c1e24">1.99 J</text>
+<text x="675.33" y="123.15" font-size="11" text-anchor="start" fill="#1c1e24">5.37 J</text>
+<text x="778.67" y="123.15" font-size="11" text-anchor="start" fill="#1c1e24">+170.6%</text>
+<text x="422" y="151.15" font-size="11" text-anchor="start" fill="#1c1e24">decode_b1 avg power</text>
+<text x="572" y="151.15" font-size="11" text-anchor="start" fill="#1c1e24">94.6 W</text>
+<text x="675.33" y="151.15" font-size="11" text-anchor="start" fill="#1c1e24">179 W</text>
+<text x="778.67" y="151.15" font-size="11" text-anchor="start" fill="#1c1e24">+88.9%</text>
+<text x="422" y="179.15" font-size="11" text-anchor="start" fill="#1c1e24">package area (mm^2)</text>
+<text x="572" y="179.15" font-size="11" text-anchor="start" fill="#1c1e24">868</text>
+<text x="572" y="190.48" font-size="9" text-anchor="start" fill="#6e727c">[641, 1056]</text>
+<text x="675.33" y="179.15" font-size="11" text-anchor="start" fill="#1c1e24">3473</text>
+<text x="675.33" y="190.48" font-size="9" text-anchor="start" fill="#6e727c">[2563, 4223]</text>
+<text x="778.67" y="179.15" font-size="11" text-anchor="start" fill="#1c1e24">+300.0%</text>
+<text x="422" y="207.15" font-size="11" text-anchor="start" fill="#1c1e24">power</text>
+<text x="572" y="207.15" font-size="11" text-anchor="start" fill="#1c1e24">94.6 W</text>
+<text x="675.33" y="207.15" font-size="11" text-anchor="start" fill="#1c1e24">179 W</text>
+<text x="778.67" y="207.15" font-size="11" text-anchor="start" fill="#1c1e24">+88.9%</text>
+<text x="16" y="374.01" font-size="13" text-anchor="start" fill="#1c1e24">Per op family delta, tpu_v5e -&gt; tpu_v5e_2x2 (sorted by |delta time|)</text>
+<polyline points="410,385.2 410,547.2" fill="none" stroke="#a0a4ac" stroke-width="1"/>
+<text x="228" y="397.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/sample</text>
+<rect x="410" y="387.2" width="174" height="14" fill="#d53228"/>
+<text x="592" y="397.85" font-size="11" text-anchor="start" fill="#6e727c">+1.02 ms  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="415.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.act</text>
+<rect x="410" y="405.2" width="117.18" height="14" fill="#d53228"/>
+<text x="592" y="415.85" font-size="11" text-anchor="start" fill="#6e727c">+690 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="433.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/lm_head</text>
+<rect x="345.01" y="423.2" width="64.99" height="14" fill="#008c5a"/>
+<text x="592" y="433.85" font-size="11" text-anchor="start" fill="#6e727c">-383 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="451.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.res2</text>
+<rect x="410" y="441.2" width="59.95" height="14" fill="#d53228"/>
+<text x="592" y="451.85" font-size="11" text-anchor="start" fill="#6e727c">+353 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="469.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.gate_up</text>
+<rect x="365.17" y="459.2" width="44.83" height="14" fill="#008c5a"/>
+<text x="592" y="469.85" font-size="11" text-anchor="start" fill="#6e727c">-264 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="487.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.qkv</text>
+<rect x="384.6" y="477.2" width="25.4" height="14" fill="#008c5a"/>
+<text x="592" y="487.85" font-size="11" text-anchor="start" fill="#6e727c">-150 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="505.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.down</text>
+<rect x="385.78" y="495.2" width="24.22" height="14" fill="#008c5a"/>
+<text x="592" y="505.85" font-size="11" text-anchor="start" fill="#6e727c">-143 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="523.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.rope</text>
+<rect x="410" y="513.2" width="19.58" height="14" fill="#d53228"/>
+<text x="592" y="523.85" font-size="11" text-anchor="start" fill="#6e727c">+115 us  off-chip memory bw -&gt; link bw</text>
+<text x="228" y="541.85" font-size="11" text-anchor="end" fill="#1c1e24">decode_b1/layers.kv_append</text>
+<rect x="410" y="531.2" width="19.02" height="14" fill="#d53228"/>
+<text x="592" y="541.85" font-size="11" text-anchor="start" fill="#6e727c">+112 us  off-chip memory bw -&gt; link bw</text>
+</svg>

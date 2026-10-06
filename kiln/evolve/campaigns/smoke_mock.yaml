@@ -1,0 +1,23 @@
+# Smoke campaign: deterministic mock LLM, ~100 evaluations on the Llama-3-8B decode suite vs the A100-40GB baseline.
+#   python -m kiln_evo run kiln/evolve/campaigns/smoke_mock.yaml
+name: smoke_mock
+out_dir: ../runs/smoke_mock
+baseline: a100_40gb
+workloads:
+  train: [llama3_8b:decode_b1, llama3_8b:decode_b8, llama3_8b:decode_b32]
+  screen: [llama3_8b:decode_b8]
+  heldout: [llama3_8b:decode_b1_kv32768, gptj_6b:decode_b8]
+descriptors:
+  - {name: machine_balance, bins: 8}
+  - {name: onchip_bytes, bins: 8}
+  - {name: flops_per_tile, bins: 4}
+llm:
+  backend: mock
+  price_usd_per_mtok: {input: 1.0, output: 4.0}   # fictitious mock prices, only to exercise the $ budget
+  mock: {seed: 0, failure_rate: 0.15, full_rewrite_rate: 0.2}
+operators: {parametric: 0.4, llm_diff: 0.45, llm_full: 0.15}
+budget: {max_evals: 96, max_usd: 5.0}
+islands: {count: 2, migration_interval: 3, migrants: 2}
+batch: {children_per_island: 6}
+heldout: {every_generations: 4, top_k: 5}
+audit: {on_new_elite: false}

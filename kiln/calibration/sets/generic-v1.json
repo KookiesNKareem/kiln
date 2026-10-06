@@ -1,0 +1,1070 @@
+{
+  "schema": "kiln.calib/1",
+  "id": "generic-v1",
+  "version": 4,
+  "kind": "generic",
+  "parameters": [
+    {
+      "name": "eta_res",
+      "key": {
+        "dram_kind": "*"
+      },
+      "value": 0.91,
+      "unit": "1",
+      "bounds": [
+        0.5,
+        1.0
+      ],
+      "prior": 0.91,
+      "range": {
+        "lower": 0.85,
+        "upper": 0.97,
+        "basis": "band"
+      },
+      "pess_dir": "lower",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "eta_res",
+      "key": {
+        "dram_kind": "hbm2"
+      },
+      "value": 0.9022519667557112,
+      "unit": "1",
+      "bounds": [
+        0.5,
+        1.0
+      ],
+      "prior": 0.91,
+      "ci95": [
+        0.8859664049937226,
+        0.9242148080127585
+      ],
+      "range": {
+        "lower": 0.8529331943431652,
+        "upper": 0.9515707391682572,
+        "basis": "single_device"
+      },
+      "pess_dir": "lower",
+      "status": "fit",
+      "source": "stage D on 115 calib-micro fit records (a100_2026-10-05_micro_r2.json)",
+      "diagnostics": {
+        "stage": "D",
+        "n_records": 115,
+        "loss": 162.94496762328055,
+        "abs_err_median": 0.035401111377139194,
+        "abs_err_p90": 0.21759374190355862,
+        "at_bound": false,
+        "iterations": 51,
+        "per_device": {
+          "a100_40gb": 0.9022519667557112
+        }
+      }
+    },
+    {
+      "name": "t_dispatch",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 2e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000019999999999999998
+      ],
+      "prior": 2e-6,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 2e-6,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_dram_ramp",
+      "key": {
+        "dram_kind": "*"
+      },
+      "value": 2e-6,
+      "unit": "s",
+      "bounds": [
+        0.0,
+        0.000019999999999999998
+      ],
+      "prior": 2e-6,
+      "range": {
+        "lower": 2e-6,
+        "upper": 6.1912972442945075e-6,
+        "basis": "band: span of measured t_dram_ramp"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_dram_ramp",
+      "key": {
+        "dram_kind": "hbm2"
+      },
+      "value": 6.1912972442945075e-6,
+      "unit": "s",
+      "bounds": [
+        0.0,
+        0.000019999999999999998
+      ],
+      "prior": 2e-6,
+      "ci95": [
+        3.980803305748468e-6,
+        9.450957808913623e-6
+      ],
+      "range": {
+        "lower": 3.45621999271193e-6,
+        "upper": 8.926374495877084e-6,
+        "basis": "single_device"
+      },
+      "pess_dir": "upper",
+      "status": "fit",
+      "source": "stage D on 115 calib-micro fit records (a100_2026-10-05_micro_r2.json)",
+      "diagnostics": {
+        "stage": "D",
+        "n_records": 115,
+        "loss": 162.94496762328055,
+        "abs_err_median": 0.035401111377139194,
+        "abs_err_p90": 0.21759374190355862,
+        "at_bound": false,
+        "iterations": 51,
+        "per_device": {
+          "a100_40gb": 6.1912972442945075e-6
+        }
+      }
+    },
+    {
+      "name": "t_gap",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 1e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000019999999999999998
+      ],
+      "prior": 1e-6,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 1.401805801047461e-6,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_gap",
+      "key": {
+        "exec_model": "host_launched"
+      },
+      "value": 4.1722739437544794e-7,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000019999999999999998
+      ],
+      "prior": 1e-6,
+      "ci95": [
+        1e-7,
+        9.941564690484163e-7
+      ],
+      "range": {
+        "lower": 1e-7,
+        "upper": 8.643056288996562e-7,
+        "basis": "single_device"
+      },
+      "pess_dir": "upper",
+      "status": "fit",
+      "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)",
+      "diagnostics": {
+        "stage": "L",
+        "n_records": 21,
+        "loss": 69.32280126509976,
+        "abs_err_median": 0.08170596837913535,
+        "abs_err_p90": 0.7420622157137757,
+        "at_bound": false,
+        "iterations": 17,
+        "per_device": {
+          "a100_40gb": 4.1722739437544794e-7
+        }
+      }
+    },
+    {
+      "name": "t_launch",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 4.9999999999999996e-6,
+      "unit": "s",
+      "bounds": [
+        5e-7,
+        0.000019999999999999998
+      ],
+      "prior": 4.9999999999999996e-6,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 4.9999999999999996e-6,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_launch",
+      "key": {
+        "exec_model": "host_launched"
+      },
+      "value": 4.9999999999999996e-6,
+      "unit": "s",
+      "bounds": [
+        5e-7,
+        0.000019999999999999998
+      ],
+      "prior": 4.9999999999999996e-6,
+      "range": {
+        "lower": 2e-6,
+        "upper": 9.999999999999999e-6,
+        "basis": "band"
+      },
+      "pess_dir": "upper",
+      "status": "frozen",
+      "frozen_reason": "frozen at prior: only the empty-kernel chain intercept identifies it (3 records < 10 per parameter); charged once per captured step"
+    },
+    {
+      "name": "t_min_kernel",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 2.4999999999999998e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000019999999999999998
+      ],
+      "prior": 2.4999999999999998e-6,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 2.4999999999999998e-6,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_min_kernel",
+      "key": {
+        "exec_model": "host_launched"
+      },
+      "value": 1.401805801047461e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000019999999999999998
+      ],
+      "prior": 2.4999999999999998e-6,
+      "ci95": [
+        1e-7,
+        1.7651110778931695e-6
+      ],
+      "range": {
+        "lower": 5.692502621008763e-7,
+        "upper": 2.2343613399940455e-6,
+        "basis": "single_device"
+      },
+      "pess_dir": "upper",
+      "status": "fit",
+      "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)",
+      "diagnostics": {
+        "stage": "L",
+        "n_records": 21,
+        "loss": 69.32280126509976,
+        "abs_err_median": 0.08170596837913535,
+        "abs_err_p90": 0.7420622157137757,
+        "at_bound": false,
+        "iterations": 17,
+        "per_device": {
+          "a100_40gb": 1.401805801047461e-6
+        }
+      }
+    },
+    {
+      "name": "t_program",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 0.000019999999999999998,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.00019999999999999998
+      ],
+      "prior": 0.000019999999999999998,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 0.000019999999999999998,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "t_sync",
+      "key": {
+        "exec_model": "*"
+      },
+      "value": 1e-6,
+      "unit": "s",
+      "bounds": [
+        1e-7,
+        0.000049999999999999996
+      ],
+      "prior": 1e-6,
+      "range": {
+        "lower": 4.1722739437544794e-7,
+        "upper": 1.401805801047461e-6,
+        "basis": "band: span of measured launch-path terms"
+      },
+      "pess_dir": "upper",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    },
+    {
+      "name": "unit_eff",
+      "key": {
+        "unit_template": "*"
+      },
+      "value": 0.95,
+      "unit": "1",
+      "bounds": [
+        0.7,
+        1.0
+      ],
+      "prior": 0.95,
+      "range": {
+        "lower": 0.85,
+        "upper": 1.0,
+        "basis": "band"
+      },
+      "pess_dir": "lower",
+      "status": "assumed",
+      "frozen_reason": "fallback for keys no fit device measured (extrapolated)"
+    }
+  ],
+  "fit": {
+    "kiln_version": "0.0.1",
+    "git_hash": "unknown",
+    "method": "staged P,L,D,U (03 §9); bounded Levenberg-Marquardt on log(pred/meas), Tier A re-cost at fixed mapping; bootstrap 200",
+    "loss": "huber(delta=0.05)/delta^2 + gaussian prior (sigma = bound width / 4)",
+    "split_id": "m2-2026-10-05",
+    "split_hash": "split1-a23ee5afbfa3908fa6883a3f52d15416",
+    "fit_records": [
+      "rec1-0171f06884863ab3093c03fca21addb5",
+      "rec1-01c27f10acdf75d9dae06e6f429121a4",
+      "rec1-024d87ea873babaf1bae0f9347ebd2e2",
+      "rec1-02d588a992e4af7bdd94e0a32f720415",
+      "rec1-03221af78daf617f365cbbd96ea5e064",
+      "rec1-04a35aed11ffd289d051072879b94a7c",
+      "rec1-05a9f7172d2278d111a7c961db14b481",
+      "rec1-0a619c4f96da878e7143fbda6637974b",
+      "rec1-0d57e476aba9d814a4d51a1019a1659e",
+      "rec1-0dfb50fc33df65488abc6dbe80a53997",
+      "rec1-10dc0413a3a451d932a06d904e7d4fff",
+      "rec1-126fa030ff4c407605a94414ee2da04a",
+      "rec1-12a8ff576fa7aa8a928085d7e5798806",
+      "rec1-187027a5552f631ef876740d95f27c25",
+      "rec1-1a24e24ea4a7d996f25ba5991ba07b54",
+      "rec1-1c588b335bf780e582669bc5237ee75b",
+      "rec1-1d96eda413915a9f70ceedb113360a1e",
+      "rec1-1e1493258f690a1ef5a35c2568414c1a",
+      "rec1-210d103f637af64fc26156c6da0d6407",
+      "rec1-22abe1f7c926fbf593e7337578c77819",
+      "rec1-26e8827172c215ad06c7b058c60cab48",
+      "rec1-27126f292c95486019805621ef9a82ab",
+      "rec1-27e42b32935230acb0eaf94b290896c7",
+      "rec1-2dc8a88fc2d590018777cd15f036cedd",
+      "rec1-2ecc417397ac64575b4cd73f40c5b3b8",
+      "rec1-31b143c138061b82b96b046b021479d4",
+      "rec1-31dd8b7a3338d499d15fa9dd167abed4",
+      "rec1-32e84190d82c231012617a0a672f76ee",
+      "rec1-3432a07867c3e9f987d0b87ea29dce4b",
+      "rec1-363f6d10902c08a56ff3988448721eea",
+      "rec1-3644ced03a1aaf16788e0ffbaa0644d8",
+      "rec1-3aaf5dbcc69ec278c4633ecac2aafaa3",
+      "rec1-3b3561e2e641a3f0eb1826151bcdebd4",
+      "rec1-3bb824abf9be92391db9265e2d6c4fb1",
+      "rec1-3ce88301607c1900cbd5abab6230601e",
+      "rec1-3cfe6f04dff51773df90d0cf609000c4",
+      "rec1-3e0bd8a7994e797152cab452554bd5ba",
+      "rec1-3ff572079f827c692ca5ddfb0b89e976",
+      "rec1-41202e4fc23255705d69ae010b7c4f8f",
+      "rec1-412e4b490a19c9782d786d435f2a5fa9",
+      "rec1-412fda33e529a7c9ca7dd283084b0c7b",
+      "rec1-446f02f26d756176326eb692724014e7",
+      "rec1-44aa8d0f97d780e34fc37d68d6df26d8",
+      "rec1-4778cedce174fa3cf8a4b5187e3bf593",
+      "rec1-47d2e59798a53f2395df32888787e6f8",
+      "rec1-4967154bb20b14feb9c750d6cec115f6",
+      "rec1-4a1d42afb7aa850f42e44ad1c070f8e5",
+      "rec1-4bd09e4cf05e7b5a03749c59e410bba9",
+      "rec1-4c156bc26f23d96d52be78b1c9f7f591",
+      "rec1-5444b2c40a5cfc33883edbe516ceb6cf",
+      "rec1-55ac10613b1e1870479f553c6ad4daf7",
+      "rec1-57135e221377c06a5947a241b43e6238",
+      "rec1-594941d4374fab88b76e1bbbbf075352",
+      "rec1-5b8947fdf87fa43cb65412544e30390e",
+      "rec1-5d02fae138282a9b678a42a35abd8336",
+      "rec1-5ec6d1610731f629e7e9bf774f66504b",
+      "rec1-60cff1fe4658c676a3d8c7c612181575",
+      "rec1-6320a1a9592539b54749a3076b569aa5",
+      "rec1-64b0aac374747688ab9e5a7fe1dc60db",
+      "rec1-6537d1c3d9cb47683a184867b1493421",
+      "rec1-66ede1a9ca45c74aac8834adf00ed9e5",
+      "rec1-6795a8daa65771c9e74c2302edb4f263",
+      "rec1-6869acb003c6e9d6807f790367b983a2",
+      "rec1-6976130ba239cc50cd48d5b8c9084481",
+      "rec1-6aab2c4114025cbcdf12b4dff145bd56",
+      "rec1-6ae38ba52d067f68e78a67eea9de0df5",
+      "rec1-6b016d31db710cc52b9687cc3d5cb646",
+      "rec1-6d8e85412a4bb3522cc9facf636832be",
+      "rec1-6e45449358d046840ac29a3910549a5f",
+      "rec1-7006fb0fed1f874ff0e3ddddf5e3c282",
+      "rec1-7565b34698cc31acee464eccf2a7e86c",
+      "rec1-761f6e583f230b4df8e088a9aa27a985",
+      "rec1-7712938423e722f14dcb75f586c90ba1",
+      "rec1-789543ec155a3e954721ad4c122e93c8",
+      "rec1-7959b33858d8bd40f12299f7624b9b33",
+      "rec1-7a9c961d2b35628001eb8852114b9289",
+      "rec1-7b8173bc452bb709fbfef2902f28bf58",
+      "rec1-7ba1a21e0f575ede260b77b163a935c1",
+      "rec1-7c8db798764f91990ad7bfb41182392f",
+      "rec1-80e2f44a0c04d981401d642253a6e8d9",
+      "rec1-81c349f3fc530bb73c8c8d7edf8da558",
+      "rec1-830090154ed3b7982993dc2affa14829",
+      "rec1-8312d3f8f62bfb161295f76e92bd5050",
+      "rec1-848fd763a4ab9f7cf3fd98c70395e2c9",
+      "rec1-868aedf28422d6edd9645d0a3bd07394",
+      "rec1-87c30b853f14ccf3a21378de65655573",
+      "rec1-88fe0d7b7d6476a1861c6b2016eb4570",
+      "rec1-8b370a0b5a1149b22fcb3a835b780057",
+      "rec1-900fa9052843fb8a941c68296399360c",
+      "rec1-91481656fc2b133aee0a543d73241741",
+      "rec1-928269eb164fdd16ac0b8ab04e1b578f",
+      "rec1-935d43f8a7c0b1ecdbf585e36d44781a",
+      "rec1-93f48caf9854e3518b072430f5844891",
+      "rec1-9752e7987509062a2f9982fc95e53915",
+      "rec1-a057bf772768dae90292447bfc9d717a",
+      "rec1-a097d334ede5b8d7012dfef075ad1659",
+      "rec1-a0ec5f9f405211a88133a4e5c79a8581",
+      "rec1-a69faae6402c064262f08792484aa25e",
+      "rec1-a76bdf9085cbf651fb3f4a0b69eb966a",
+      "rec1-a92de13d2960aa3ee8b33277dc6ecb70",
+      "rec1-ac3fab7d9c47bc2839a3acda4802d04a",
+      "rec1-ae5c9bd2029acd5e003fc7329493f11c",
+      "rec1-ae75859bbb8981b85a4a7afc1d32fe43",
+      "rec1-ae9e1fbe982ef20b582378e601366ce0",
+      "rec1-aeb33913e14b200b72259a2d7a738198",
+      "rec1-afdcf0fa22a142f828d18ae9972cd714",
+      "rec1-b270f7d1f0dfa1fd146b83fa64c491de",
+      "rec1-b42b563b3bb6c813873b22432d2f71c0",
+      "rec1-b6dc8200cbd8888fb7e93a238941b33e",
+      "rec1-b73a36990c3965bc4e5c1969b810277b",
+      "rec1-b7e55ab36fb955c84253d009366df12b",
+      "rec1-b813d6e7dcc257c32922cd5c333d1e23",
+      "rec1-bbe3aa78247ef656ea698690db377a76",
+      "rec1-bc84a72b9636d62fe08243a03f958e98",
+      "rec1-be503416341166977e2bf4f4945a2fdb",
+      "rec1-c10e03704fae9ade0183cb618b00ec16",
+      "rec1-c1b1107a5902bfc1140633ac73cac58a",
+      "rec1-c1ec7ac1084b5969cb6000615df47c0b",
+      "rec1-c405e6ffeb2311a730b81f20ceac1dcf",
+      "rec1-c6b8d47bb2ab3775306a62261512c82a",
+      "rec1-c873e9562408798273b8266c54e56436",
+      "rec1-c950cff9ddacb8509db259fca6b771b0",
+      "rec1-ca0276dd4eda757addd1922e69ab0b88",
+      "rec1-ca0fe1c760adedda95641d48c94bdee5",
+      "rec1-cb5d1dc8a50c714db90d968849a768ae",
+      "rec1-cc580ae0610db695089d2d7eec7590cc",
+      "rec1-cd5958345f2c9dc15ab4ac276cb8115e",
+      "rec1-cdbdd75b67d8755da6e42075cf5e8bcc",
+      "rec1-cf99bf586c24f80c088f911ec4e07c41",
+      "rec1-d1e5ecc9767822e3cf99d9658399c802",
+      "rec1-d2e3f84dc78ea0470f9ae81c1dab17f4",
+      "rec1-d526aae1d38107af7440e01218d309c3",
+      "rec1-d52b027d37a4d720795ab7bff83d3e03",
+      "rec1-d55fa92278c833018a63f460e3f1fdc9",
+      "rec1-d695673350c8cf46e4660832468f865c",
+      "rec1-d94f525de65a1ee01b94afb153ba92c1",
+      "rec1-da68a1dffab01022527a2da97aec6617",
+      "rec1-da7db7f48c2d8ffaa7db3b81ecb4e9da",
+      "rec1-db38acbf8ab77590f43311aabe664152",
+      "rec1-db92dca8b633b0d537ed9b53a844dd60",
+      "rec1-dea9421b3e025886d01a7dfe3aee6fea",
+      "rec1-df42adf648dc2666040fb3eae76640fa",
+      "rec1-e1c9828ca626565dbfb68cd6d1e2e022",
+      "rec1-e470d2ccaf0e83149cfe369bb9241dfd",
+      "rec1-e804baf02e912c0e40048ebb10423133",
+      "rec1-eb952295e9eadbf07c77619682edc0e1",
+      "rec1-ec1db20f2a746b4b18390c7cef333964",
+      "rec1-ed8117a7444573250a79c315b02f89c6",
+      "rec1-ef61c5af5b519a760fe52b052fbb5dfa",
+      "rec1-eff75da737ef91cb4f1d0e04d2bfe3e1",
+      "rec1-f110a234eabc12fdb1a6316e1034db18",
+      "rec1-f1bf5e80b4ba5ff7dd226699957d747b",
+      "rec1-f3f23f041988094ea563c1d380022f75",
+      "rec1-f432fb8b34eac7b3a60bf6db5eb1f90b",
+      "rec1-f62c23eb8837cc5dbde79c471b0199b8",
+      "rec1-f68657a63656dddafcfbff4bed180617",
+      "rec1-f8ec8a79c0dbd6141330b1cf9aae842b",
+      "rec1-fcf9bf105b6eb567f20999b71f0cfff7",
+      "rec1-fdc020ae9babbaaae6bb06a0746d8295",
+      "rec1-ff9a50359aaf625873bdcabdfd2b716b",
+      "rec1-ffde6b2af0b5c37c9547c2fe61e00670"
+    ],
+    "test_records": [
+      "rec1-011833e2065614a433b82c285bfa8c54",
+      "rec1-0161ca0e3815493ba6d9bed813bc6325",
+      "rec1-0175319bcba5059c55cca30b7dae3e33",
+      "rec1-02288efa3a065f0df76c4de8846ad020",
+      "rec1-04ad05ef75fb0b448f7b0f046c4261d9",
+      "rec1-0667e76c73d1cca1c9d2c2249b548e4f",
+      "rec1-066bcfcbf41afb1ad8dba35c144bf859",
+      "rec1-06b1915b12fb3e73c9b072af802866bd",
+      "rec1-0791985109df0045cb402c008cb6a2ed",
+      "rec1-0798ae03d8c96a94405bcf490f6e521b",
+      "rec1-0ac3f7bd635dda9404c8471e467b3352",
+      "rec1-0d29de82037e665e00351fe307079ab9",
+      "rec1-0e52287c4fa556a0259604f04428fa68",
+      "rec1-1435e6d2570f9d0478228ac01110c12f",
+      "rec1-14f2b87991fb76567ce12fd42d26ddec",
+      "rec1-1663b37e291fca7c3d9901ce3400bec5",
+      "rec1-16cb1e53f32f2cdf6d49acce4fbba685",
+      "rec1-173727179465828cca0dd4326d2bc733",
+      "rec1-188380eee3a24956badcba7c4ab6df2d",
+      "rec1-19b2521e73974ed522ef6509ace74ca6",
+      "rec1-19da89f52149ab772f6c036b287504a2",
+      "rec1-19fcd4cf135ac0449468f677d30ee9b5",
+      "rec1-1a65324a31c482937d35d6d926ac625a",
+      "rec1-1a8cc3bee4b69b5b0a748267a25a6d3a",
+      "rec1-1b3fca60207a5b75cfa8a66da4255c58",
+      "rec1-1d5ee86937f6ebe77d2d4d143880b27c",
+      "rec1-1d86d8b9a8ff48ee130c395c2c5e91f1",
+      "rec1-2360723e73be44573a89f39bceb6cc65",
+      "rec1-25474e2dbf6a70b271e46187f6c28f85",
+      "rec1-27defbff6b19e2afca87b1077b131632",
+      "rec1-2c3863bc8fb07e6a672188573122440b",
+      "rec1-2cadd93d26acc9a9852cf45d7ad82ac6",
+      "rec1-2cd8bade0d00486ea1350e6ba7a116d6",
+      "rec1-2cea3c89624ddbddf4816f161cf4994f",
+      "rec1-2e96bfc0b7a19b37fd76c4acd5f08b64",
+      "rec1-2f65e321583235d8490ae240a1e19161",
+      "rec1-3131ca6f29bffec0796dc8b847ae2d9c",
+      "rec1-3196b0606dcf313290736f0a0eff8b16",
+      "rec1-31d032d75eb9f5c7e83eab677750c37e",
+      "rec1-32bd40620b0e5f69d75a680a2e71f487",
+      "rec1-33ce4b6af3ebd2006a0144ccf5bc3c2c",
+      "rec1-33ffc7f59346099929db05ac1f3e75b4",
+      "rec1-353106c4a01b0838bb1e34e51e6f0a8b",
+      "rec1-37233223f8818db6829e2cab9db1bfc1",
+      "rec1-373bc2210c94dde36548182242ede0eb",
+      "rec1-38b258c2c069381f1b85ce14aec0a214",
+      "rec1-39f247443d82aaf44416c80c22a4af29",
+      "rec1-39fcd5242c20b074b5e5f202b549cce6",
+      "rec1-3aeffcb1ec6f43497ab7c31ec5ac1c6b",
+      "rec1-3c46b1ef6262ccb6c7c8d7b9595cbd5a",
+      "rec1-3da4f79b4111c9148b66618938e4a8b8",
+      "rec1-3dd74e7d384fa4532b1457dc2329b41e",
+      "rec1-41bf4b6112cb139089156a20d01e0db9",
+      "rec1-45e0c8ac085b2d30735a1b9ce328bc77",
+      "rec1-45e19ae2d6a1bff2303297424c019ebb",
+      "rec1-4625fa6c1cbf790e8272afa3ec9c4c6c",
+      "rec1-4771db49fc58a458569ae8870f4ad96d",
+      "rec1-485e4ce2ae96066d20b7f17f775feece",
+      "rec1-489e1ac7b0b7607cab4ea394faf9fec1",
+      "rec1-48fa01f5e17ca8374340a508ef974899",
+      "rec1-4a5a1b3b66efe9a126aef8ed092ea79d",
+      "rec1-4afb885efacce460e7ea1b8a3a6b9420",
+      "rec1-4b3fd7e891a83c69390f4a398f7949b1",
+      "rec1-4e11197547f8b020e43f4d0e148f85c7",
+      "rec1-4e5fff38489cace4cf92f7068c769b96",
+      "rec1-4e77a7daa2a53198105674110cf4265e",
+      "rec1-4f8a3f9c3a59bee80916e34cdf9a12d7",
+      "rec1-50aab91a29e1e15b2a0494dd0a7adbbc",
+      "rec1-50dde262a89506a16be476b022f0ab87",
+      "rec1-512483c4c6ee2b43f99d80f8d94528b7",
+      "rec1-51e8646aba50e402a9d608087129e6a0",
+      "rec1-55a1addfbf28297a31080452036ef76f",
+      "rec1-55da28af0f14e177a5175027c469c034",
+      "rec1-5782dcc6ee9d68104f4278d4ac9fe2e5",
+      "rec1-579245e6491993e5a9917891ef08bf04",
+      "rec1-5973628711d4114992255d59058669f8",
+      "rec1-5a01a8a60496855d6a8124c135948356",
+      "rec1-5c550d0063998d6ac678da50e42faf09",
+      "rec1-5fbd366b2f04fb54e5b88ed695061d4f",
+      "rec1-6120b100bf21c3e9c24a1f5c6ce0ec08",
+      "rec1-66080cc090f6d15903c062ce339fad38",
+      "rec1-67538cca0ba99013cd0f6f2376539490",
+      "rec1-676c2cd63f2091968c9959e1f30ca5e0",
+      "rec1-6930a94722cf5014353e44bf899c9287",
+      "rec1-696fab59948644e28f78d54db257033a",
+      "rec1-69c065855550c597a97c18bfad167cb7",
+      "rec1-6bd391ff1d413c204f57a79a3249b91e",
+      "rec1-6cc70d551364f6f980c8eae05512f8be",
+      "rec1-6d1adab5256f6ab7c8efab6a8220c956",
+      "rec1-6d3c72e08a48d6bd30ef96e08210d2bb",
+      "rec1-6d73563b25c7777e593647aae0a5d5a8",
+      "rec1-6fa799f0d50e1a69ee47c990f5401ea6",
+      "rec1-6ffa69f92f5a494dd5deb82b48631411",
+      "rec1-701c7e99ff978d1e0d3595839603a345",
+      "rec1-717d0c550c5205e0e7f1161cb8ab1400",
+      "rec1-7351bd87febd4cf3c5181e5ffea046ba",
+      "rec1-74280507f48e63a5438baabfa91ff157",
+      "rec1-75abc1119c7deeee6a16680e90171539",
+      "rec1-79fba9ab529502a5e83b084d26bceca3",
+      "rec1-7a214c263dbdfe95ebafa81334d5984b",
+      "rec1-7a3d4615dc6a75ecc306e4f96a6b00bf",
+      "rec1-7c456f6d91bbfd8cb1c460074e77e066",
+      "rec1-7cc1936810c6d3654b57d7dd5338a610",
+      "rec1-7d81a556e86cbed89b1167767b0c4a18",
+      "rec1-7d8f8bb4e850b0a8a40c1464579ee5e3",
+      "rec1-816813b1ee466699d36590d57f5eadb3",
+      "rec1-851620a06f28d73e347b010e91dfa782",
+      "rec1-864323efd294aad58b3445bd9f28920c",
+      "rec1-86a2bcb52a6c9168d7e8b6587873f1e6",
+      "rec1-86d636dafa91ff7709f1131bd16433ee",
+      "rec1-87bc8a2d6bd9f8fb27d38390be56f58c",
+      "rec1-8916e9f4e462a00799666b3218645937",
+      "rec1-8a3f16772c1f0cc7f9ff63d38c173a3f",
+      "rec1-8a5c337628867455a00df86abb0bf62d",
+      "rec1-8ab5d09dbe97bd892200dedb66110759",
+      "rec1-8b71001e27ce9810d228aa74cd724ee2",
+      "rec1-8dba1a6302fdcdb177e4a56724eea083",
+      "rec1-8dc2067f50f89013f445c33b320452fb",
+      "rec1-8dd6cd605744eeeebe39370a8ebb5918",
+      "rec1-8e7d1c717453e9e29546941541dba6d2",
+      "rec1-9079b7018bea8770e253dc35a567af18",
+      "rec1-91aff40f7315d5b40c7fd03cb898583c",
+      "rec1-922bf761a8f1c54b847617de0fd420ff",
+      "rec1-92525ab23a8b635d62397f5542f450ca",
+      "rec1-92d3514b80063405a484959aff0ad845",
+      "rec1-93ec4937ef8cf3dcb2db97de5be76d1c",
+      "rec1-95243c4bf15217ed8c95883e3fe20d40",
+      "rec1-9962402163deaea649341ac33f4a0cd3",
+      "rec1-9bd69b0432c4b8ce0ae86f79c8ce1eda",
+      "rec1-9dd547956e624271f964535f1839d7ab",
+      "rec1-9e04673d6d6f3aae7f29a10f80f29592",
+      "rec1-9e8f557e71feeef12314215a338b8b95",
+      "rec1-9ed4ae4a0759e98f123d5c590b0b02e3",
+      "rec1-9f57f4ae89808294aa49b8b2cb179f19",
+      "rec1-9fe01fe4afd0f9f2b72190883f867f8b",
+      "rec1-a2184c4e0506418b07c78742f5fcabae",
+      "rec1-a27363e613bdd7f2fe9237d0ee9b1209",
+      "rec1-a352736069b85c7c420afb12c21a38b5",
+      "rec1-a62ea4aceffd45f67e1770c259384e60",
+      "rec1-a65628efe208ff0092daa9987743ad02",
+      "rec1-a6b3b2834759b10209f2c2ec4cf0c505",
+      "rec1-aa2b761bc15065f8ada12fbc8de9777b",
+      "rec1-ab4cffbe50edaff06538f3d638f798e3",
+      "rec1-acf697d0cc5edb0f593fe8b07fff8172",
+      "rec1-ae77614d5e91afa804a58c99470787c1",
+      "rec1-aecb962091421ee99bf43aa93c32ab38",
+      "rec1-b0c4688ce15730a06f246660d6e214db",
+      "rec1-b1dab248d637344ea5abb3d95434566b",
+      "rec1-b2c43ee1b4d91b322e74ad28c5485dd1",
+      "rec1-b422f6dd754d9330921d323aae63c379",
+      "rec1-b52b27b579894c30b75fa654fefafca9",
+      "rec1-b580f64660843f646d61a20cfb51d624",
+      "rec1-b6eeac56a6e48026a837306e8fa91a34",
+      "rec1-b7dd6f9f0eef8d06a46d0c5a72d93481",
+      "rec1-b9e72fc8fc09f073e3fed6dfb2831c2b",
+      "rec1-bc55fd7ac8464b4abb97267e3c0e849c",
+      "rec1-bc9332813e7f7d7ae2ba10cc7c1b084f",
+      "rec1-bdd3611e647e51cf9dbf326c36fa0ede",
+      "rec1-beac045c37fe79b9e7196110ec87d33c",
+      "rec1-c04657d0001245f6743d88504889fd50",
+      "rec1-c1bc800fbfe4dd862780672166955ccd",
+      "rec1-c64eea75a59aaa0133c0e37a691a149c",
+      "rec1-c9c0a4857a302e0b5f8b2d105973f216",
+      "rec1-ca4292e81b38d1add310f137de0f146d",
+      "rec1-caeb2de72f8f4728b58b1b770db1be7e",
+      "rec1-cbae8727c142c4eb049d8857735893ca",
+      "rec1-cbbfc1fbd8d5e1cca65c99a5b31b1ac1",
+      "rec1-cc21191ac3839eae32025539a9da4125",
+      "rec1-cc2ecfdaced548878cbfb2b811f14b03",
+      "rec1-cd581fdc6b323532443811fcb13051f5",
+      "rec1-cd6d29549d6bb912b8f5e23b438080f7",
+      "rec1-d12eda79e65f4445294b1c4eca89ed87",
+      "rec1-d1a624a6d5ef59e4e85aa16ab46c9ce4",
+      "rec1-d2cb2f1b6249d8d3996dac60426f9b0e",
+      "rec1-d5fa88aadfe599d0703bc28248e343d9",
+      "rec1-d6d326b448486110a395854944ddbc75",
+      "rec1-d74986080a936d2fbe00a5e9a3efa62d",
+      "rec1-d74b52db5564a850056d50855223e0af",
+      "rec1-d8dcc1403624e1e1bb24d169eef9773c",
+      "rec1-dbeb8aa07eb4393bd6c7519f3ddbb231",
+      "rec1-dc48885b3e71c69a907f6c72d0a36011",
+      "rec1-dc6c923966b8069380b74838f8435d38",
+      "rec1-ddac391fa2e2759926fa6d1c0ebbb5af",
+      "rec1-dde260dd135a53e31e16dd6e951b1f51",
+      "rec1-df4a4af82bbd63031fede5dde6c5defa",
+      "rec1-e1b740c40cb74c4b9c3fe496a5567a76",
+      "rec1-e1d581ac808d824ec5a56d8511af8dd6",
+      "rec1-e330a7988c2b9bded531c05014899068",
+      "rec1-e4c4264931eb6711e6cae9bcc7a2df4d",
+      "rec1-e6e5bc8c0c1c43367703de5956cb0405",
+      "rec1-e7484522e0ac72f1c9766c416f43e9e8",
+      "rec1-e7795dce151f29b16ef1252099927405",
+      "rec1-e77ac9ef9baefa1d9fcb58b77e94cdb3",
+      "rec1-e83cf78c0e0f718db55b38ac114b8889",
+      "rec1-e938aceab7a8e193f5881c69f3d7830f",
+      "rec1-e97944c575ab23bf856b2d277abd717b",
+      "rec1-e998f98f92226e3d482316aec4da09f6",
+      "rec1-eb378247f53e360e734fc293dd7257e9",
+      "rec1-ec26bf39394995d6fc94909b792d426a",
+      "rec1-ed47d42c3e7ea2e12f4a13249b45a193",
+      "rec1-eda02648f6ed7567bf10ef32996eefe4",
+      "rec1-efe2a9b8a0eb2bde6cdb373565662bb3",
+      "rec1-f17f3292c7c1a9baed5e5782f25d6989",
+      "rec1-f29e8628b475ac38f51e677a6e0ebe7d",
+      "rec1-f31688ec648954825f7190b407022f8c",
+      "rec1-f5806a33c7172c1c20bd660493caaf8f",
+      "rec1-f7c0900518fe06d82ac7524af56000b8",
+      "rec1-f8110cba87d53131b9c2eed315717443",
+      "rec1-f8b372215cd4fc0bef7ce2714b5aa8c7",
+      "rec1-fa7be220e1130fe3938b4f2481cfeb57",
+      "rec1-fdc1dad0fb2c8a1ec764844e330601c5"
+    ],
+    "measurement_sessions": [
+      "a100_2026-10-05_micro_r2.json:meas-sha256-a64683fa0651dcfe85ffaceb2c9f6277"
+    ],
+    "residuals_by_class": {
+      "a100_40gb/D/bmm": 0.9501525852318594,
+      "a100_40gb/D/elementwise": 1.0198029253250667,
+      "a100_40gb/D/gemv": 1.0185735658136759,
+      "a100_40gb/D/hbm": 0.9982072024051579,
+      "a100_40gb/L/elementwise": 0.959248524141738,
+      "a100_40gb/L/launch": 1.9224541991013322,
+      "a100_40gb/U/bmm": 0.7345341977389833,
+      "a100_40gb/U/gemm": 1.0387729574111944
+    },
+    "bootstrap_seed": 118100534914354,
+    "fit_devices": [
+      "a100_40gb"
+    ],
+    "notes": [
+      "a100_40gb: canonical per-op timing mode graph_cold (06 §4.3, 08 §F)"
+    ]
+  },
+  "range_policy": {
+    "applies_to": "designs whose family is not in fit.fit_devices (novel designs, held-out chips)",
+    "ranges": [
+      {
+        "name": "eta_res",
+        "lower": 0.666464648541956,
+        "upper": 0.9515707391682572,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "eta_res {\"dram_kind\": \"hbm2\"} fit, bootstrap range",
+            "lower": 0.8529331943431652,
+            "upper": 0.9515707391682572,
+            "n": 115,
+            "source": "stage D on 115 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "achieved/peak DRAM bandwidth, weight-streaming GEMVs (m <= 16, weights >= 64 MiB)",
+            "lower": 0.8843300484104795,
+            "upper": 0.9221336071691999,
+            "n": 57,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "achieved/peak DRAM bandwidth, weight-streaming GEMVs (m <= 16, weights >= 64 MiB)",
+            "lower": 0.666464648541956,
+            "upper": 0.6930583134717101,
+            "n": 36,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "unit_eff",
+        "lower": 0.8363322398094888,
+        "upper": 0.9746136125290505,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "best achieved/peak bf16 FLOP/s at nominal clock, GEMMs with m, n, k >= 2048",
+            "lower": 0.8774671128019019,
+            "upper": 0.8774671128019019,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "best achieved/peak bf16 FLOP/s at nominal clock, GEMMs with m, n, k >= 2048",
+            "lower": 0.9746136125290505,
+            "upper": 0.9746136125290505,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "best achieved/peak bf16 FLOP/s at nominal clock, GEMMs with m, n, k >= 2048",
+            "lower": 0.8363322398094888,
+            "upper": 0.8363322398094888,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_min_kernel",
+        "lower": 1.0237741207872098e-7,
+        "upper": 2.2343613399940455e-6,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "t_min_kernel {\"exec_model\": \"host_launched\"} fit, bootstrap range",
+            "lower": 5.692502621008763e-7,
+            "upper": 2.2343613399940455e-6,
+            "n": 21,
+            "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
+          },
+          {
+            "device": "a100_40gb",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 8.926383595951278e-7,
+            "upper": 8.926383595951278e-7,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.0237741207872098e-7,
+            "upper": 1.0237741207872098e-7,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.2001887542203311e-7,
+            "upper": 1.2001887542203311e-7,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_gap",
+        "lower": 1e-7,
+        "upper": 8.926383595951278e-7,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "t_gap {\"exec_model\": \"host_launched\"} fit, bootstrap range",
+            "lower": 1e-7,
+            "upper": 8.643056288996562e-7,
+            "n": 21,
+            "source": "stage L on 21 calib-micro fit records (a100_2026-10-05_micro_r2.json)"
+          },
+          {
+            "device": "a100_40gb",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 8.926383595951278e-7,
+            "upper": 8.926383595951278e-7,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.0237741207872098e-7,
+            "upper": 1.0237741207872098e-7,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.2001887542203311e-7,
+            "upper": 1.2001887542203311e-7,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_dispatch",
+        "lower": 1.0237741207872098e-7,
+        "upper": 8.926383595951278e-7,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 8.926383595951278e-7,
+            "upper": 8.926383595951278e-7,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.0237741207872098e-7,
+            "upper": 1.0237741207872098e-7,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.2001887542203311e-7,
+            "upper": 1.2001887542203311e-7,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_sync",
+        "lower": 1.0237741207872098e-7,
+        "upper": 8.926383595951278e-7,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 8.926383595951278e-7,
+            "upper": 8.926383595951278e-7,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.0237741207872098e-7,
+            "upper": 1.0237741207872098e-7,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "marginal cost per kernel in a launch chain, fastest probe kernel",
+            "lower": 1.2001887542203311e-7,
+            "upper": 1.2001887542203311e-7,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_launch",
+        "lower": 2.092389333332297e-6,
+        "upper": 6.144000217318535e-6,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 6.144000217318535e-6,
+            "upper": 6.144000217318535e-6,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 2.092389333332297e-6,
+            "upper": 2.092389333332297e-6,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 3.195585333287454e-6,
+            "upper": 3.195585333287454e-6,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      },
+      {
+        "name": "t_program",
+        "lower": 2.092389333332297e-6,
+        "upper": 6.144000217318535e-6,
+        "evidence": [
+          {
+            "device": "a100_40gb",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 6.144000217318535e-6,
+            "upper": 6.144000217318535e-6,
+            "n": 1,
+            "source": "a100_2026-10-05_micro_r2.json"
+          },
+          {
+            "device": "tpu_v5e",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 2.092389333332297e-6,
+            "upper": 2.092389333332297e-6,
+            "n": 1,
+            "source": "tpuv5e_2026-10-05_micro.json"
+          },
+          {
+            "device": "tpu_v6e",
+            "quantity": "single-kernel program/graph launch, fastest probe kernel",
+            "lower": 3.195585333287454e-6,
+            "upper": 3.195585333287454e-6,
+            "n": 1,
+            "source": "tpuv6e_2026-10-05_micro.json"
+          }
+        ]
+      }
+    ]
+  },
+  "test_access_log": [
+    {
+      "command": "kiln calibrate report",
+      "devices": [
+        "tpu_v5e",
+        "tpu_v6e"
+      ],
+      "set_hash": "cal1-bb66cdf0ad32cf9314a4149ce42e5038",
+      "kiln_version": "0.0.1"
+    },
+    {
+      "command": "kiln calibrate report",
+      "devices": [
+        "a100_40gb",
+        "tpu_v5e",
+        "tpu_v6e"
+      ],
+      "set_hash": "cal1-4e98560de7d87db4ef2fa325184a2cf3",
+      "kiln_version": "0.0.1"
+    },
+    {
+      "command": "kiln calibrate report",
+      "devices": [
+        "tpu_v6e"
+      ],
+      "set_hash": "cal1-858354f27ad56a54987f5231e141dd7e",
+      "kiln_version": "0.0.1"
+    }
+  ],
+  "created": "2026-10-05",
+  "hash": "cal1-14d453b7ca9502556aee665b9d3a635e"
+}

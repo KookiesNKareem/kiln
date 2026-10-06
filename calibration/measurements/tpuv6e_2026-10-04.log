@@ -1,0 +1,293 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v6 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:12:37", "n_runs": 60}
+{'test': 'read_reduce', 'gib': 0.5, 'bytes': 536870912, 'median_s': 0.0005301200000076278, 'min_s': 0.0005168400000457041, 'gbps_median': 1012.7346864715065, 'gbps_best': 1038.7565048226234}
+{'test': 'copy_scale', 'gib': 0.5, 'bytes': 1073741824, 'median_s': 0.0009282200000484409, 'min_s': 0.0009122700000716577, 'gbps_median': 1156.7751437632942, 'gbps_best': 1177.000037177216}
+{'test': 'read_reduce', 'gib': 1, 'bytes': 1073741824, 'median_s': 0.0008836194999730651, 'min_s': 0.0008690799999158116, 'gbps_median': 1215.1631149298203, 'gbps_best': 1235.4925025360312}
+{'test': 'copy_scale', 'gib': 1, 'bytes': 2147483648, 'median_s': 0.0017018149999898924, 'min_s': 0.001676230000043688, 'gbps_median': 1261.878434502431, 'gbps_best': 1281.1390131091973}
+{'test': 'read_reduce', 'gib': 2, 'bytes': 2147483648, 'median_s': 0.001602820000016436, 'min_s': 0.0015349000000242086, 'gbps_median': 1339.8158545426052, 'gbps_best': 1399.1032953066192}
+{'test': 'copy_scale', 'gib': 2, 'bytes': 4294967296, 'median_s': 0.003217264999989311, 'min_s': 0.0031442700000070545, 'gbps_median': 1334.9746744561824, 'gbps_best': 1365.9664392658276}
+{'test': 'read_reduce', 'gib': 4, 'bytes': 4294967296, 'median_s': 0.003016980000040803, 'min_s': 0.002919430000019929, 'gbps_median': 1423.598199504774, 'gbps_best': 1471.1663906895117}
+{'test': 'copy_scale', 'gib': 4, 'bytes': 8589934592, 'median_s': 0.00741733000000977, 'min_s': 0.006309389999955783, 'gbps_median': 1158.0898506590222, 'gbps_best': 1361.4524687901996}
+peak 4096 721.7111062143163 {'m': 4096, 'n': 4096, 'k': 4096, 'batch': 1, 'weight': True, 'flops': 137438953472, 'bytes': 100663296, 'single_median_s': 0.00034321999999065156, 'single_min_s': 0.00033547999998972955, 'pipelined_s': 0.0001731958333342239, 'loop_s': 0.00019043485999948947, 'loop_info': {'K1': 50, 'K2': 200, 'R': 8, 't_K1': 0.009837820000029751, 't_K2': 0.03840304899995317}, 'tflops': 721.7111062143163, 'gbps': 528.5970016218138}
+peak 8192 715.752638384375 {'m': 8192, 'n': 8192, 'k': 8192, 'batch': 1, 'weight': True, 'flops': 1099511627776, 'bytes': 402653184, 'single_median_s': 0.001710849999938091, 'single_min_s': 0.0016973200000620636, 'pipelined_s': 0.0015228931499999968, 'loop_s': 0.00153616147368714, 'loop_info': {'K1': 6, 'K2': 25, 'R': 2, 't_K1': 0.009667770999953973, 't_K2': 0.03885483900000963}, 'tflops': 715.752638384375, 'gbps': 262.11644472084043}
+https://symbolize.stripped_domain/r/?trace=7854e2b250fc,78556ac8f32f,7854e2a9d544,7854e2b27c33,7854e277df70,7854e26e9b97,7854df524156,7854d9b496d3,7854d9b6754b,7854d9b669ff,7854d9b67e35,7854d61e302d,7854d61dda9f,7854d61dc2e2,7854d98c13b7,7854d619727e,7854d613628c,7854d61276ee,785562f9b37e,785562f9b751,78555fa15d94,78555fa10d13,78555f8e505f,78555f8e6f9c,78555f8f4e87,78555f9a30f0,78555f9a39ab,570202,447695,570202,78555f99a23c,785569554df2,785569553b72&map= 
+*** SIGTERM received by PID 3497 (TID 3497) on cpu 6 from PID 4561; stack trace: ***
+PC: @     0x7854e2b250fc  (unknown)  (unknown)
+    @     0x7854e2a9abc5       1904  (unknown)
+    @     0x78556ac8f330  (unknown)  (unknown)
+    @     0x7854e2a9d545         64  (unknown)
+    @     0x7854e2b27c34        128  (unknown)
+    @     0x7854e277df71        352  (unknown)
+    @     0x7854e26e9b98        144  (unknown)
+    @     0x7854df524157        448  (unknown)
+    @     0x7854d9b496d4       2912  (unknown)
+    @     0x7854d9b6754c       6160  (unknown)
+    @     0x7854d9b66a00        528  (unknown)
+    @     0x7854d9b67e36        944  (unknown)
+    @     0x7854d61e302e       1152  (unknown)
+    @     0x7854d61ddaa0       2080  (unknown)
+    @     0x7854d61dc2e3       5296  (unknown)
+    @     0x7854d98c13b8       4608  (unknown)
+    @     0x7854d619727f       4576  (unknown)
+    @     0x7854d613628d       2256  (unknown)
+    @     0x7854d61276ef       5088  (unknown)
+    @     0x785562f9b37f        640  xla::InitializeArgsAndCompile()
+    @     0x785562f9b752        224  xla::PjRtCApiClient::CompileAndLoad()
+    @     0x78555fa15d95       4320  xla::ifrt::PjRtLoadedExecutable::Create()
+    @     0x78555fa10d14       2464  xla::ifrt::PjRtCompiler::CompileAndLoad()
+    @     0x78555f8e5060        336  jax::PyClient::CompileAndLoadIfrtProgram()
+    @     0x78555f8e6f9d       2544  jax::PyClient::CompileAndLoad()
+    @     0x78555f8f4e88       4960  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x78555f9a30f1        416  nanobind::detail::nb_func_vectorcall_complex()
+    @     0x78555f9a39ac        128  nanobind::detail::nb_bound_method_vectorcall()
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x447696        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x78555f99a23d         80  nanobind::detail::obj_vectorcall()
+    @     0x785569554df3        288  nanobind::detail::api<>::operator()<>()
+    @     0x785569553b73        544  jax::WeakrefLRUCache::Call()
+    @     0x785569556f23        144  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x78555f9a30f1        384  nanobind::detail::nb_func_vectorcall_complex()
+    @           0x64bc17         96  (unknown)
+    @           0x69a8fa        144  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x445e04        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x785562f28343       2272  jax::(anonymous namespace)::PjitFunction::Call()
+    @     0x785562f2694f        160  PjitFunction_tp_vectorcall
+    @           0x65b632         96  (unknown)
+    @           0x697537         48  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x445e04        432  (unknown)
+    @           0x64d82a        112  PyEval_EvalCode
+    @           0x689ad2         48  (unknown)
+    @           0x686c8e         96  (unknown)
+    @           0x68380b         96  (unknown)
+    @           0x6830d4        128  (unknown)
+    @           0x682ec5         64  (unknown)
+    @           0x681920        288  Py_RunMain
+    @           0x63c9bd         48  Py_BytesMain
+    @     0x78556ac741ca        160  (unknown)
+    @     0x78556ac7428b         96  __libc_start_main
+    @           0x63be55  (unknown)  _start
+https://symbolize.stripped_domain/r/?trace=7854e2b250fc,7854e2a9abc4,78556ac8f32f,7854e2a9d544,7854e2b27c33,7854e277df70,7854e26e9b97,7854df524156,7854d9b496d3,7854d9b6754b,7854d9b669ff,7854d9b67e35,7854d61e302d,7854d61dda9f,7854d61dc2e2,7854d98c13b7,7854d619727e,7854d613628c,7854d61276ee,785562f9b37e,785562f9b751,78555fa15d94,78555fa10d13,78555f8e505f,78555f8e6f9c,78555f8f4e87,78555f9a30f0,78555f9a39ab,570202,447695,570202,78555f99a23c,785569554df2,785569553b72,785569556f22,78555f9a30f0,64bc16,69a8f9,56e212,445e03,570202,785562f28342,785562f2694e,65b631,697536,56e212,570202,445e03,64d829,689ad1,686c8d,68380a,6830d3,682ec4,68191f,63c9bc,78556ac741c9,78556ac7428a,63be54&map= 
+E1005 03:13:56.781078    3497 coredump_hook.cc:247] RAW: Remote crash gathering disabled for SIGTERM.
+E1005 03:13:56.821621    3497 process_state.cc:808] RAW: Raising signal 15 with default behavior
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v6 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:14:02", "n_runs": 60}
+prefill_b1/qkv single=302.0us pipe=134.4us loop=150.5us tflops=685.0 gbps=613
+prefill_b1/attn_score single=182.6us pipe=39.7us loop=13.3us tflops=322.0 gbps=2712
+https://symbolize.stripped_domain/r/?trace=7fd872b250fc,7fd8f851432f,7fd872a9d544,7fd872b27c33,7fd87277df70,7fd8726e9b97,7fd86f524156,7fd869b496d3,7fd869b6754b,7fd869b669ff,7fd869b67e35,7fd8661e302d,7fd8661dda9f,7fd8661dc2e2,7fd8698c13b7,7fd86619727e,7fd86613628c,7fd8661276ee,7fd8f082037e,7fd8f0820751,7fd8ed29ad94,7fd8ed295d13,7fd8ed16a05f,7fd8ed16bf9c,7fd8ed179e87,7fd8ed2280f0,7fd8ed2289ab,570202,447695,570202,7fd8ed21f23c,7fd8f6dd9df2,7fd8f6dd8b72&map= 
+*** SIGTERM received by PID 4575 (TID 4575) on cpu 5 from PID 6058; stack trace: ***
+PC: @     0x7fd872b250fc  (unknown)  (unknown)
+    @     0x7fd872a9abc5       1904  (unknown)
+    @     0x7fd8f8514330  476842464  (unknown)
+    @     0x7fd872a9d545         64  (unknown)
+    @     0x7fd872b27c34        128  (unknown)
+    @     0x7fd87277df71        352  (unknown)
+    @     0x7fd8726e9b98        144  (unknown)
+    @     0x7fd86f524157        448  (unknown)
+    @     0x7fd869b496d4       2912  (unknown)
+    @     0x7fd869b6754c       6160  (unknown)
+    @     0x7fd869b66a00        528  (unknown)
+    @     0x7fd869b67e36        944  (unknown)
+    @     0x7fd8661e302e       1152  (unknown)
+    @     0x7fd8661ddaa0       2080  (unknown)
+    @     0x7fd8661dc2e3       5296  (unknown)
+    @     0x7fd8698c13b8       4608  (unknown)
+    @     0x7fd86619727f       4576  (unknown)
+    @     0x7fd86613628d       2256  (unknown)
+    @     0x7fd8661276ef       5088  (unknown)
+    @     0x7fd8f082037f        640  xla::InitializeArgsAndCompile()
+    @     0x7fd8f0820752        224  xla::PjRtCApiClient::CompileAndLoad()
+    @     0x7fd8ed29ad95       4320  xla::ifrt::PjRtLoadedExecutable::Create()
+    @     0x7fd8ed295d14       2464  xla::ifrt::PjRtCompiler::CompileAndLoad()
+    @     0x7fd8ed16a060        336  jax::PyClient::CompileAndLoadIfrtProgram()
+    @     0x7fd8ed16bf9d       2544  jax::PyClient::CompileAndLoad()
+    @     0x7fd8ed179e88       4960  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7fd8ed2280f1        416  nanobind::detail::nb_func_vectorcall_complex()
+    @     0x7fd8ed2289ac        128  nanobind::detail::nb_bound_method_vectorcall()
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x447696        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7fd8ed21f23d         80  nanobind::detail::obj_vectorcall()
+    @     0x7fd8f6dd9df3        288  nanobind::detail::api<>::operator()<>()
+    @     0x7fd8f6dd8b73        544  jax::WeakrefLRUCache::Call()
+    @     0x7fd8f6ddbf23        144  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7fd8ed2280f1        384  nanobind::detail::nb_func_vectorcall_complex()
+    @           0x64bc17         96  (unknown)
+    @           0x69a8fa        144  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x445e04        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7fd8f07ad343       2272  jax::(anonymous namespace)::PjitFunction::Call()
+    @     0x7fd8f07ab94f        160  PjitFunction_tp_vectorcall
+    @           0x65b632         96  (unknown)
+    @           0x697537         48  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x445e04        432  (unknown)
+    @           0x64d82a        112  PyEval_EvalCode
+    @           0x689ad2         48  (unknown)
+    @           0x686c8e         96  (unknown)
+    @           0x68380b         96  (unknown)
+    @           0x6830d4        128  (unknown)
+    @           0x682ec5         64  (unknown)
+    @           0x681920        288  Py_RunMain
+    @           0x63c9bd         48  Py_BytesMain
+    @     0x7fd8f84f91ca        160  (unknown)
+    @     0x7fd8f84f928b         96  __libc_start_main
+    @           0x63be55  (unknown)  _start
+https://symbolize.stripped_domain/r/?trace=7fd872b250fc,7fd872a9abc4,7fd8f851432f,7fd872a9d544,7fd872b27c33,7fd87277df70,7fd8726e9b97,7fd86f524156,7fd869b496d3,7fd869b6754b,7fd869b669ff,7fd869b67e35,7fd8661e302d,7fd8661dda9f,7fd8661dc2e2,7fd8698c13b7,7fd86619727e,7fd86613628c,7fd8661276ee,7fd8f082037e,7fd8f0820751,7fd8ed29ad94,7fd8ed295d13,7fd8ed16a05f,7fd8ed16bf9c,7fd8ed179e87,7fd8ed2280f0,7fd8ed2289ab,570202,447695,570202,7fd8ed21f23c,7fd8f6dd9df2,7fd8f6dd8b72,7fd8f6ddbf22,7fd8ed2280f0,64bc16,69a8f9,56e212,445e03,570202,7fd8f07ad342,7fd8f07ab94e,65b631,697536,56e212,570202,445e03,64d829,689ad1,686c8d,68380a,6830d3,682ec4,68191f,63c9bc,7fd8f84f91c9,7fd8f84f928a,63be54&map= 
+E1005 03:15:47.930919    4575 coredump_hook.cc:247] RAW: Remote crash gathering disabled for SIGTERM.
+E1005 03:15:47.972277    4575 process_state.cc:808] RAW: Raising signal 15 with default behavior
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v6 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:15:53", "n_runs": 60}
+peak 16384 719.6415563700801 {'m': 16384, 'n': 16384, 'k': 16384, 'batch': 1, 'weight': True, 'flops': 8796093022208, 'bytes': 1610612736, 'single_median_s': 0.012217704000022422, 'single_min_s': 0.011855110000055902, 'pipelined_s': 0.012222880883333195, 'tflops': 719.6415563700801, 'gbps': 131.77030451112307}
+prefill_b1/qkv single=312.4us pipe=134.6us loop=192.2us tflops=536.4 gbps=480
+prefill_b1/attn_score single=159.5us pipe=37.9us loop=28.0us tflops=153.2 gbps=1290
+prefill_b1/attn_av single=151.8us pipe=38.4us loop=31.1us tflops=138.2 gbps=1164
+prefill_b1/o_proj single=242.1us pipe=94.0us loop=123.4us tflops=556.8 gbps=544
+prefill_b1/ffn_gate_up single=496.4us pipe=300.5us loop=392.8us tflops=612.3 gbps=491
+prefill_b1/ffn_down single=509.5us pipe=321.6us loop=329.0us tflops=731.2 gbps=587
+prefill_b1/lm_head single=881.5us pipe=940.5us loop=946.8us tflops=1.1 gbps=1110
+decode_b1/qkv single=174.1us pipe=38.3us loop=45.4us tflops=1.1 gbps=1110
+decode_b1/attn_score single=141.6us pipe=37.4us loop=5.2us tflops=3.2 gbps=834
+decode_b1/attn_av single=130.9us pipe=27.9us loop=5.2us tflops=3.2 gbps=827
+decode_b1/o_proj single=143.0us pipe=38.4us loop=30.5us tflops=1.1 gbps=1100
+decode_b1/ffn_gate_up single=215.9us pipe=80.5us loop=105.4us tflops=1.1 gbps=1114
+decode_b1/ffn_down single=218.3us pipe=80.5us loop=105.5us tflops=1.1 gbps=1113
+decode_b1/lm_head single=865.6us pipe=932.5us loop=959.9us tflops=1.1 gbps=1095
+decode_b8/qkv single=133.3us pipe=29.0us loop=45.8us tflops=8.8 gbps=1104
+https://symbolize.stripped_domain/r/?trace=7d22c2b250fc,7d234a0f832f,7d22c2a9d544,7d22c2b27c33,7d22c277df70,7d22c26e9b97,7d22bf524156,7d22b9b496d3,7d22b9b6754b,7d22b9b669ff,7d22b9b67e35,7d22b61e302d,7d22b61dda9f,7d22b61dc2e2,7d22b98c13b7,7d22b619727e,7d22b613628c,7d22b61276ee,7d234240437e,7d2342404751,7d233ee7ed94,7d233ee79d13,7d233ed4e05f,7d233ed4ff9c,7d233ed5de87,7d233ee0c0f0,7d233ee0c9ab,570202,447695,570202,7d233ee0323c,7d23489bddf2,7d23489bcb72&map= 
+*** SIGTERM received by PID 6072 (TID 6072) on cpu 1 from PID 11488; stack trace: ***
+PC: @     0x7d22c2b250fc  (unknown)  (unknown)
+    @     0x7d22c2a9abc5       1904  (unknown)
+    @     0x7d234a0f8330  (unknown)  (unknown)
+    @     0x7d22c2a9d545         64  (unknown)
+    @     0x7d22c2b27c34        128  (unknown)
+    @     0x7d22c277df71        352  (unknown)
+    @     0x7d22c26e9b98        144  (unknown)
+    @     0x7d22bf524157        448  (unknown)
+    @     0x7d22b9b496d4       2912  (unknown)
+    @     0x7d22b9b6754c       6160  (unknown)
+    @     0x7d22b9b66a00        528  (unknown)
+    @     0x7d22b9b67e36        944  (unknown)
+    @     0x7d22b61e302e       1152  (unknown)
+    @     0x7d22b61ddaa0       2080  (unknown)
+    @     0x7d22b61dc2e3       5296  (unknown)
+    @     0x7d22b98c13b8       4608  (unknown)
+    @     0x7d22b619727f       4576  (unknown)
+    @     0x7d22b613628d       2256  (unknown)
+    @     0x7d22b61276ef       5088  (unknown)
+    @     0x7d234240437f        640  xla::InitializeArgsAndCompile()
+    @     0x7d2342404752        224  xla::PjRtCApiClient::CompileAndLoad()
+    @     0x7d233ee7ed95       4336  xla::ifrt::PjRtLoadedExecutable::Create()
+    @     0x7d233ee79d14       2464  xla::ifrt::PjRtCompiler::CompileAndLoad()
+    @     0x7d233ed4e060        336  jax::PyClient::CompileAndLoadIfrtProgram()
+    @     0x7d233ed4ff9d       2544  jax::PyClient::CompileAndLoad()
+    @     0x7d233ed5de88       4960  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7d233ee0c0f1        416  nanobind::detail::nb_func_vectorcall_complex()
+    @     0x7d233ee0c9ac        128  nanobind::detail::nb_bound_method_vectorcall()
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x447696        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7d233ee0323d         80  nanobind::detail::obj_vectorcall()
+    @     0x7d23489bddf3        288  nanobind::detail::api<>::operator()<>()
+    @     0x7d23489bcb73        544  jax::WeakrefLRUCache::Call()
+    @     0x7d23489bff23        144  nanobind::detail::func_create<>()::{lambda()#1}::__invoke()
+    @     0x7d233ee0c0f1        384  nanobind::detail::nb_func_vectorcall_complex()
+    @           0x64bc17         96  (unknown)
+    @           0x69a8fa        144  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x445e04        432  (unknown)
+    @           0x570203         32  PyObject_Vectorcall
+    @     0x7d2342391343       2272  jax::(anonymous namespace)::PjitFunction::Call()
+    @     0x7d234238f94f        160  PjitFunction_tp_vectorcall
+    @           0x65b632         96  (unknown)
+    @           0x697537         48  (unknown)
+    @           0x56e213         80  _PyObject_MakeTpCall
+    @           0x570203         32  PyObject_Vectorcall
+    @           0x445e04        432  (unknown)
+    @           0x64d82a        112  PyEval_EvalCode
+    @           0x689ad2         48  (unknown)
+    @           0x686c8e         96  (unknown)
+    @           0x68380b         96  (unknown)
+    @           0x6830d4        128  (unknown)
+    @           0x682ec5         64  (unknown)
+    @           0x681920        288  Py_RunMain
+    @           0x63c9bd         48  Py_BytesMain
+    @     0x7d234a0dd1ca        160  (unknown)
+    @     0x7d234a0dd28b         96  __libc_start_main
+    @           0x63be55  (unknown)  _start
+https://symbolize.stripped_domain/r/?trace=7d22c2b250fc,7d22c2a9abc4,7d234a0f832f,7d22c2a9d544,7d22c2b27c33,7d22c277df70,7d22c26e9b97,7d22bf524156,7d22b9b496d3,7d22b9b6754b,7d22b9b669ff,7d22b9b67e35,7d22b61e302d,7d22b61dda9f,7d22b61dc2e2,7d22b98c13b7,7d22b619727e,7d22b613628c,7d22b61276ee,7d234240437e,7d2342404751,7d233ee7ed94,7d233ee79d13,7d233ed4e05f,7d233ed4ff9c,7d233ed5de87,7d233ee0c0f0,7d233ee0c9ab,570202,447695,570202,7d233ee0323c,7d23489bddf2,7d23489bcb72,7d23489bff22,7d233ee0c0f0,64bc16,69a8f9,56e212,445e03,570202,7d2342391342,7d234238f94e,65b631,697536,56e212,570202,445e03,64d829,689ad1,686c8d,68380a,6830d3,682ec4,68191f,63c9bc,7d234a0dd1c9,7d234a0dd28a,63be54&map= 
+E1005 03:23:11.603624    6072 coredump_hook.cc:247] RAW: Remote crash gathering disabled for SIGTERM.
+E1005 03:23:11.640621    6072 process_state.cc:808] RAW: Raising signal 15 with default behavior
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+{"device_kind": "TPU v6 lite", "devices": ["TPU_0(process=0,(0,0,0,0))"], "platform": "tpu", "jax": "0.7.2", "jaxlib": "0.7.2", "libtpu": "0.0.21.1", "date": "2026-10-05 03:29:53", "n_runs": 60}
+prefill_b1/qkv single=325.8us pipe=134.8us loop=192.1us rot=167.6us tflops=615.0 gbps=551
+prefill_b1/attn_score single=181.8us pipe=40.4us loop=28.0us rot=39.9us tflops=153.4 gbps=1292
+prefill_b1/attn_av single=172.8us pipe=39.1us loop=31.0us rot=40.4us tflops=138.4 gbps=1166
+prefill_b1/o_proj single=281.1us pipe=94.4us loop=123.1us rot=116.8us tflops=588.2 gbps=574
+prefill_b1/ffn_gate_up single=494.8us pipe=300.4us loop=392.1us rot=312.0us tflops=770.9 gbps=618
+prefill_b1/ffn_down single=513.3us pipe=321.7us loop=329.2us rot=360.4us tflops=730.7 gbps=586
+prefill_b1/lm_head single=894.1us pipe=933.2us loop=939.1us rot=935.6us tflops=1.1 gbps=1123
+decode_b1/qkv single=171.9us pipe=38.2us loop=45.5us rot=37.4us tflops=1.3 gbps=1345
+decode_b1/attn_score single=146.0us pipe=36.5us loop=5.2us rot=36.5us tflops=3.2 gbps=834
+decode_b1/attn_av single=146.4us pipe=37.2us loop=5.2us rot=37.2us tflops=3.2 gbps=828
+decode_b1/o_proj single=161.2us pipe=37.5us loop=30.6us rot=38.6us tflops=1.1 gbps=1098
+decode_b1/ffn_gate_up single=242.0us pipe=80.6us loop=105.1us rot=80.7us tflops=1.5 gbps=1455
+decode_b1/ffn_down single=240.9us pipe=80.6us loop=105.7us rot=80.8us tflops=1.5 gbps=1453
+decode_b1/lm_head single=873.6us pipe=924.5us loop=936.1us rot=930.7us tflops=1.1 gbps=1129
+decode_b8/qkv single=145.8us pipe=37.5us loop=45.6us rot=44.6us tflops=9.0 gbps=1133
+decode_b8/attn_score single=152.0us pipe=36.5us loop=30.4us rot=36.6us tflops=4.4 gbps=1140
+decode_b8/attn_av single=152.4us pipe=38.5us loop=31.4us rot=38.3us tflops=4.3 gbps=1105
+decode_b8/o_proj single=150.3us pipe=38.1us loop=30.5us rot=37.9us tflops=8.8 gbps=1103
+decode_b8/ffn_gate_up single=232.6us pipe=80.6us loop=105.3us rot=81.3us tflops=11.6 gbps=1448
+decode_b8/ffn_down single=234.3us pipe=80.4us loop=106.1us rot=81.6us tflops=11.5 gbps=1443
+decode_b8/lm_head single=884.3us pipe=939.3us loop=935.0us rot=937.5us tflops=9.0 gbps=1126
+decode_b32/qkv single=153.4us pipe=38.3us loop=46.1us rot=45.3us tflops=35.5 gbps=1125
+decode_b32/attn_score single=249.6us pipe=94.9us loop=121.2us rot=96.1us tflops=5.6 gbps=1443
+decode_b32/attn_av single=250.1us pipe=91.7us loop=123.1us rot=95.1us tflops=5.6 gbps=1459
+decode_b32/o_proj single=152.0us pipe=37.5us loop=31.1us rot=39.5us tflops=34.5 gbps=1095
+decode_b32/ffn_gate_up single=242.7us pipe=81.3us loop=105.7us rot=82.0us tflops=45.8 gbps=1446
+decode_b32/ffn_down single=235.2us pipe=80.8us loop=107.4us rot=82.2us tflops=45.7 gbps=1443
+decode_b32/lm_head single=896.8us pipe=935.9us loop=939.0us rot=940.3us tflops=35.8 gbps=1128
+smoke/gemm_1024 single=149.5us pipe=36.9us loop=9.5us rot=35.6us tflops=225.2 gbps=660
+smoke/gemm_16_8192 single=275.2us pipe=91.8us loop=121.9us rot=92.7us tflops=23.2 gbps=1453
+gemm/gemm_1024_1024_1024 single=149.2us pipe=35.5us loop=9.5us rot=36.8us tflops=225.2 gbps=660
+gemm/gemm_4096_4096_4096 single=369.0us pipe=173.4us loop=242.9us rot=195.8us tflops=701.9 gbps=514
+gemm/gemm_16_8192_8192 single=243.4us pipe=91.7us loop=119.8us rot=92.9us tflops=23.1 gbps=1451
+sweep 256 256 256 single=144.0us rot=37.6us loop=2.1us tflops=16.1 gbps=189
+sweep 512 512 512 single=141.6us rot=36.2us loop=3.0us tflops=90.3 gbps=529
+sweep 1024 1024 1024 single=143.5us rot=37.7us loop=9.5us tflops=225.2 gbps=660
+sweep 2048 2048 2048 single=163.3us rot=38.4us loop=33.1us tflops=519.0 gbps=760
+sweep 4096 4096 4096 single=349.5us rot=196.0us loop=243.8us tflops=701.2 gbps=514
+sweep 8192 8192 8192 single=1721.2us rot=1524.3us loop=1829.8us tflops=721.3 gbps=264
+sweep 1 4096 4096 single=145.9us rot=27.4us loop=30.4us tflops=1.2 gbps=1227
+sweep 8 4096 4096 single=130.5us rot=31.9us loop=30.9us tflops=8.7 gbps=1089
+sweep 16 4096 4096 single=137.9us rot=31.5us loop=30.9us tflops=17.4 gbps=1093
+sweep 32 4096 4096 single=136.5us rot=32.1us loop=30.7us tflops=35.0 gbps=1111
+sweep 64 4096 4096 single=126.6us rot=32.9us loop=30.9us tflops=69.6 gbps=1121
+sweep 128 4096 4096 single=152.0us rot=34.2us loop=31.8us tflops=135.0 gbps=1121
+sweep 256 4096 4096 single=134.7us rot=39.6us loop=32.6us tflops=263.3 gbps=1157
+sweep 1 8192 8192 single=230.6us rot=91.1us loop=120.6us tflops=1.5 gbps=1473
+sweep 8 8192 8192 single=232.3us rot=92.2us loop=119.7us tflops=11.6 gbps=1459
+sweep 16 8192 8192 single=230.3us rot=92.7us loop=121.0us tflops=23.2 gbps=1453
+sweep 32 8192 8192 single=238.1us rot=92.9us loop=121.0us tflops=46.2 gbps=1456
+sweep 64 8192 8192 single=246.7us rot=93.7us loop=122.5us tflops=91.7 gbps=1454
+sweep 128 8192 8192 single=244.9us rot=97.1us loop=122.2us tflops=176.8 gbps=1425
+sweep 256 8192 8192 single=250.7us rot=100.1us loop=134.9us tflops=343.2 gbps=1424
+sweep 1 14336 14336 single=440.5us rot=337.1us loop=368.1us tflops=1.2 gbps=1219
+sweep 8 14336 14336 single=445.7us rot=357.2us loop=367.5us tflops=9.2 gbps=1152
+sweep 16 14336 14336 single=456.2us rot=356.7us loop=367.6us tflops=18.4 gbps=1155
+sweep 32 14336 14336 single=472.4us rot=342.4us loop=367.6us tflops=38.4 gbps=1206
+sweep 64 14336 14336 single=460.0us rot=350.6us loop=366.6us tflops=75.0 gbps=1183
+sweep 128 14336 14336 single=452.7us rot=351.6us loop=366.4us tflops=149.7 gbps=1190
+sweep 256 14336 14336 single=472.2us rot=354.9us loop=369.7us tflops=296.5 gbps=1200
+DONE

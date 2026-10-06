@@ -1,0 +1,60 @@
+# a100 variant with 12 SM clusters (4 columns x 3 rows, 9216 MAC each). Chip totals match hw/a100.
+name: a100_12_clusters
+
+cores:
+  0: ./cores/a100_sm_cluster.yaml
+  1: ./cores/a100_sm_cluster.yaml
+  2: ./cores/a100_sm_cluster.yaml
+  3: ./cores/a100_cuda_cores.yaml
+  4: ./cores/a100_l2_slice.yaml
+  5: ./cores/a100_sm_cluster.yaml
+  6: ./cores/a100_sm_cluster.yaml
+  7: ./cores/a100_sm_cluster.yaml
+  8: ./cores/a100_cuda_cores.yaml
+  9: ./cores/a100_l2_slice.yaml
+  10: ./cores/a100_sm_cluster.yaml
+  11: ./cores/a100_sm_cluster.yaml
+  12: ./cores/a100_sm_cluster.yaml
+  13: ./cores/a100_cuda_cores.yaml
+  14: ./cores/a100_l2_slice.yaml
+  15: ./cores/a100_sm_cluster.yaml
+  16: ./cores/a100_sm_cluster.yaml
+  17: ./cores/a100_sm_cluster.yaml
+  18: ./cores/a100_cuda_cores.yaml
+  19: ./cores/a100_l2_slice.yaml
+  20: ./cores/a100_hbm.yaml
+
+core_coordinates:
+  0: [0, 0]
+  1: [0, 1]
+  2: [0, 2]
+  3: [0, 3]
+  4: [0, 4]
+  5: [1, 0]
+  6: [1, 1]
+  7: [1, 2]
+  8: [1, 3]
+  9: [1, 4]
+  10: [2, 0]
+  11: [2, 1]
+  12: [2, 2]
+  13: [2, 3]
+  14: [2, 4]
+  15: [3, 0]
+  16: [3, 1]
+  17: [3, 2]
+  18: [3, 3]
+  19: [3, 4]
+  20: [0, 5]
+
+offchip_core_id: 20
+unit_energy_cost: 0
+technology_node: n16
+
+core_connectivity:
+  - type: bus
+    cores: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    bandwidth: 40960
+  - type: bus
+    cores: [4, 9, 14, 19, 20]
+    bandwidth: 11569

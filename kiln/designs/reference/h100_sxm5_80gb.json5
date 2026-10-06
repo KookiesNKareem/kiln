@@ -1,0 +1,175 @@
+// NVIDIA H100-SXM5-80GB, T1 backtest design (06 §12.1): published specs only, no measurements, no platform key.
+// Tags: pub:<src> = published, derived = arithmetic from published values, assumed = modelling choice.
+// Exposes params so h100_pcie_80gb.json5 can extend it.
+{
+  schema: "kiln.hw/1.0",
+  name: "h100-sxm5-80gb",
+  exec_model: "host_launched",                         // 01 §2: kernels launched by the host (CUDA graphs still launch per kernel)
+  meta: {
+    description: "NVIDIA H100-SXM5-80GB. GH100 die, 132 of 144 SMs active, 5 of 6 HBM3 sites.",
+    citations: {
+      wp: "NVIDIA H100 Tensor Core GPU Architecture whitepaper (Hopper, 2022): GH100 8 GPCs x 9 TPCs x 2 SMs = 144 SMs, 132 on SXM5; 4 4th-gen tensor cores/SM (2x A100 dense FMA/clk per SM); 128 FP32, 64 FP64 per SM; 256 KB L1/SMEM per SM (228 KB max SMEM); 50 MB L2; 5 HBM3 stacks, ten 512-bit memory controllers; 18 NVLink4 links; 814 mm2, TSMC 4N",
+      ds: "NVIDIA H100 product page / datasheet, nvidia.com/en-us/data-center/h100 (accessed 2026-10-05): SXM bf16 1,979 TFLOPS and fp8 3,958 TFLOPS with sparsity (989.4 / 1978.9 dense), FP32 67 TFLOPS, 80 GB, 3.35 TB/s, up to 700 W, NVLink 900 GB/s, PCIe Gen5 128 GB/s",
+      blog: "NVIDIA Hopper Architecture In-Depth (developer.nvidia.com blog, 2022): SXM5 boost 1.83 GHz for low-precision tensor peaks, 1.98 GHz for FP32/FP64 peaks",
+      cuda: "CUDA C++ Programming Guide: arithmetic-instruction throughput (CC 9.0), shared memory carveouts (CC 9.0)",
+      ptx: "PTX ISA 8.x, wgmma.mma_async: warpgroup m64nNk16 (N = 8..256 step 8) for f16/bf16; B always from a shared-memory matrix descriptor, A from shared memory or registers; accumulator D in registers",
+      ubench: "Luo et al., Dissecting the NVIDIA Hopper Architecture through Microbenchmarking and Multiple Level Analysis, arXiv 2501.12084 (H800 = GH100): Table V shared memory 127.9 B/clk/SM, L2 4472 B/clk vs 2008 on A100 (same method); Table XI dense wgmma SS reaches 95-96% of peak for N >= 64 and falls with N below 64 (N=32/16/8: 63/38/21%), i.e. about 120-128 B/clk/SM of A+B operand reads from shared memory",
+    },
+    claims: [
+      { metric: "peak_ops.bf16", scope: "", value: 989.4e12, rel_tol: 0.01, source: "ds" },
+      { metric: "peak_ops.fp16", scope: "", value: 989.4e12, rel_tol: 0.01, source: "ds" },
+      { metric: "peak_ops.fp8_e4m3", scope: "", value: 1978.9e12, rel_tol: 0.01, source: "ds" },
+      { metric: "peak_ops.int8", scope: "", value: 1978.9e12, rel_tol: 0.01, source: "ds" },
+      { metric: "offchip_bw", scope: "", value: 3.35e12, rel_tol: 0.01, source: "ds" },
+      { metric: "offchip_bytes", scope: "", value: 85899345920, rel_tol: 0.0, source: "ds" },
+      { metric: "onchip_bytes.cache", scope: "board.gpu.gh100.l2p*", value: 52428800, rel_tol: 0.0, source: "wp" },
+      { metric: "die_area", scope: "board.gpu.gh100", value: 814, rel_tol: 0.01, source: "wp" },
+    ],
+  },
+  tech: "nvidia_4n",                                   // pub:wp TSMC 4N
+  params: {
+    clk: "1830MHz",                                    // pub:blog tensor-peak boost; FP32/FP64 peaks use 1.98 GHz (not modelled: one clock)
+    tdp: "700W",                                       // pub:ds
+    gpc_disabled: ["gpc0_0.tpc8", "gpc0_1.tpc8", "gpc0_2.tpc8", "gpc0_3.tpc8", "gpc1_0.tpc8", "gpc1_1.tpc8"], // 66 TPCs, 132 SMs pub:wp; which: assumed
+    hbm_kind: "hbm3", hbm_cap: "16GiB", hbm_pin: "5.24Gbps", // 80 GB / 5 pub:ds; pin rate derived from 3.35 TB/s over 5120 bits
+    hbm_clk: "2620MHz",                                // derived: hbm_pin / 2 (DDR)
+    nvl_count: 18,                                     // pub:wp
+    pcie_rate: "32Gbps",                               // Gen5 x16 pub:ds
+  },
+  clocks: [ { id: "gpc_clk", freq: "=clk" },          // no V/F published
+            { id: "hbm_clk", freq: "=hbm_clk" } ],
+  power: [ { id: "board_tdp", members: "board.gpu", cap: "=tdp", policy: "dvfs", clocks: ["gpc_clk"] } ],
+
+  templates: {
+    smsp: { kind: "cluster", body: {
+      units: [
+        { id: "tc", kind: "matrix",
+          // wgmma (pub:ptx) issues m64nNk16 per warpgroup, one m16 row block per SMSP tensor core; modelled as
+          // m16n8k16 steps, 2048 MACs per 4 clocks at 512 dense fp16 FMA/clk per TC, 2x A100 per SM pub:wp. A and
+          // B are read from shared memory (the SS form cuBLAS/CUTLASS use for bf16 GEMM), B once per warpgroup;
+          // an n-run keeps A in the core (one instruction spans up to N = 256). Accumulators stay in registers.
+          geometry: { mma: { m: 16, n: 8, k: 16 } },
+          dataflow: "output_stationary",
+          accumulate_in: "feed",
+          operand_run: { a: 32, b: 1 },                 // a stays over one wgmma's N <= 256 (32 n8 steps); b is
+                                                        //   read per instruction pub:ptx
+          precisions: [
+            "fp16*fp16+fp32@0.25", "fp16*fp16+fp16@0.25", "bf16*bf16+fp32@0.25", // pub:ds 989.4 TFLOPS dense
+            "tf32*tf32+fp32@0.125",                                 // pub:ds 494.7
+            "fp8_e4m3*fp8_e4m3+fp32@0.5", "fp8_e5m2*fp8_e5m2+fp32@0.5", // pub:ds 1978.9
+            "int8*int8+int32@0.5",                                  // pub:ds 1978.9
+            "fp64*fp64+fp64@0.015625",                              // 61.8 TFLOPS at 1.83 GHz (pub:ds 67 at 1.98 GHz)
+          ],
+          sparsity: [ { pattern: "2:4", operand: "a", speedup: 2.0, metadata_bits_per_nz: 2 } ], // pub:wp
+          feeds: { a: "l1", b: "l1", c: "rf", o: "rf" } }, // pub:ptx; fp64 DMMA reads registers (not modelled)
+        { id: "alu", kind: "vector", lanes: 32,         // 128 FP32/SM pub:wp
+          precisions: ["fp32@1", "int32@0.5", "fp16@2", "bf16@2", "fp64@0.5"], // 64 INT32, 64 FP64/SM pub:wp; fp16x2 pub:cuda
+          feeds: { any: "rf" } },
+        { id: "sfu", kind: "special", lanes: 4,         // 16/SM/clk pub:cuda
+          functions: ["exp2", "log2", "rsqrt", "recip", "sqrt", "sin", "cos", "tanh"],
+          precisions: ["fp32@1"], feeds: { any: "rf" } },
+      ],
+      memories: [
+        { id: "rf", kind: "register_file", capacity: "64KiB", // 256 KB/SM pub:wp
+          banks: 4, word_bits: 32,                               // assumed
+          ports: [ { dir: "read", count: 3, width_bits: 1024 },  // assumed, as A100
+                   { dir: "write", count: 1, width_bits: 1024 } ],
+          backing: "l1" },                                       // accumulator epilogue and spills go through SMEM
+      ],
+    } },
+
+    sm: { kind: "cluster", body: {
+      clusters: [ { id: "smsp", count: 4, use: "smsp" } ],      // pub:wp
+      memories: [
+        { id: "l1", kind: "scratchpad", capacity: "256KiB",     // pub:wp combined L1/SMEM
+          banks: 32, word_bits: 32,                              // pub:cuda
+          ports: [ { dir: "rw", width_bits: 1024 } ],            // 128 B/clk pub:ubench (127.9 B/clk/SM measured)
+          operands: { policy: "carveout", options: [             // pub:cuda CC 9.0 SMEM carveouts
+            { scratch: "0KiB",   cache: "256KiB" }, { scratch: "8KiB",   cache: "248KiB" },
+            { scratch: "16KiB",  cache: "240KiB" }, { scratch: "32KiB",  cache: "224KiB" },
+            { scratch: "64KiB",  cache: "192KiB" }, { scratch: "100KiB", cache: "156KiB" },
+            { scratch: "132KiB", cache: "124KiB" }, { scratch: "164KiB", cache: "92KiB" },
+            { scratch: "196KiB", cache: "60KiB" },  { scratch: "228KiB", cache: "28KiB" } ] },
+          cache: { line: "128B", sectors: 4, ways: 4 },          // ways assumed
+          backing: "l2p*.slice*" },
+      ],
+      networks: [
+        { id: "lsu", topology: "bus", endpoints: ["smsp*.rf", "l1"], link: "1024b" },
+      ],
+    } },
+  },
+
+  system: { package: {
+    id: "gpu",
+    substrate: { kind: "silicon_interposer" },                   // pub:wp CoWoS
+    dies: [ {
+      id: "gh100",
+      default_clock: "gpc_clk",
+      floorplan: {
+        outline: { type: "fixed", w: "25.3mm", h: "32.2mm" },    // area pub:wp 814 mm2; aspect assumed
+        shoreline: [
+          { id: "hbm_w", count: 3, edge: "w", kind: "hbm" },     // 6 HBM sites pub:wp; 3 per side assumed
+          { id: "hbm_e", count: 3, edge: "e", kind: "hbm" },
+          { id: "nvl",   count: 18, edge: "s", kind: "serdes" }, // edge assumed
+          { id: "pcie_site", edge: "n", kind: "pcie" },
+        ],
+      },
+      clusters: [
+        { id: "gpc", count: 8, layout: { grid: [2, 4] }, placement: { mode: "array" },  // 8 GPCs pub:wp; arrangement assumed
+          disabled: "=gpc_disabled",
+          clusters: [ { id: "tpc", count: 9, clusters: [ { id: "sm", count: 2, use: "sm" } ] } ] },
+        { id: "l2p", count: 2, layout: { grid: [1, 2] },          // two L2 partitions pub:wp
+          memories: [ {
+            id: "slice", count: 40, kind: "cache",               // 50 MB total pub:wp; 80 x 640 KiB slicing assumed
+            capacity: "640KiB", banks: 4, word_bits: 256,          // banks assumed
+            // 128 B/clk/slice (10240 B/clk): derived as A100's 5120 B/clk (pub: A100 wp) x the measured H800/A100 L2
+            // per-clock ratio 4472/2008 = 2.2 (pub:ubench), rounded down to a power of two; split per slice assumed
+            ports: [ { dir: "read", width_bits: 1024 }, { dir: "write", width_bits: 1024 } ],
+            cache: { line: "128B", sectors: 4, ways: 16,
+                     coherent_with: ["^.l2p*.slice*"] },
+          } ] },
+        { id: "hbm_if", count: 6, disabled: ["hbm_if5"],         // one interface per HBM site, 5 active pub:wp
+          blocks: [
+            { id: "mc", count: 2, kind: { type: "mem_controller",  // ten 512-bit controllers enabled pub:wp
+                serves: "/board.gpu.hbm{^i}", width_bits: 512, endpoint_of: ["fabric"] } },
+            { id: "phy", kind: { type: "phy", for_kind: "hbm", lanes: 1024 } },
+          ] },
+      ],
+      networks: [ {
+        id: "fabric",
+        topology: { type: "custom", routers: 2,
+                    edges: [ { a: 0, b: 1, link: { width_bits: 10240 } } ] }, // assumed, as A100
+        router: { radix: 256, pipeline: 4 },                                  // assumed
+        link: { width_bits: 512 },                                            // assumed
+        endpoints: [
+          { select: "gpc0_*.tpc*.sm*.l1", at: { router: [0] } },
+          { select: "gpc1_*.tpc*.sm*.l1", at: { router: [1] } },
+          { select: "l2p[0].slice*",  at: { router: [0] }, port: { width_bits: 1024 } }, // slice port width, as above
+          { select: "l2p[1].slice*",  at: { router: [1] }, port: { width_bits: 1024 } },
+          // Controller side: a 512-bit DDR interface moves 1024 b per hbm_clk, derived; the L2 slices sit in front of
+          // their memory partitions, so the SM-side port width does not cap HBM.
+          { select: "hbm_if[0..3].mc*", at: { router: [0] }, port: { width_bits: 1024, clock: "hbm_clk" } },
+          { select: "hbm_if[3..6].mc*", at: { router: [1] }, port: { width_bits: 1024, clock: "hbm_clk" } },
+        ],
+      } ],
+      blocks: [
+        { id: "uncore", kind: { type: "misc" }, footprint: { area: "60mm2" } }, // frontend, copy engines, TMA hub, decoders: assumed area
+      ],
+      ports: [
+        { id: "nvlink", count: "=nvl_count", kind: "serdes", internal: "fabric",
+          link: { phys: { type: "serdes", protocol: "nvlink_like", lanes: 2, lane_rate_bits_per_s: "100Gbps" } } },
+          // 2 lanes x 100 Gb/s = 25 GB/s/dir per link, 18 links = 900 GB/s bidirectional pub:ds; lane split assumed
+        { id: "pcie", kind: "pcie", internal: "fabric",
+          link: { phys: { type: "serdes", protocol: "pcie", lanes: 16, lane_rate_bits_per_s: "=pcie_rate" } } },
+      ],
+    } ],
+    mem_stacks: [ {
+      id: "hbm", count: 6, disabled: ["hbm5"],                   // 6 sites, 5 active pub:wp
+      kind: "=hbm_kind", capacity: "=hbm_cap", dies_high: 8,     // 8-high assumed
+      io_width_bits: 1024, pin_rate_bits_per_s: "=hbm_pin",      // 5120-bit bus pub:wp
+      clock: "hbm_clk",
+      attach: { phys: ["/board.gpu.gh100.hbm_if{i}.phy"] },
+    } ],
+    address_map: [ { id: "global", targets: "gh100.hbm_if*.mc*", granule: "512B" } ], // granule assumed
+  } },
+}

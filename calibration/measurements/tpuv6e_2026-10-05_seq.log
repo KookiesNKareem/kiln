@@ -1,0 +1,23 @@
+/usr/local/lib/python3.13/dist-packages/jax/_src/cloud_tpu_init.py:86: UserWarning: Transparent hugepages are not enabled. TPU runtime startup and shutdown time should be significantly improved on TPU v5e and newer. If not already set, you may need to enable transparent hugepages in your VM image (sudo sh -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled")
+  warnings.warn(
+15:50:02 sanity start {'gemm_8192^3': {'loop_s': 0.001835705999993527, 'cv': 0.008636100417900548, 'tflops': 598.9584540116322, 'gbps': 219.3451369671504}, 'copy_1GiB': {'loop_s': 0.003598423176460047, 'cv': 0.00482916759675237, 'tflops': None, 'gbps': 596.7846311262895}}
+15:50:02 plan {'decode_b1': 32, 'decode_b8': 32, 'decode_b32': 32, 'prefill_b1': 32}
+15:50:36 weights 32 layers in 34.0s
+15:50:52 seq/decode_b1/step                           best=  13747.30us single=  13911.8us loop_cv=0.008     0.0TF       0GB/s ok
+15:50:53 seq/decode_b1/layer1                         best=    357.16us single=    544.5us loop_cv=0.129     0.0TF       0GB/s rejected
+15:51:35 seq/decode_b8/step                           best=  15592.35us single=  15152.6us loop_cv=0.008     0.0TF       0GB/s ok
+15:51:37 seq/decode_b8/layer1                         best=    493.24us single=    605.6us loop_cv=0.078     0.0TF       0GB/s rejected
+15:52:21 seq/decode_b32/step                          best=  21427.40us single=  21434.9us loop_cv=0.004     0.0TF       0GB/s ok
+15:52:23 seq/decode_b32/layer1                        best=    692.21us single=    717.2us loop_cv=0.146     0.0TF       0GB/s rejected
+15:52:44 seq/prefill_b1/step                          best=  67487.51us single=  68889.2us loop_cv=0.000     0.0TF       0GB/s ok
+15:52:49 seq/prefill_b1/layer1                        best=   2121.48us single=   2489.6us loop_cv=0.001     0.0TF       0GB/s ok
+15:52:52 sanity end {'gemm_8192^3': {'loop_s': 0.0018453723684232453, 'cv': 0.014359825526455074, 'tflops': 595.8210096726785, 'gbps': 218.19617053442812}, 'copy_1GiB': {'loop_s': 0.0035912195882220285, 'cv': 0.005256381629837594, 'tflops': None, 'gbps': 597.9817149146244}}
+15:52:52 DONE
+16:25:25 plan {'decode_b1': 32, 'decode_b8': 32, 'decode_b32': 32, 'prefill_b1': 32}
+16:26:00 weights 32 layers in 34.4s
+16:26:03 seq/decode_b1/layer1                         best=    406.34us single=    597.3us loop_cv=0.004     0.0TF       0GB/s ok
+16:26:28 seq/decode_b8/layer1                         best=    505.82us single=    612.6us loop_cv=0.003     0.0TF       0GB/s ok
+16:26:55 seq/decode_b32/layer1                        best=    635.61us single=    745.4us loop_cv=0.005     0.0TF       0GB/s ok
+16:27:02 seq/prefill_b1/layer1                        best=   2120.50us single=   2488.7us loop_cv=0.000     0.0TF       0GB/s ok
+16:27:05 sanity end {'gemm_8192^3': {'loop_s': 0.0018382676315875294, 'cv': 0.013714351174585688, 'tflops': 598.1238035652409, 'gbps': 219.0394788446927}, 'copy_1GiB': {'loop_s': 0.0018178380588484717, 'cv': 0.02238678871923685, 'tflops': None, 'gbps': 1181.3393594368608}}
+16:27:05 DONE
