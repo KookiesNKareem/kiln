@@ -38,6 +38,7 @@ fn cost(v: &HwView, prog: &Program, oi: usize, u: usize, gang: u32) -> NestCost 
         level_caps: &[],
         level_mems: &[],
         level_bw: &[],
+        residency: &[],
         gang,
         quick: true,
     };

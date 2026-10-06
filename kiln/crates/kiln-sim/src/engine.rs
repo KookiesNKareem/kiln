@@ -49,6 +49,8 @@ pub struct RunOut {
     /// the middle window iteration (steady state, 03 §4.9), and the other window iterations.
     pub busy: [Vec<f64>; 3],
     pub bytes: [Vec<f64>; 3],
+    /// Of `bytes`, those written into memories (priced at their write energy).
+    pub wbytes: [Vec<f64>; 3],
     pub task_start: Vec<f64>,
     pub task_end: Vec<f64>,
     pub mid_iteration: Option<u32>,
@@ -185,6 +187,7 @@ impl Engine<'_> {
         let mut out = RunOut {
             busy: [vec![0.0; nres], vec![0.0; nres], vec![0.0; nres]],
             bytes: [vec![0.0; nres], vec![0.0; nres], vec![0.0; nres]],
+            wbytes: [vec![0.0; nres], vec![0.0; nres], vec![0.0; nres]],
             task_start: vec![0.0; self.g.tasks.len()],
             task_end: vec![0.0; self.g.tasks.len()],
             mid_iteration,
@@ -382,6 +385,9 @@ impl Engine<'_> {
                 busy_f[r] += b * f * inv_f[r];
                 busy_e[r] += b * f * inv_e[r];
                 out.bytes[class][r] += b * f;
+            }
+            for &(r, f) in &g.profiles[p as usize].writes {
+                out.wbytes[class][r as usize] += b * f;
             }
         }
         ptouched.clear();

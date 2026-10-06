@@ -97,27 +97,45 @@ class Campaign:
 
     # ---- persistence -------------------------------------------------------------------------------------
     def _basis(self) -> dict:
-        """What every archived score depends on beyond the config: kiln build, calibration set and baseline design."""
-        base = self.evaluator.baseline(self.evaluator.train[0])
+        """What every archived score depends on beyond the config: the kiln build, plus the content behind each
+        name the config holds, as the baseline evaluations resolve it under the campaign's options: the effective
+        calibration set, the baseline design, each train and held-out workload and the software stack recipe."""
+        ws = self.evaluator.train + list(self.cfg["workloads"]["heldout"])
+        prov = {w: self.evaluator.baseline(w).get("provenance") or {} for w in ws}
+        p0 = prov[ws[0]]
         return {"version": kiln.KILN_VERSION, "git_hash": kiln.GIT_HASH,
-                "calibration_hash": self.session.calibration.get("hash"),
-                "calibration": self.session.calibration.get("id"),
-                "baseline_design_hash": (base.get("provenance") or {}).get("design_hash")}
+                "calibration_hash": p0.get("calibration_hash"), "calibration": p0.get("calibration_id"),
+                "baseline_design_hash": p0.get("design_hash"),
+                "workloads": {w: p.get("workload_hash") for w, p in prov.items()},
+                "stacks": sorted({str((p.get("flags") or {}).get("stack")) for p in prov.values()})}
+
+    def _journal(self, name: str) -> list[dict]:
+        """The records of journal `name`. An unparseable final line is the tail of a record torn by a crash
+        mid-append (records are appended before the checkpoint that commits them), so it is dropped; corruption
+        anywhere else is an error."""
+        lines = [x for x in (self.out / name).read_text().splitlines() if x.strip()]
+        out = []
+        for i, line in enumerate(lines):
+            try:
+                out.append(json.loads(line))
+            except ValueError:
+                if i == len(lines) - 1:
+                    self.log(f"resume: dropped a torn final record of {name}")
+                    break
+                raise CampaignError(f"{name} line {i + 1} is corrupt; this campaign cannot resume") from None
+        return out
 
     def _load(self) -> None:
         self.state = json.loads((self.out / "state.json").read_text())
         gen = self.state["generation"]
         keep, dropped = [], 0
-        for line in (self.out / "evals.jsonl").read_text().splitlines():
-            if not line.strip():
-                continue
-            r = json.loads(line)
+        for r in self._journal("evals.jsonl"):
             if r["gen"] <= gen:
                 keep.append(r)
             else:
                 dropped += 1
+        atomic_write(self.out / "evals.jsonl", "".join(json.dumps(r) + "\n" for r in keep))
         if dropped:
-            atomic_write(self.out / "evals.jsonl", "".join(json.dumps(r) + "\n" for r in keep))
             self.log(f"resume: dropped {dropped} records of unfinished generation {gen + 1}")
         for r in keep:
             self.archive.records[r["id"]] = r
@@ -129,12 +147,10 @@ class Campaign:
         if missing:
             raise CampaignError(f"state.json references records missing from evals.jsonl: {missing[:5]}")
         hk = []
-        for line in (self.out / "heldout.jsonl").read_text().splitlines():
-            if line.strip():
-                h = json.loads(line)
-                if h["gen"] <= gen:
-                    self.heldout[h["id"]] = h
-                    hk.append(h)
+        for h in self._journal("heldout.jsonl"):
+            if h["gen"] <= gen:
+                self.heldout[h["id"]] = h
+                hk.append(h)
         atomic_write(self.out / "heldout.jsonl", "".join(json.dumps(h) + "\n" for h in hk))
         self.generations = self.state.get("generations", [])
 

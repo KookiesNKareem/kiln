@@ -327,3 +327,31 @@ def test_string_hashing_is_deterministic_across_builds(program):
     p = program("def build():\n    return {'order': list({f'k{i}' for i in range(32)})}\n")
     orders = {tuple(run_build(p).design["order"]) for _ in range(3)}
     assert len(orders) == 1
+
+
+@pytest.mark.parametrize("returned", [str(H100), "a100_40gb", "  {}"])
+def test_design_strings_never_name_host_files(program, session, returned):
+    p = program(f"def build():\n    return {returned!r}\n")
+    m = evaluate_program(p, suite="smoke", session=session, options={"profile": "full"},
+                         fitness="baseline_relative", deny_read=[H100.parent])
+    failed(m, "serialize", "E-SANDBOX-SERIALIZE")
+
+
+def test_chroot_escape_is_denied(program, tmp_path_factory):
+    denied = tmp_path_factory.mktemp("denied")
+    (denied / "secret").write_text("TOP-SECRET")
+    p = program(f"""
+        import os
+        def build():
+            fd = os.open("/", os.O_RDONLY)
+            os.mkdir("jail")
+            os.chroot("jail")
+            os.fchdir(fd)
+            for _ in range(64):
+                os.chdir("..")
+            os.chroot(".")
+            return {{"leak": open({str(denied / "secret")!r}).read()}}
+    """)
+    out = run_build(p, deny_read=[denied])
+    assert not out.ok and out.stage == "build", out.design
+    assert "TOP-SECRET" not in json.dumps(out.error)

@@ -13,8 +13,8 @@ use kiln_map::program::Program;
 use kiln_phys::ClockPlan;
 use kiln_trace::sim::{
     Binding, BindingClass, Bottleneck, CalibrationContribution, ClockSample, CostModelSummary, EnergyBreakdown, Floor,
-    FloorKind, GroupKind, GroupResult, InvariantReport, LevelBytes, OpResult, OverheadKind, PowerSummary, ResourceResult,
-    Scope, SimResult, Target,
+    FloorKind, GroupKind, GroupResult, InvariantReport, LevelBytes, OpResult, OverheadKind, PowerSummary, ResourceKind,
+    ResourceResult, Scope, SimResult, Target,
 };
 use kiln_trace::{Corner, Provenance, Tier};
 
@@ -122,7 +122,7 @@ pub fn assemble(a: &Assembly, run: &RunOut) -> SimResult {
             continue;
         }
         let res = &v.resources[r];
-        let e = bytes * res.energy_j_per_b * dyn_scale(v, res, node, a.clocks);
+        let e = (bytes * res.energy_j_per_b + comb(&run.wbytes, r) * (res.write_j_per_b - res.energy_j_per_b)) * dyn_scale(v, res, node, a.clocks);
         resources.push(ResourceResult {
             resource: v.resource_ids()[r].clone(),
             kind: res.kind,
@@ -191,7 +191,7 @@ pub fn assemble(a: &Assembly, run: &RunOut) -> SimResult {
     energy.static_j = match v.phys.m3() {
         // Board-level time-proportional power (leakage at V(f) and T_j, clock tree, DRAM background, board, VR loss).
         Some(_) => {
-            let pe = phase_energy(v, &energy, makespan, a.clocks);
+            let pe = phase_energy(v, &energy, &resources, makespan, a.clocks);
             let bd = v.phys.phase_power(&pe, a.clocks).unwrap_or_default();
             (bd.board_w * makespan - pe.core_dyn_j - pe.indep_j - pe.dram_j).max(0.0)
         }
@@ -326,7 +326,7 @@ fn resource_energy(a: &Assembly, run: &RunOut, nodes: Option<&[bool]>) -> (ByKey
     let w = Weights::new(a.scope, a.prog.window);
     let rnodes = resource_nodes(v);
     let at = nodes.map(|_| dram_phy_nodes(v));
-    let phy = v.phys.dram_phy_fraction();
+    let phy = dram_phy_shares(v);
     let comb = |x: &[Vec<f64>; 3], r: usize| w.pe * x[PE][r] + w.mid * x[MID][r] + w.other * x[OTHER][r];
     let (mut mem, mut link): (BTreeMap<String, Vec<f64>>, BTreeMap<String, Vec<f64>>) = Default::default();
     let (mut core_j, mut phy_j) = (vec![], vec![]);
@@ -334,7 +334,7 @@ fn resource_energy(a: &Assembly, run: &RunOut, nodes: Option<&[bool]>) -> (ByKey
         if comb(&run.busy, r) <= 0.0 {
             continue;
         }
-        let e = || comb(&run.bytes, r) * res.energy_j_per_b * dyn_scale(v, res, rnodes[r], a.clocks);
+        let e = || (comb(&run.bytes, r) * res.energy_j_per_b + comb(&run.wbytes, r) * (res.write_j_per_b - res.energy_j_per_b)) * dyn_scale(v, res, rnodes[r], a.clocks);
         let (n, phy_at) = match (nodes, &at) {
             (Some(n), Some(phy_at)) => (n, phy_at),
             _ => {
@@ -351,10 +351,10 @@ fn resource_energy(a: &Assembly, run: &RunOut, nodes: Option<&[bool]>) -> (ByKey
         match res.class {
             ResClass::Dram => {
                 if inside(at) {
-                    core_j.push(e() * (1.0 - phy));
+                    core_j.push(e() * (1.0 - phy[r]));
                 }
                 if inside(phy_at[r].or(at)) {
-                    phy_j.push(e() * phy);
+                    phy_j.push(e() * phy[r]);
                 }
             }
             ResClass::Mem if inside(at) => mem.entry(format!("l{}", res.level.unwrap_or(0))).or_default().push(e()),
@@ -389,7 +389,7 @@ pub fn phase_energy_within(a: &Assembly, run: &RunOut, makespan: f64, nodes: &[b
         energy.compute_j += k * ec;
         energy.padding_j += k * ep;
     }
-    let mut pe = phase_energy_in(v, &energy.with_total(), makespan, a.clocks, Some(nodes));
+    let mut pe = phase_energy_in(v, &energy.with_total(), 0.0, makespan, a.clocks, Some(nodes));
     pe.dram_j += dram_core;
     pe.indep_j += dram_phy;
     pe
@@ -410,24 +410,48 @@ pub fn dyn_scale(v: &HwView, res: &kiln_map::hwview::Resource, node: Option<usiz
 
 /// A result's energies split the way the power model accounts them (04 §8): core-domain dynamic, die-level
 /// clock-independent (PHYs, off-die links) and DRAM core; MAC activity from compute power vs its peak at `plan`.
-pub fn phase_energy(v: &HwView, e: &EnergyBreakdown, makespan: f64, plan: &ClockPlan) -> kiln_phys::PhaseEnergy {
-    phase_energy_in(v, e, makespan, plan, None)
+/// `resources` are the run's per-resource results: each DRAM resource's die-side PHY share of its energy moves to
+/// the clock-independent die energy.
+pub fn phase_energy(v: &HwView, e: &EnergyBreakdown, resources: &[ResourceResult], makespan: f64, plan: &ClockPlan) -> kiln_phys::PhaseEnergy {
+    phase_energy_in(v, e, dram_phy_j(v, resources), makespan, plan, None)
 }
 
-/// [`phase_energy`] of a cap's members (`nodes`): activity against their own MAC units' peak.
-pub fn phase_energy_in(v: &HwView, e: &EnergyBreakdown, makespan: f64, plan: &ClockPlan, nodes: Option<&[bool]>) -> kiln_phys::PhaseEnergy {
+/// Die-side PHY share of each resource's energy: a DRAM resource's own PHY / total split, 0 elsewhere.
+fn dram_phy_shares(v: &HwView) -> Vec<f64> {
+    let mut s = vec![0.0; v.resources.len()];
+    for (m, &r) in v.res_of_mem.iter().enumerate() {
+        s[r as usize] = v.phys.dram_phy_fraction(m);
+    }
+    s
+}
+
+/// The die-side PHY part of the DRAM energy in `resources`, summed in ascending order (04 §17 rule 5).
+pub fn dram_phy_j(v: &HwView, resources: &[ResourceResult]) -> f64 {
+    let (ids, phy) = (v.resource_ids(), dram_phy_shares(v));
+    let mut xs: Vec<f64> = resources
+        .iter()
+        .filter(|x| x.kind == ResourceKind::DramChannel)
+        .filter_map(|x| ids.iter().position(|id| *id == x.resource).map(|r| x.energy_j * phy[r]))
+        .collect();
+    xs.sort_by(f64::total_cmp);
+    xs.iter().sum()
+}
+
+/// [`phase_energy`] of a cap's members (`nodes`): activity against their own MAC units' peak. `dram_phy_j` is the
+/// die-side PHY part of `e`'s DRAM-level memory energy.
+pub fn phase_energy_in(v: &HwView, e: &EnergyBreakdown, dram_phy_j: f64, makespan: f64, plan: &ClockPlan, nodes: Option<&[bool]>) -> kiln_phys::PhaseEnergy {
     let dram_levels: Vec<String> = v.resources.iter().filter(|r| r.class == ResClass::Dram).map(|r| format!("l{}", r.level.unwrap_or(0))).collect();
-    let phy = v.phys.dram_phy_fraction();
     let mut core = e.compute_j + e.padding_j + e.conversion_j + e.nmp_j;
     let (mut indep, mut dram) = (0.0, 0.0);
     for (k, x) in &e.memory_j {
         if dram_levels.contains(k) {
-            dram += x * (1.0 - phy);
-            indep += x * phy;
+            dram += x;
         } else {
             core += x;
         }
     }
+    dram -= dram_phy_j;
+    indep += dram_phy_j;
     for (k, x) in &e.link_j {
         if OFF_DIE.contains(&k.as_str()) { indep += x } else { core += x }
     }

@@ -228,6 +228,13 @@ def net():
     s.settimeout(2)
     s.connect(("127.0.0.1", int(port)))
 attempt("net", net)
+attempt("chroot", lambda: os.chroot(scratch))
+if platform != "darwin":
+    st = dict(ln.split(":", 1) for ln in open("/proc/self/status").read().splitlines() if ":" in ln)
+    cap = lambda k: int(st.get(k, "0").strip(), 16)
+    uid = int(st["Uid"].split()[1])
+    res["unprivileged"] = (cap("CapEff") == cap("CapPrm") == cap("CapAmb") == 0 and st["NoNewPrivs"].strip() == "1"
+                           and (uid != 0 or cap("CapBnd") == 0))
 if platform == "darwin":
     def fork():
         if os.fork() == 0:
@@ -242,7 +249,8 @@ with open(os.path.join(scratch, "probe.json"), "w") as f:
 
 
 def _probe(wrap) -> bool:
-    """Runs a probe through `wrap` and checks every property the sandbox relies on."""
+    """Runs a probe through `wrap` and checks every property the sandbox relies on, including (on Linux) that the
+    program holds no capability it could use to chroot, mount or unmount its way out."""
     with tempfile.TemporaryDirectory(prefix="kiln-sbx-probe-", ignore_cleanup_errors=True) as root:
         root = os.path.realpath(root)
         scratch, hidden = os.path.join(root, "scratch"), os.path.join(root, "hidden")
@@ -263,7 +271,8 @@ def _probe(wrap) -> bool:
         except (OSError, ValueError, subprocess.SubprocessError):
             return False
         return (res.get("scratch") is True and res.get("outside") is False and res.get("hidden") is False
-                and res.get("net") is False and res.get("contained") is True
+                and res.get("net") is False and res.get("contained") is True and res.get("chroot") is False
+                and res.get("unprivileged", sys.platform == "darwin") is True
                 and res.get("home", False) is False and not os.path.exists(outside))
 
 
@@ -379,6 +388,13 @@ def _read_report(path: str):
         raise ValueError(f"sandbox output is not JSON: {type(e).__name__}") from None
 
 
+def _design_text(s: str) -> bool:
+    """True when kiln parses `s` as design text, never as a file path or reference name (its `looks_like_text`
+    holds whenever this does: it strips at least these whitespace characters)."""
+    t = s.lstrip(" \t\r\n")
+    return t.startswith("{") or (t.startswith(("//", "/*")) and "{" in t)
+
+
 def _valid_report(r) -> bool:
     if not isinstance(r, dict) or not isinstance(r.get("ok"), bool):
         return False
@@ -481,6 +497,12 @@ def _run_build(program_path, timeout_s, memory_mb, deny_read) -> BuildOutcome:
             res.error = _error(
                 f"E-SANDBOX-{res.stage.upper()}", f"{report['error']}: {report['message']}{where}",
                 hints[res.stage], frames=frames)
+            return res
+        if isinstance(report["design"], str) and not _design_text(report["design"]):
+            res.stage, res.error = "serialize", _error(
+                "E-SANDBOX-SERIALIZE", "build() returned a string that is not JSON/JSON5 design text",
+                "return the design as a dict or as JSON/JSON5 text starting with '{'; file paths and reference "
+                "names are not accepted from a program")
             return res
         res.design = report["design"]
         return res

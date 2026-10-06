@@ -397,6 +397,13 @@ impl OpNest {
     pub fn tile(&self, sizes: &[u64], points: Option<u64>) -> OpNest {
         self.tile_impl(sizes, points)
     }
+
+    /// The same nest over a tile whose dims start at `lo` in the full domain: index offsets moved there, reduced to
+    /// what footprints depend on (the start within each floor-division or scale block), so equally aligned tiles
+    /// share a memo key.
+    pub fn positioned(&self, lo: &[u64]) -> OpNest {
+        self.positioned_impl(lo)
+    }
 }
 
 /// Memo key (03 §2.8): exact shape class with names stripped, so renaming dims or tensors hits.

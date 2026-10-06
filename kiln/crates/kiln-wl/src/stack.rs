@@ -61,8 +61,8 @@ pub struct Rule {
     pub kernels: Vec<KernelDecl>,
 }
 
-/// Shape conditions. `tokens` is the leading dim of the first input; `tokens_per_seq` divides it by the
-/// leading dim (slots) of the first KV-cache input, or by 1 without one.
+/// Shape conditions. `tokens` is the leading dim of the first input; `tokens_per_seq` divides it by the step's
+/// active sequences (`N`), or, when unknown, by the leading dim (slots) of the first KV-cache input (1 without one).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct When {
@@ -164,6 +164,8 @@ pub struct NodeShape<'a> {
     pub role: Option<&'a str>,
     pub inputs: &'a [TypeInfo],
     pub outputs: &'a [TypeInfo],
+    /// Active sequences of the step (`N`); without it, the slots of the first KV-cache input stand in.
+    pub seqs: Option<u64>,
 }
 
 impl NodeShape<'_> {
@@ -172,8 +174,10 @@ impl NodeShape<'_> {
     }
 
     fn tokens_per_seq(&self) -> u64 {
-        let slots = self.inputs.iter().find(|t| t.class == TensorClass::KvCache).and_then(|t| t.shape.first()).copied().unwrap_or(1).max(1);
-        self.tokens() / slots
+        let seqs = self.seqs.unwrap_or_else(|| {
+            self.inputs.iter().find(|t| t.class == TensorClass::KvCache).and_then(|t| t.shape.first()).copied().unwrap_or(1)
+        });
+        self.tokens() / seqs.max(1)
     }
 }
 
@@ -333,7 +337,7 @@ mod tests {
         let s = Stack::load("pytorch_cuda_graph_sdpa").unwrap();
         let (x, w) = (act(&[2048, 4096]), act(&[4096]));
         let ins = [x.clone(), w];
-        let n = NodeShape { op: "rms_norm", role: None, inputs: &ins, outputs: std::slice::from_ref(&x) };
+        let n = NodeShape { op: "rms_norm", role: None, inputs: &ins, outputs: std::slice::from_ref(&x), seqs: None };
         let k = s.extra_kernels(&n).unwrap();
         assert_eq!(k.len(), 7);
         let full16 = 2048.0 * 4096.0 * 2.0;
@@ -350,7 +354,7 @@ mod tests {
         let attn = |t: u64, b: u64| {
             let ins = [act(&[t, 32, 128]), cache(b), cache(b)];
             let outs = [act(&[t, 32, 128])];
-            let n = NodeShape { op: "attention", role: Some("attn.core"), inputs: &ins, outputs: &outs };
+            let n = NodeShape { op: "attention", role: Some("attn.core"), inputs: &ins, outputs: &outs, seqs: None };
             s.extra_kernels(&n).unwrap().into_iter().map(|k| k.name).collect::<Vec<_>>()
         };
         assert_eq!(attn(8, 8), ["splitkv_combine"]);
@@ -359,11 +363,26 @@ mod tests {
         let gemm = |t: u64, role: &str| {
             let ins = [act(&[t, 4096]), act(&[4096, 4096])];
             let outs = [act(&[t, 4096])];
-            s.extra_kernels(&NodeShape { op: "einsum", role: Some(role), inputs: &ins, outputs: &outs }).unwrap().len()
+            s.extra_kernels(&NodeShape { op: "einsum", role: Some(role), inputs: &ins, outputs: &outs, seqs: None }).unwrap().len()
         };
         assert_eq!((gemm(8, "attn.o"), gemm(32, "attn.o"), gemm(32, "mlp.down"), gemm(1, "attn.qkv")), (1, 0, 1, 0));
         let ideal = Stack::load("kiln_ideal").unwrap();
         assert!(ideal.rules.is_empty());
+    }
+
+    #[test]
+    fn active_sequences_not_cache_slots_select_rules() {
+        let s = Stack::load("pytorch_cuda_graph_sdpa").unwrap();
+        let attn = |slots: u64, seqs: Option<u64>| {
+            let cache = TypeInfo::new(vec![slots, 16, 8, 128], ElemType::BF16, TensorClass::KvCache);
+            let ins = [act(&[16, 32, 128]), cache.clone(), cache];
+            let outs = [act(&[16, 32, 128])];
+            let n = NodeShape { op: "attention", role: Some("attn.core"), inputs: &ins, outputs: &outs, seqs };
+            s.extra_kernels(&n).unwrap().into_iter().map(|k| k.name).collect::<Vec<_>>()
+        };
+        assert_eq!(attn(1, Some(1)), ["memset"]);
+        assert_eq!(attn(16, Some(1)), attn(1, Some(1)));
+        assert_eq!(attn(16, None), attn(16, Some(16)));
     }
 
     #[test]

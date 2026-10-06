@@ -16,6 +16,8 @@ pub const OPTIONS_CODE: &str = "E-OPT-0001";
 pub const STACK_IDEAL: &str = "kiln_ideal";
 /// Each side under its own execution model's default stack: the realistic score.
 pub const STACK_OWN: &str = "own";
+/// Longest accepted timeout (about 31 years): any deadline this far ahead is representable as an `Instant`.
+pub const MAX_TIMEOUT_S: f64 = 1e9;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TierChoice {
@@ -257,10 +259,10 @@ impl Options {
             );
         }
         for (k, t) in [("A", self.timeout_s.a), ("B", self.timeout_s.b)] {
-            if !(t.is_finite() && t > 0.0) {
+            if !(t > 0.0 && t <= MAX_TIMEOUT_S) {
                 return bad(
                     &format!("timeout_s.{k}"),
-                    format!("timeout {t} s is not positive"),
+                    format!("timeout {t} s is not in (0, {MAX_TIMEOUT_S:e}]"),
                     "timeouts are wall-clock seconds > 0",
                 );
             }
@@ -423,6 +425,8 @@ mod tests {
         assert_eq!(e.path.as_deref(), Some("options.tier"));
         assert!(Options::from_value(&json!({"fitness": {"kind": "explicit_envelope"}})).is_err());
         assert!(Options::from_value(&json!({"timeout_s": {"A": 0}})).is_err());
+        assert!(Options::from_value(&json!({"timeout_s": {"B": 1e300}})).is_err());
+        assert!(Options::from_value(&json!({"timeout_s": {"A": MAX_TIMEOUT_S}})).is_ok());
     }
 
     #[test]

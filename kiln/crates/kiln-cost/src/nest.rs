@@ -153,6 +153,20 @@ impl OpNest {
         n
     }
 
+    pub(crate) fn positioned_impl(&self, lo: &[u64]) -> OpNest {
+        let mut n = self.clone();
+        for (o, src) in n.operands.iter_mut().zip(&self.operands) {
+            let block = (!o.is_output).then(|| o.dtype.block_size()).flatten().map_or(1, u64::from);
+            let bx = if block > 1 { src.block_axis.or_else(|| block_axis(self, src)) } else { None };
+            for (i, a) in o.axes.iter_mut().enumerate() {
+                let shift: i64 = a.terms.iter().map(|&(d, c)| c * lo.get(d).map_or(0, |&x| x as i64)).sum();
+                let div = a.div.saturating_mul(if bx == Some(i) { block } else { 1 });
+                a.offset = if div > 1 { (a.offset + shift).rem_euclid(div as i64) } else { 0 };
+            }
+        }
+        n
+    }
+
     pub fn box_points(&self) -> u64 {
         self.dims.iter().map(|d| d.size).product()
     }

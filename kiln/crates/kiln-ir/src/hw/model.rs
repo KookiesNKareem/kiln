@@ -516,8 +516,10 @@ impl HwModel {
         self.memories
             .iter()
             .filter(|m| pred(m) && self.nodes[m.node].enabled && scope.is_none_or(|s| self.under(m.node, s)))
-            .map(|m| m.capacity.0)
-            .sum()
+            .map(|m| u128::from(m.capacity.0))
+            .sum::<u128>()
+            .try_into()
+            .unwrap_or(u64::MAX)
     }
 
     /// Resolves an absolute selector (no leading `/` needed) to instances.
@@ -568,6 +570,10 @@ impl HwModel {
                 for m in &u.spec.precisions {
                     let ops = u.spec.kind.ops_per_cycle(m) * f;
                     if u.spec.kind.is_mac() {
+                        if !u.ops.contains(&OpClass::Matmul) {
+                            continue;
+                        }
+                        let ops = ops * u.spec.kind.class_rate(OpClass::Matmul);
                         let key = mode_key(m);
                         if let ComputeKind::Matrix(mx) = &u.spec.kind {
                             for sp in &mx.sparsity {
@@ -596,7 +602,7 @@ impl HwModel {
                 }
                 let l = levels.entry(self.levels[mi]).or_insert_with(|| LevelSummary { level: self.levels[mi], ..Default::default() });
                 l.instances += 1;
-                l.capacity.0 += m.capacity.0;
+                l.capacity.0 = l.capacity.0.saturating_add(m.capacity.0);
                 l.bandwidth.0 += m.bandwidth.map_or(0.0, |b| b.0);
             }
             c.levels = levels.into_values().collect();

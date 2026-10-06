@@ -11,7 +11,7 @@ use kiln_ir::hw::model::ClockIx;
 use kiln_ir::op_class::OpClass;
 
 use crate::cost::{NestCost, NestQuery, UnitCostModel};
-use crate::geom::{BoxIndex, Slice, TBox, footprint, slice_points};
+use crate::geom::{BoxIndex, Slice, TBox, footprint, slice_points, uncovered};
 use crate::hwview::{GroupIx, HwView, Pool, Profile, ResId, add_lat_clk};
 use crate::mapping::{ExecGroup, GroupKind, LaunchKind, Lifetime, Mapping, OpPlacement, Target};
 use crate::program::{POp, Program};
@@ -114,9 +114,9 @@ impl TaskGraph {
 
 type StageKey = (GroupIx, usize, TBox);
 /// Unit template, op signature, slice extents, segment, live points and per-operand footprint sizes (masked or
-/// param segments), resource share (interned), cost mode (full, quick, floor). A slice's cost depends on its
+/// param segments), resource share (interned), cost mode (full, quick, floor), operand residency (chain index). A slice's cost depends on its
 /// position only through those (see [`UnitCostModel`]).
-type CostKey = (u32, u32, Vec<u64>, u32, Vec<u64>, u32, u8);
+type CostKey = (u32, u32, Vec<u64>, u32, Vec<u64>, u32, u8, Vec<u8>);
 /// Unit template, gang size, op signature, slice extents, segment, live points (masked or param segments).
 type RoofKey = (u32, u32, u32, Vec<u64>, u32, u128);
 
@@ -264,12 +264,15 @@ pub struct Lowerer<'a> {
     points: BTreeMap<usize, BTreeMap<Slice, u128>>,
 }
 
-/// Vector work beside a MAC unit: the vector unit (view index) and its compute resources, cycles on each, energy
-/// per operation.
+/// Vector work beside a MAC unit: the vector unit (view index) and its compute resources, cycles on each, the bytes
+/// it moves through its feeds and feed memories, energy per operation.
 struct VectorWork {
     unit: usize,
     units: Vec<ResId>,
     cycles: f64,
+    feed: Vec<Amount>,
+    /// Bytes written into each feed memory group.
+    writes: Vec<(GroupIx, f64)>,
     e_op: f64,
 }
 
@@ -278,6 +281,7 @@ impl VectorWork {
         st.e_compute_j += ops * self.e_op;
         st.e_by_unit.push((self.unit, ops * self.e_op, 0.0));
     }
+
 }
 
 /// Effects of lowering one op, applied on commit.
@@ -298,6 +302,37 @@ fn region_box(lo: &[u64], hi: &[u64]) -> TBox {
     b
 }
 
+/// Where slice `s` starts relative to the blocks its footprints depend on: per operand axis under a floor division
+/// or of a block-scaled input, its start modulo that block (empty when the op has no such axis).
+fn alignment(prog: &Program, op: &POp, s: &Slice) -> Vec<u64> {
+    use kiln_ir::wl::IndexExpr;
+    let seg = &op.segs[s.seg as usize];
+    let param = |p: &str| seg.params.iter().find(|(n, _)| n == p).map_or(0, |x| x.1);
+    fn start(op: &POp, s: &Slice, param: &dyn Fn(&str) -> i64, e: &IndexExpr) -> Option<(i64, u64)> {
+        match e {
+            IndexExpr::Affine { terms, offset } => Some((
+                offset + terms.iter().map(|t| t.coeff * t.param.as_deref().map_or(1, param) * t.dim.as_deref().and_then(|d| op.dim_ix(d)).map_or(1, |d| s.lo[d] as i64)).sum::<i64>(),
+                1,
+            )),
+            IndexExpr::FloorDiv { inner, by } => start(op, s, param, inner).map(|(x, m)| (x, m.saturating_mul((*by).max(1)))),
+            IndexExpr::Indirect { .. } => None,
+        }
+    }
+    let mut out = vec![];
+    for o in &op.operands {
+        let block = if o.access.writes() { 1 } else { kiln_wl::convert::operand_spec(&prog.tensors[o.tensor].dtype).block_size().map_or(1, u64::from) };
+        for e in &o.index {
+            if let Some((x, m)) = start(op, s, &param, e) {
+                let m = m.saturating_mul(block);
+                if m > 1 {
+                    out.push(x.rem_euclid(m as i64) as u64);
+                }
+            }
+        }
+    }
+    out
+}
+
 /// Per-op lowering context: which groups the op's units share (capacity shares, private-hop folding).
 struct OpCtx {
     sharers: BTreeMap<GroupIx, usize>,
@@ -313,7 +348,7 @@ impl<'a> Lowerer<'a> {
             lifetimes[i] = tp.lifetime.clone();
             for h in &tp.home {
                 let g = view.group_by_paths(&h.mems).ok_or_else(|| {
-                    Diagnostic::error("E-MAP-VAL-011", format!("home of {} names unknown memories", t.id)).at(t.id.clone())
+                    Diagnostic::error("E-MAP-VAL-011", format!("home of {} names unknown memories or not exactly one memory group", t.id)).at(t.id.clone())
                 })?;
                 homes[i].push((region_box(&h.region.lo, &h.region.hi), g));
             }
@@ -534,9 +569,12 @@ impl<'a> Lowerer<'a> {
             }));
             v
         };
+        let mut pos = pos;
+        pos.extend(alignment(self.prog, op, s));
         let caps = &share.caps;
         let mode = if self.floor { 2 } else { u8::from(quick) };
-        let key = (self.view.units[u].template_ix, sig, ext, s.seg, pos, share.id, mode);
+        let at = self.residency(oi, op, u);
+        let key = (self.view.units[u].template_ix, sig, ext, s.seg, pos, share.id, mode, at.clone());
         if let Some((k, c)) = &self.last_cost
             && *k == key
         {
@@ -552,6 +590,7 @@ impl<'a> Lowerer<'a> {
         self.g.cost_misses += u64::from(!self.floor);
         let ui = &self.view.units[u];
         let mems: Vec<usize> = ui.chain[..caps.len()].iter().map(|&g| self.view.groups[g].mems[0]).collect();
+        let residency: Vec<Option<usize>> = at.iter().map(|&i| ui.chain.get(usize::from(i)).map(|&g| self.view.groups[g].mems[0])).collect();
         let points = self.slice_points(oi, s);
         let q = NestQuery {
             prog: self.prog,
@@ -563,6 +602,7 @@ impl<'a> Lowerer<'a> {
             level_caps: caps,
             level_mems: &mems,
             level_bw: &share.bw,
+            residency: &residency,
             gang: ui.members.len() as u32,
             quick,
         };
@@ -573,6 +613,21 @@ impl<'a> Lowerer<'a> {
         self.cost_cache.insert(key.clone(), c.clone());
         self.last_cost = Some((key, c.clone()));
         Ok(c)
+    }
+
+    /// Per operand of op `oi`, the index in unit `u`'s chain of the memory it is read from (or written to) when
+    /// the op starts (ends): its home, or the level a home outside the chain enters it at; `u8::MAX` for the top of
+    /// the chain (also private tensors, which may stage through any level).
+    fn residency(&self, oi: usize, op: &POp, u: usize) -> Vec<u8> {
+        let chain = &self.view.units[u].chain;
+        let top = chain.len().saturating_sub(1);
+        (0..op.operands.len())
+            .map(|i| {
+                let t = self.prog.root(self.prog.converted_from(oi, i).map_or(op.operands[i].tensor, |c| c.0));
+                let at = self.homes[t].iter().map(|&(_, g)| chain.iter().position(|&c| c == g).unwrap_or(top.min(1))).max();
+                at.filter(|&x| x < top).map_or(u8::MAX, |x| x.min(254) as u8)
+            })
+            .collect()
     }
 
     fn pool_units(p: &OpPlacement, units: &[usize]) -> Vec<usize> {
@@ -704,6 +759,7 @@ impl<'a> Lowerer<'a> {
                         level_caps: &share.caps,
                         level_mems: &mems,
                         level_bw: &share.bw,
+                        residency: &[],
                         gang: ui.members.len() as u32,
                         quick: true,
                     })?;
@@ -788,8 +844,9 @@ impl<'a> Lowerer<'a> {
                 let to = prog.tensors[op.operands[oi].tensor].dtype.scalar;
                 let b = prog.ops[c].body();
                 let work = |k: &ComputeKind| elems * (f64::from(b.cvt) / k.class_rate(OpClass::Convert) + f64::from(b.mul) / k.class_rate(OpClass::Elementwise));
-                let vw = self.vector_cycles(u, &prog.ops[c], "convert a contraction operand", &[prog.tensors[t].dtype.scalar, to], work)?;
-                dem.extend(vw.units.iter().map(|&r| Amount::Res(r, vw.cycles)));
+                let io = (prog.tensors[t].bytes(fps[oi].elems()) as f64, prog.tensors[op.operands[oi].tensor].bytes(fps[oi].elems()) as f64);
+                let vw = self.vector_cycles(u, &prog.ops[c], "convert a contraction operand", &[prog.tensors[t].dtype.scalar, to], work, io)?;
+                dem.extend(self.vector_demands(&vw)?);
                 let ops = elems * f64::from(b.cvt + b.mul);
                 fx.stats.vec_ops += ops as u128;
                 vw.charge(&mut fx.stats, ops);
@@ -798,7 +855,7 @@ impl<'a> Lowerer<'a> {
             for &m in &ui.members {
                 // Feed bytes per chain level the unit reads or writes operands at (index 0 unless roles are fed
                 // from different memories).
-                let mut feed_total = [0.0f64; 4];
+                let mut feed_total = [[0.0f64; 2]; 4];
                 for (oi, o) in op.operands.iter().enumerate() {
                     for w in [false, true] {
                         // Outputs are read back through the feed for their partial sums.
@@ -807,14 +864,18 @@ impl<'a> Lowerer<'a> {
                             && let Some(r) = self.feed_res(m, oi, op, w)
                         {
                             dem.push(Amount::Res(r, bytes));
-                            feed_total[self.feed_level(m, oi, op, w).min(3)] += bytes;
+                            feed_total[self.feed_level(m, oi, op, w).min(3)][usize::from(w)] += bytes;
                         }
                     }
                 }
                 let chain = &view.units[m].chain;
-                for (l, &b) in feed_total.iter().enumerate() {
-                    if l == 0 || b > 0.0 {
-                        dem.push(Amount::Res(view.res_of_mem[view.groups[chain[l.min(chain.len() - 1)]].mems[0]], b));
+                for (l, &[rd, wr]) in feed_total.iter().enumerate() {
+                    let g = chain[l.min(chain.len() - 1)];
+                    if l == 0 || rd > 0.0 {
+                        dem.push(Amount::Res(view.res_of_mem[view.groups[g].mems[0]], rd));
+                    }
+                    if wr > 0.0 {
+                        dem.push(Amount::Prof(self.prof(g, g)?.0, wr));
                     }
                 }
                 // Partial sums spilled above the feed move between the levels of the unit's chain while it computes.
@@ -843,8 +904,11 @@ impl<'a> Lowerer<'a> {
                 let (cvt, rest) = (nc.cvt_ops as f64, (nc.vec_ops - nc.cvt_ops) as f64);
                 let work = |k: &ComputeKind| cvt / k.class_rate(OpClass::Convert) + rest / k.class_rate(OpClass::Elementwise);
                 let acc = op.kernel.accum.unwrap_or(kiln_ir::precision::Precision::Fp32);
-                let vw = self.vector_cycles(u, op, "run the contraction's conversions and scale passes", &[acc], work)?;
-                let vdem: Vec<Amount> = vw.units.iter().map(|&r| Amount::Res(r, vw.cycles)).collect();
+                // Each operation reads an accumulator; conversions write the result, scale passes an accumulator.
+                let (acc_b, out_b) = (f64::from(acc.element_bits()) / 8.0, op.mac.as_ref().map_or(0.0, |m| prog.tensors[op.operands[m.out].tensor].dtype.elem_bits() as f64 / 8.0));
+                let io = ((cvt + rest) * acc_b, cvt * out_b + rest * acc_b);
+                let vw = self.vector_cycles(u, op, "run the contraction's conversions and scale passes", &[acc], work, io)?;
+                let vdem = self.vector_demands(&vw)?;
                 ct = self.push_task(TaskKind::Compute, oi_prog, 0.0, &[], &vdem, &[ct], 0.0);
                 vw.charge(&mut fx.stats, nc.vec_ops as f64);
             }
@@ -886,10 +950,12 @@ impl<'a> Lowerer<'a> {
                 }
                 let n = (producers.len() - 1) as f64 * b.elems() as f64;
                 let acc = op.kernel.accum.unwrap_or(kiln_ir::precision::Precision::Fp32);
-                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", &[acc], |k| n / k.class_rate(OpClass::Elementwise))?;
+                // Each add reads two partial sums and writes one.
+                let acc_b = f64::from(acc.element_bits()) / 8.0;
+                let vw = self.vector_cycles(owner, op, "add the partial sums of a split reduction", &[acc], |k| n / k.class_rate(OpClass::Elementwise), (2.0 * n * acc_b, n * acc_b))?;
                 fx.stats.vec_ops += n as u128;
                 vw.charge(&mut fx.stats, n);
-                let dem: Vec<Amount> = vw.units.iter().map(|&r| Amount::Res(r, vw.cycles)).collect();
+                let dem = self.vector_demands(&vw)?;
                 last = self.push_task(TaskKind::Reduce, oi_prog, 0.0, &[], &dem, &preds, 0.0);
             }
             if self.lifetimes[root] == Lifetime::Private {
@@ -972,9 +1038,18 @@ impl<'a> Lowerer<'a> {
     /// Compute resources and per-resource cycles of vector work beside MAC unit `u` (a fused convert's, a
     /// contraction's own conversions and scale passes, a split reduction's combine): on the vector unit (gang)
     /// sharing its feed memory, in its mode for `dtypes` ([`crate::cost::vector_mode`]) over `work` (lane
-    /// operations at the unit's class rates); an error when the design has no such unit or mode. Also the unit's
-    /// energy per operation in that mode.
-    fn vector_cycles(&self, u: usize, op: &POp, what: &str, dtypes: &[kiln_ir::precision::Precision], work: impl Fn(&ComputeKind) -> f64) -> Result<VectorWork, Diagnostic> {
+    /// operations at the unit's class rates); an error when the design has no such unit or mode. Also the bytes
+    /// `(read, written)` it moves through its feeds and feed memories, spread over its gang, and the unit's energy
+    /// per operation in that mode.
+    fn vector_cycles(
+        &self,
+        u: usize,
+        op: &POp,
+        what: &str,
+        dtypes: &[kiln_ir::precision::Precision],
+        work: impl Fn(&ComputeKind) -> f64,
+        (rd, wr): (f64, f64),
+    ) -> Result<VectorWork, Diagnostic> {
         let view = self.view;
         let v = self.reducer(u).ok_or_else(|| self.no_vector_unit(u, op, what))?;
         let vu = &view.units[view.units[v].lead];
@@ -982,7 +1057,30 @@ impl<'a> Lowerer<'a> {
         let (dt, rate) = crate::cost::vector_mode(&view.hw, vu.unit, dtypes).map_err(|d| d.at(op.id.clone()))?;
         let lanes = spec.kind.base_ops_per_cycle() as f64 * rate * vu.members.len() as f64;
         let e_op = view.phys.unit_energies(vu.unit, dt.name(), (dt.element_bits(), dt.element_bits())).2;
-        Ok(VectorWork { unit: view.units[v].lead, units: vu.members.iter().map(|&m| view.units[m].compute).collect(), cycles: (work(&spec.kind) / lanes).ceil(), e_op })
+        let share = 1.0 / vu.members.len() as f64;
+        let (mut feed, mut writes) = (vec![], vec![]);
+        for &m in &vu.members {
+            let mi = &view.units[m];
+            let port = |list: &[(OperandRole, ResId)], roles: &[OperandRole]| roles.iter().find_map(|r| list.iter().find(|x| x.0 == *r)).or(list.first()).map(|x| x.1);
+            if let Some(r) = port(&mi.feed_in, &[OperandRole::In, OperandRole::Any]) {
+                feed.push(Amount::Res(r, rd * share));
+            }
+            if let Some(r) = port(&mi.feed_out, &[OperandRole::Out, OperandRole::Any]) {
+                feed.push(Amount::Res(r, wr * share));
+            }
+            feed.push(Amount::Res(view.res_of_mem[view.groups[mi.chain[0]].mems[0]], rd * share));
+            writes.push((mi.chain[0], wr * share));
+        }
+        Ok(VectorWork { unit: view.units[v].lead, units: vu.members.iter().map(|&m| view.units[m].compute).collect(), cycles: (work(&spec.kind) / lanes).ceil(), feed, writes, e_op })
+    }
+
+    /// Demands of vector work: its compute cycles, feed traffic and feed-memory writes.
+    fn vector_demands(&mut self, vw: &VectorWork) -> Result<Vec<Amount>, Diagnostic> {
+        let mut d: Vec<Amount> = vw.units.iter().map(|&r| Amount::Res(r, vw.cycles)).chain(vw.feed.iter().copied()).collect();
+        for &(g, b) in vw.writes.iter().filter(|w| w.1 > 0.0) {
+            d.push(Amount::Prof(self.prof(g, g)?.0, b));
+        }
+        Ok(d)
     }
 
     fn no_vector_unit(&self, u: usize, op: &POp, what: &str) -> Diagnostic {
@@ -1041,6 +1139,13 @@ impl<'a> Lowerer<'a> {
                     x.map(|x| (x, *pu, *task))
                 })
                 .collect();
+            let whole = aliased || srcs.iter().any(|s| s.0 == *b);
+            let gap: u128 = if whole { 0 } else { uncovered(b, srcs.iter().map(|s| &s.0)).iter().map(TBox::elems).sum() };
+            if srcs.is_empty() || gap > 0 {
+                return Err(Diagnostic::error("E-MAP-VAL-017", format!("{} reads {} elements of private tensor {} no earlier op of its span wrote", prog.ops[op_ix].id, if srcs.is_empty() { b.elems() } else { gap }, prog.tensors[root].id))
+                    .at(prog.tensors[root].id.clone())
+                    .hint("give the tensor a home, or fuse its producers into the same span"));
+            }
             for (x, pu, task) in srcs {
                 if pu == u {
                     deps.push(task);

@@ -28,7 +28,7 @@ fn mhz(r: &PhaseRun) -> f64 {
 fn board_w(p: &Prepared, r: &PhaseRun) -> f64 {
     let c = &r.central;
     let plan = ClockPlan { hz: c.clocks.iter().map(|x| x.hz).collect(), solved: true, throttled: false };
-    p.view.phys.phase_power(&phase_energy(&p.view, &c.energy, c.makespan_s, &plan), &plan).unwrap().board_w
+    p.view.phys.phase_power(&phase_energy(&p.view, &c.energy, &c.resources, c.makespan_s, &plan), &plan).unwrap().board_w
 }
 
 #[test]

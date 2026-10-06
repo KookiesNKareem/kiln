@@ -231,6 +231,15 @@ pub fn union_elems(boxes: &[TBox]) -> u128 {
     total
 }
 
+/// The parts of `b` no box of `by` covers, as disjoint boxes (boxes of another rank cover nothing).
+pub fn uncovered<'b>(b: &TBox, by: impl IntoIterator<Item = &'b TBox>) -> Vec<TBox> {
+    let mut rest = vec![*b];
+    for o in by {
+        rest = rest.into_iter().flat_map(|p| subtract(&p, o)).collect();
+    }
+    rest
+}
+
 /// `a \ b` as disjoint boxes (density per dim preserved).
 fn subtract(a: &TBox, b: &TBox) -> Vec<TBox> {
     if a.intersect(b).is_none() {

@@ -71,3 +71,22 @@ fn xla_fusion_beats_node_granularity_on_tpus_and_ideal_gpus_are_faster() {
         assert!(r.invariants.checks.iter().all(|c| c.status != kiln_trace::sim::CheckStatus::Fail), "{:?}", r.invariants);
     }
 }
+
+#[test]
+fn unused_cache_slots_do_not_change_the_recipe() {
+    let p = reference("a100_sxm4_40gb.json5");
+    let (model, sc) = tiny(false, 1);
+    let kernels = |slots: u64| {
+        let mut inst = kiln_wl::expand::expand(&sc, &model).unwrap().remove(0);
+        inst.bindings.insert("slots".into(), slots);
+        let (_, lg, _) = kiln_wl::evaluate_instance(&model, &sc, &inst).unwrap();
+        let prog = kiln_map::Program::whole_step(&model, &lg, 3).unwrap();
+        let r = run(&p, &prog, &opts(Some("pytorch_cuda_graph_sdpa")));
+        let mut names: Vec<String> = r.graph.stack.iter().map(|k| k.name.clone()).collect();
+        names.sort();
+        names
+    };
+    let one = kernels(1);
+    assert!(one.iter().any(|k| k == "memset"), "{one:?}");
+    assert_eq!(kernels(64), one);
+}

@@ -343,7 +343,7 @@ fn cap_power(p: &Prepared, run: &PhaseRun) -> PhasePower {
     let level = ph.m3().map_or(kiln_ir::hw::phys::CapLevel::Board, |m| m.power.cap_level);
     let one = |r: &SimResult| {
         let plan = kiln_phys::ClockPlan { hz: r.clocks.iter().map(|c| c.hz).collect(), solved: true, throttled: false };
-        let pe = crate::result::phase_energy(&p.view, &r.energy, r.makespan_s, &plan);
+        let pe = crate::result::phase_energy(&p.view, &r.energy, &r.resources, r.makespan_s, &plan);
         ph.phase_power(&pe, &plan).unwrap_or_default()
     };
     let c = one(&run.central);
@@ -376,7 +376,7 @@ fn physical(p: &Prepared, phases: &[PhasePower], bands: bool) -> (Option<Physica
     if phases.iter().any(|x| x.5) {
         findings.push(
             Diagnostic::error("E-PHYS-THERMAL-RUNAWAY", format!("no stable junction temperature: the leakage-temperature loop gain reaches 1 (last estimate {tj:.0} C)"))
-                .hint("cut leakage (smaller die, power-gated memories), lower the clock or improve cooling"),
+                .hint("cut leakage (smaller die, fewer or smaller memories), lower the clock or improve cooling"),
         );
     }
     let tdp = rep.tdp_w.unwrap_or(0.0);

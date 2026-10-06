@@ -176,11 +176,15 @@ pub struct LoweredNode {
 #[derive(Clone, Debug, Default)]
 pub struct LoweredGraph {
     pub nodes: Vec<LoweredNode>,
+    /// Active sequences (`N`) of the binding the graph was lowered for.
+    pub seqs: Option<u64>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct Scope {
     vars: IndexMap<Id, (TypeInfo, Origin)>,
+    /// Results of a called graph, bound to the caller's outputs: their data lives where the caller's does.
+    results: IndexMap<Id, (TypeInfo, Origin)>,
 }
 
 impl Scope {
@@ -236,9 +240,12 @@ pub fn lower_graph(
         model,
         b,
         opts,
-        out: LoweredGraph::default(),
+        out: LoweredGraph {
+            seqs: Some(b.seqs.seqs()),
+            ..LoweredGraph::default()
+        },
     };
-    w.walk(g, Scope { vars }, "", 1)?;
+    w.walk(g, Scope { vars, ..Scope::default() }, "", 1)?;
     Ok(w.out)
 }
 
@@ -260,6 +267,21 @@ impl Walker<'_> {
         let (model, b) = (self.model, self.b);
         for (id, t) in &g.tensors {
             let ti = bind_type(t, b, &format!("{prefix}tensors.{id}"))?;
+            if let Some((caller, o)) = scope.results.get(id) {
+                if (&caller.shape, caller.dtype) != (&ti.shape, ti.dtype) {
+                    return Err(Diagnostic::error(
+                        "E-WL-SHAPE-001",
+                        format!(
+                            "result {id} is {:?} {:?}, the caller's output is {:?} {:?}",
+                            ti.dtype, ti.shape, caller.dtype, caller.shape
+                        ),
+                    )
+                    .at(format!("{prefix}tensors.{id}")));
+                }
+                let o = o.clone();
+                scope.vars.insert(id.clone(), (ti, o));
+                continue;
+            }
             let origin = match t.alias_of.as_ref().and_then(|a| scope.vars.get(a)) {
                 Some((_, o)) => Origin { upcast_ok: o.upcast_ok && t.upcast_ok, ..o.clone() },
                 None => Origin {
@@ -314,11 +336,18 @@ impl Walker<'_> {
                     for (outer, param) in &r.broadcast {
                         inner.insert(param.clone(), scope.get(outer, &path)?.clone());
                     }
+                    let mult = mult.checked_mul(count).ok_or_else(|| {
+                        Diagnostic::error(
+                            "E-WL-DIM-001",
+                            format!("repeat multiplicity {mult} x {count} overflows u64"),
+                        )
+                        .at(path.clone())
+                    })?;
                     self.walk(
                         body,
-                        Scope { vars: inner },
+                        Scope { vars: inner, ..Scope::default() },
                         &format!("{path}."),
-                        mult * count,
+                        mult,
                     )?;
                 }
                 Op::Call(c) => {
@@ -329,11 +358,32 @@ impl Walker<'_> {
                         )
                         .at(path.clone())
                     })?;
-                    let mut inner = IndexMap::new();
-                    for (p, a) in body.params.iter().zip(&node.inputs) {
-                        inner.insert(p.clone(), scope.get(a, &path)?.clone());
+                    if (body.params.len(), body.results.len())
+                        != (node.inputs.len(), node.outputs.len())
+                    {
+                        return Err(Diagnostic::error(
+                            "E-WL-REF-001",
+                            format!(
+                                "call passes {} inputs and {} outputs; graph {} takes {} params and {} results",
+                                node.inputs.len(),
+                                node.outputs.len(),
+                                c.graph,
+                                body.params.len(),
+                                body.results.len()
+                            ),
+                        )
+                        .at(path.clone()));
                     }
-                    self.walk(body, Scope { vars: inner }, &format!("{path}."), mult)?;
+                    let mut inner = Scope::default();
+                    for (p, a) in body.params.iter().zip(&node.inputs) {
+                        inner.vars.insert(p.clone(), scope.get(a, &path)?.clone());
+                    }
+                    for (r, o) in body.results.iter().zip(&node.outputs) {
+                        if !body.params.contains(r) {
+                            inner.results.insert(r.clone(), scope.get(o, &path)?.clone());
+                        }
+                    }
+                    self.walk(body, inner, &format!("{path}."), mult)?;
                 }
                 _ => {
                     let n = self.lower_node(g, &scope, node, path, mult)?;

@@ -569,7 +569,8 @@ pub fn characterize(hw: &HwModel, params: &Params) -> Characterized {
                 }
                 let leak = if flop { r.area_um2 * 1e-6 * p_ll_of(n) } else { r.leak_w * p_ls_k };
                 let leak = o.leakage.map_or(leak, |l| l.0.max(leak));
-                np.leak_w += if enabled && !spec.power_gated { leak } else if enabled { 0.2 * leak } else { 0.0 };
+                // Gating (04 §4.7) discounts only idle windows; a characterized memory leaks at its active rate.
+                np.leak_w += if enabled { leak } else { 0.0 };
                 let pipe = if spec.kind == MemKind::Cache { cache_pipe } else { 0.0 };
                 let lat = ((r.t_acc_s * f).ceil() + 1.0 + pipe) * cyc;
                 let lat = o.latency.map_or(lat, |l| (l.0 * cyc).max(lat));

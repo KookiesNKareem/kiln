@@ -142,6 +142,42 @@ def with_params(code: str, overrides: dict) -> str:
     return write_literal(code, "PARAMS", {**params, **overrides})
 
 
+def _finite(x) -> bool:
+    try:
+        return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+    except OverflowError:
+        return False
+
+
+def _check_spec(k: str, value, spec) -> None:
+    """Rejects mutation metadata `_step` cannot use: it is program-controlled."""
+    def bad(why: str):
+        raise ProgramError("E-EVO-PARAMS", f"PARAM_SPACE[{k!r}] = {spec!r} for PARAMS value {value!r}: {why}",
+                           "use {'min', 'max', 'step' | 'log2' | 'scale'} with finite numbers or a non-empty "
+                           "'choices' list")
+
+    if not isinstance(spec, dict):
+        bad("not a dict")
+    if "choices" in spec:
+        if not isinstance(spec["choices"], (list, tuple)) or not spec["choices"]:
+            bad("choices must be a non-empty list")
+        return
+    if isinstance(value, bool):
+        return
+    if not _finite(value):
+        bad("the value is not a finite number")
+    lo, hi = spec.get("min", -math.inf), spec.get("max", math.inf)
+    for name, x in (("min", lo), ("max", hi)):
+        if name in spec and not _finite(x):
+            bad(f"{name} is not a finite number")
+    if lo > hi:
+        bad("min exceeds max")
+    if "scale" in spec and not (_finite(spec["scale"]) and spec["scale"] > 0):
+        bad("scale must be a finite number > 0")
+    if "step" in spec and not _finite(spec["step"]):
+        bad("step must be a finite number")
+
+
 def _step(value, spec: dict, rng: random.Random):
     if "choices" in spec:
         options = [c for c in spec["choices"] if c != value] or list(spec["choices"])
@@ -173,14 +209,26 @@ def parametric_mutation(code: str, rng: random.Random, n_changes: int = 1) -> tu
         raise ProgramError("E-EVO-PARAMS", "program has no literal PARAMS dict to mutate",
                            "parametric mutation needs PARAMS = {...}")
     space = read_literal(code, "PARAM_SPACE") or {}
+    if not isinstance(space, dict):
+        raise ProgramError("E-EVO-PARAMS", "PARAM_SPACE is not a literal dict",
+                           "define PARAM_SPACE = {name: {...}} at module level")
     keys = [k for k in params if k in space] or [k for k, v in params.items()
                                                   if isinstance(v, (int, float)) and not isinstance(v, bool)]
     if not keys:
         raise ProgramError("E-EVO-PARAMS", "no mutable PARAMS entries", "add numeric PARAMS or a PARAM_SPACE")
     changes = {}
     for k in rng.sample(keys, min(n_changes, len(keys))):
+        spec = space.get(k, {})
+        _check_spec(k, params[k], spec)
         for _ in range(4):
-            new = _step(params[k], space.get(k, {}), rng)
+            try:
+                new = _step(params[k], spec, rng)
+            except (ArithmeticError, TypeError, ValueError) as e:
+                raise ProgramError("E-EVO-PARAMS", f"cannot step PARAMS[{k!r}] = {params[k]!r}: {e}",
+                                   "keep PARAMS values and PARAM_SPACE bounds finite and moderate") from None
+            if not isinstance(new, bool) and isinstance(new, (int, float)) and not _finite(new):
+                raise ProgramError("E-EVO-PARAMS", f"stepping PARAMS[{k!r}] = {params[k]!r} overflows",
+                                   "keep PARAMS values and PARAM_SPACE bounds finite and moderate")
             if new != params[k]:
                 changes[k] = new
                 break

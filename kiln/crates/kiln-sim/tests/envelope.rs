@@ -210,9 +210,60 @@ fn die_caps_carry_the_dram_phy_energy() {
         trace_ops: false,
     };
     let r = assemble(&a, &out);
-    let whole = phase_energy(&p.view, &r.energy, r.makespan_s, &run.clocks);
+    let whole = phase_energy(&p.view, &r.energy, &r.resources, r.makespan_s, &run.clocks);
     let die = phase_energy_within(&a, &out, r.makespan_s, &p.view.phys.m3().unwrap().caps[0].nodes);
     assert!(whole.indep_j > 0.0 && whole.dram_j > 0.0);
     assert!((die.indep_j / whole.indep_j - 1.0).abs() < 1e-9, "die-side PHY {} J of {} J", die.indep_j, whole.indep_j);
     assert_eq!(die.dram_j, 0.0);
+}
+
+/// 04 §8: each DRAM resource's traffic splits between its stack and its die-side PHY by its own energies; another
+/// stack's energy override does not move PHY power off the die.
+#[test]
+fn dram_phy_share_is_per_stack() {
+    use kiln_sim::engine::Engine;
+    use kiln_sim::result::{Assembly, assemble, phase_energy, phase_energy_within};
+    use kiln_trace::Corner;
+
+    let at = |override_j: Option<f64>| {
+        let p = tiles(move |v| {
+            let pkg = &mut v["system"]["package"];
+            let mut s2 = pkg["mem_stacks"][0].clone();
+            s2["id"] = json!("hbm2");
+            if let Some(e) = override_j {
+                s2["overrides"] = json!({ "energy_per_byte": e });
+            }
+            pkg["mem_stacks"].as_array_mut().unwrap().push(s2);
+            v["power"] = json!([{ "id": "die_cap", "members": "board.chip.die", "cap": "5000W", "policy": "fixed" }]);
+        });
+        let (model, sc) = common::tiny(true, 4);
+        let prog = common::program(&model, &sc, 3);
+        let run = common::run(&p, &prog, &common::quick());
+        let params = run.params.at(Corner::Central);
+        let out = Engine { view: &p.view, g: &run.graph, params: &params, clocks: &run.clocks }.run(prog.window.map(|w| w.0 / 2));
+        let a = Assembly {
+            view: &p.view,
+            prog: &prog,
+            graph: &run.graph,
+            phase: run.central.phase.clone(),
+            scope: run.central.scope,
+            corner: Corner::Central,
+            provenance: run.central.provenance.clone(),
+            params: &params,
+            clocks: &run.clocks,
+            trace_ops: false,
+        };
+        let r = assemble(&a, &out);
+        let dram: Vec<(String, f64)> = r.resources.iter().filter(|x| x.kind == ResourceKind::DramChannel).map(|x| (x.resource.to_string(), x.bytes)).collect();
+        let whole = phase_energy(&p.view, &r.energy, &r.resources, r.makespan_s, &run.clocks);
+        let die = phase_energy_within(&a, &out, r.makespan_s, &p.view.phys.m3().unwrap().caps[0].nodes);
+        (dram, whole, die)
+    };
+    let (base, over) = (at(None), at(Some(3.6e-9)));
+    assert_eq!(base.0, over.0);
+    assert!(base.0.len() == 2 && base.0.iter().all(|x| x.1 > 0.0), "{:?}", base.0);
+    assert!(over.1.dram_j > base.1.dram_j);
+    for (b, o) in [(base.1.indep_j, over.1.indep_j), (base.2.indep_j, over.2.indep_j)] {
+        assert!(b > 0.0 && (o / b - 1.0).abs() < 1e-9, "die-side PHY {o} J with the override vs {b} J without");
+    }
 }

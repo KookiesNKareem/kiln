@@ -8,7 +8,7 @@
 use kiln_ir::common::{Diagnostic, Id};
 use kiln_ir::precision::{Precision, PrecisionKind, PrecisionSpec};
 use kiln_ir::wl::{
-    Access, Domain, ElemType, Kernel, KernelClass, LoopDim, Operand, ScalarBody, Scaling, SegmentDomain,
+    Access, DiffConstraint, Domain, ElemType, Kernel, KernelClass, LoopDim, Operand, ScalarBody, Scaling, SegmentDomain,
     TensorClass, TypeInfo,
 };
 
@@ -206,19 +206,33 @@ fn roles(k: &Kernel, n: &LoweredNode) -> Option<(usize, usize)> {
     Some(if state(a) && !state(b) { (b, a) } else { (a, b) })
 }
 
+/// Each constraint projected onto the kept dims: an eliminated dim's term is replaced by its least value over
+/// `[0, extent)`, so the result holds wherever some value of the eliminated dims satisfies the constraint (a
+/// sliding window keeps its KV band; a causal mask's KV reads become its reach). Constraints left with no
+/// term are dropped when they hold.
+fn project(cs: &[DiffConstraint], keep: &dyn Fn(&str) -> bool, extent: &dyn Fn(&str) -> u64) -> Vec<DiffConstraint> {
+    cs.iter()
+        .filter_map(|c| {
+            let (kept, gone): (Vec<_>, Vec<_>) = c.terms.iter().cloned().partition(|(_, d)| keep(d));
+            let least: i64 = gone.iter().map(|(a, d)| (i64::from(*a) * extent(d).saturating_sub(1) as i64).min(0)).sum();
+            let rhs = c.rhs - least;
+            (!kept.is_empty() || rhs < 0).then_some(DiffConstraint { terms: kept, rhs })
+        })
+        .collect()
+}
+
 /// The map kernel converting what contraction `k` reads of operand `oi` into `to`: the contraction's dims that
-/// index the operand, over its domain projected onto them (constraints on other dims dropped, so a causal
-/// mask's KV reads are its reach), the operand's own index map on both sides.
+/// index the operand, over its domain projected onto them, the operand's own index map on both sides.
 fn convert_kernel(k: &Kernel, oi: usize, src: &ElemType, to: Id, id: String) -> Kernel {
     let op = &k.operands[oi];
     let used = op.dims();
     let keep = |d: &str| used.iter().any(|u| u == d);
     let dims: Vec<LoopDim> = k.dims.iter().filter(|d| keep(&d.name)).map(|d| LoopDim { kind: kiln_ir::wl::DimKind::Parallel, ..d.clone() }).collect();
-    let cons = |cs: &[kiln_ir::wl::DiffConstraint]| cs.iter().filter(|c| c.terms.iter().all(|(_, d)| keep(d))).cloned().collect::<Vec<_>>();
+    let base = |d: &str| k.extent(d).unwrap_or(1);
     let domain = match &k.domain {
         Domain::Box => Domain::Box,
         Domain::Constrained(cs) => {
-            let c = cons(cs);
+            let c = project(cs, &keep, &base);
             if c.is_empty() { Domain::Box } else { Domain::Constrained(c) }
         }
         Domain::Segmented { seg_dim, segments } if keep(seg_dim) => Domain::Segmented {
@@ -228,7 +242,7 @@ fn convert_kernel(k: &Kernel, oi: usize, src: &ElemType, to: Id, id: String) -> 
                 .map(|s| SegmentDomain {
                     extents: s.extents.iter().filter(|(d, _)| keep(d)).cloned().collect(),
                     params: s.params.clone(),
-                    constraints: cons(&s.constraints),
+                    constraints: project(&s.constraints, &keep, &|d| s.extents.iter().find(|(n, _)| n == d).map_or_else(|| base(d), |x| x.1)),
                 })
                 .collect(),
         },

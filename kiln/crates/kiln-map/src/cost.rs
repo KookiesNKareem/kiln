@@ -26,6 +26,9 @@ pub struct NestQuery<'a> {
     pub level_mems: &'a [usize],
     /// Read bandwidth (B/s) this unit gets from each shared on-chip chain level `(MemIx, B/s)`.
     pub level_bw: &'a [(usize, f64)],
+    /// Per operand, the memory (`MemIx`) an input is read from before the op or an output must end at; None (or
+    /// past the end) for the top of the unit's chain.
+    pub residency: &'a [Option<usize>],
     /// Units ganged with `unit` (itself included): the slice runs on all of them.
     pub gang: u32,
     /// Candidate scoring: a cheaper search is acceptable.
@@ -124,8 +127,8 @@ fn nominal_hz(hw: &HwModel, unit: usize) -> f64 {
 }
 
 /// Costs one slice of an op on one unit. A cost may depend on the slice's position only through its live point
-/// count and its operands' footprint sizes (masked or param segments; box segments: not at all): the lowerer
-/// memoizes costs on extents, segment and those.
+/// count and its operands' footprint sizes (masked or param segments; box segments: not at all), and through its
+/// start within floor-division and scale blocks: the lowerer memoizes costs on extents, segment and those.
 pub trait UnitCostModel: Send + Sync {
     fn name(&self) -> &str;
     fn cost(&self, q: &NestQuery) -> Result<NestCost, Diagnostic>;
@@ -199,6 +202,35 @@ pub(crate) fn vector_mode(hw: &HwModel, unit: usize, dtypes: &[Precision]) -> Re
             Diagnostic::error("E-MAP-PREC-002", format!("{} has no element mode for {}", hw.nodes[u.node].path, names.join(" and ")))
                 .hint("declare an element mode that holds the precision (e.g. \"fp32@1\") or map the work elsewhere")
         })
+}
+
+/// Precisions vector work over `op` must hold: its operands' but the index operands of indirect accesses; over
+/// float data only the floats (integer operands such as positions or an argmax result take the integer path).
+pub fn vector_dtypes(prog: &Program, op: &POp) -> Vec<Precision> {
+    let via: Vec<&str> = op
+        .kernel
+        .operands
+        .iter()
+        .flat_map(|o| &o.index)
+        .filter_map(|i| match i {
+            kiln_ir::wl::IndexExpr::Indirect { via, .. } => Some(via.as_str()),
+            _ => None,
+        })
+        .collect();
+    let mut v: Vec<Precision> = vec![];
+    for (o, k) in op.operands.iter().zip(&op.kernel.operands) {
+        let p = prog.tensors[o.tensor].dtype.scalar.compute();
+        if !via.contains(&k.tensor.as_str()) && !v.contains(&p) {
+            v.push(p);
+        }
+    }
+    if v.iter().any(|p| p.is_float()) {
+        v.retain(|p| p.is_float());
+    }
+    if v.is_empty() {
+        v.push(Precision::Fp32);
+    }
+    v
 }
 
 impl UnitCostModel for RooflineCost {
@@ -318,20 +350,14 @@ impl UnitCostModel for RooflineCost {
             });
         }
         let lanes = ui.spec.kind.base_ops_per_cycle() as f64;
-        let dt = op
-            .operands
-            .iter()
-            .map(|o| q.prog.tensors[o.tensor].dtype.scalar.compute())
-            .find(|p| p.is_float())
-            .unwrap_or(Precision::Fp32);
-        let (mdt, rate) = vector_mode(hw, q.unit, &[dt]).map_err(|d| d.at(op.id.clone()))?;
+        let (mdt, rate) = vector_mode(hw, q.unit, &vector_dtypes(q.prog, op)).map_err(|d| d.at(op.id.clone()))?;
         let kr = |c: OpClass| ui.spec.kind.class_rate(c);
         // A ganged slice runs on every member (the SM's four ALUs), as a contraction's does.
         let gang = f64::from(q.gang.max(1));
         let per = lanes * rate * gang;
         let transc = points * f64::from(body.transcendental());
         let specials = if body.transcendental() > 0 { special_units(hw, q.unit) } else { vec![] };
-        let (n_sup, sfu_pt, muls) = if specials.is_empty() { (0.0, 0.0, 0.0) } else { special_terms(hw, &specials, body, dt, gang) };
+        let (n_sup, sfu_pt, muls) = if specials.is_empty() { (0.0, 0.0, 0.0) } else { special_terms(hw, &specials, body, mdt, gang) };
         let moves = match op.class() {
             KernelClass::Gather | KernelClass::Scatter => points / kr(OpClass::GatherScatter),
             KernelClass::Layout => points / kr(OpClass::Permute),
@@ -490,23 +516,12 @@ impl KilnCost {
     }
 
     fn query(&self, q: &NestQuery) -> Result<NestCost, Diagnostic> {
-        use kiln_ir::precision::PrecisionSpec;
         let (op, s) = (q.op, q.slice);
-        let seg = &op.segs[s.seg as usize];
-        let mut k = op.kernel.clone();
-        for (d, dim) in k.dims.iter_mut().enumerate() {
-            dim.extent = seg.ext[d];
-        }
-        k.domain = kiln_ir::wl::Domain::Box;
-        let dtypes: Vec<PrecisionSpec> = op.operands.iter().map(|o| kiln_wl::convert::operand_spec(&q.prog.tensors[o.tensor].dtype)).collect();
         let roles: Option<Vec<kiln_ir::hw::compute::OperandRole>> = op.mac.as_ref().map(|m| {
             use kiln_ir::hw::compute::OperandRole as R;
             (0..op.operands.len()).map(|i| if i == m.a { R::A } else if i == m.b { R::B } else if i == m.out { R::O } else { R::In }).collect()
         });
-        let nest = kiln_cost::OpNest::from_kernel(&k, &dtypes, roles.as_deref())?;
-        let sizes: Vec<u64> = (0..s.lo.len()).map(|d| s.extent(d)).collect();
-        let tile = nest.tile(&sizes, None);
-        let t = self.template(q)?;
+        let (t, tile) = self.tile(q)?;
         let e = self.cache.query_hashed(
             &kiln_cost::CostQuery { unit: &t.unit, nest: &tile, objective: kiln_cost::Objective::Latency, options: if q.quick { QUICK } else { SEARCH } },
             &t.hash,
@@ -662,9 +677,20 @@ impl KilnCost {
             use kiln_ir::hw::compute::OperandRole as R;
             (0..op.operands.len()).map(|i| if i == m.a { R::A } else if i == m.b { R::B } else if i == m.out { R::O } else { R::In }).collect()
         });
-        let nest = kiln_cost::OpNest::from_kernel(&k, &dtypes, roles.as_deref())?;
+        let mut nest = kiln_cost::OpNest::from_kernel(&k, &dtypes, roles.as_deref())?;
+        let t = self.template(q)?;
+        for (o, r) in nest.operands.iter_mut().zip(q.residency) {
+            let Some(m) = *r else { continue };
+            let e = Some(q.hw.nodes[q.hw.memories[m].node].entity.clone());
+            let level = t.unit.chains.iter().find(|c| c.role == o.role).and_then(|c| c.levels.iter().copied().find(|&l| t.level_entity[l] == e));
+            if o.is_output {
+                o.sink = level;
+            } else {
+                o.source = level;
+            }
+        }
         let sizes: Vec<u64> = (0..s.lo.len()).map(|d| s.extent(d)).collect();
-        Ok((self.template(q)?, nest.tile(&sizes, None)))
+        Ok((t, nest.positioned(&s.lo).tile(&sizes, None)))
     }
 }
 

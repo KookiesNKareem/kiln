@@ -178,7 +178,9 @@ pub fn fill(r: &mut EvalResult, model: Option<&HwModel>, only: Option<&[String]>
         put("bound_frac_mem", Feature::Scalar(num / den));
     }
     if let Some(si) = r.score_interval {
-        put("score_rel_width", Feature::Scalar(si.rel_width()));
+        // The engine's value describes its throughput interval; the descriptor is the final fitness interval's.
+        r.features
+            .insert("score_rel_width".into(), Feature::Scalar(si.rel_width()));
     }
     if let Some(only) = only {
         r.features.retain(|k, _| only.iter().any(|o| o == k));
@@ -228,5 +230,19 @@ mod tests {
         assert!(f("compute_tiles") >= 108.0);
         fill(&mut r, None, Some(&["n_chips".into()]));
         assert_eq!(r.features.len(), 1);
+    }
+
+    #[test]
+    fn score_rel_width_is_the_final_score_interval() {
+        let mut r = result_with(&[("decode_b1", 80.0)], 826.0, 400.0);
+        r.features
+            .insert("score_rel_width".into(), Feature::Scalar(0.44));
+        r.score_interval = Some(kiln_trace::Interval {
+            low: 0.5,
+            central: 1.0,
+            high: 1.5,
+        });
+        fill(&mut r, None, None);
+        assert!(matches!(r.features["score_rel_width"], Feature::Scalar(x) if x == 1.0));
     }
 }

@@ -131,6 +131,10 @@ def finalize(cfg: dict, base_dir: Path) -> dict:
     return cfg
 
 
+def _usd(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v >= 0
+
+
 def validate(cfg: dict) -> None:
     errs = []
     if cfg["mode"] not in ("evolve", "redteam"):
@@ -159,6 +163,9 @@ def validate(cfg: dict) -> None:
         for part in ("train", "heldout"):
             if w[part] and sum(float(weights.get(x, 1.0)) for x in w[part]) <= 0:
                 errs.append(f"fitness.weights give workloads.{part} a zero total weight")
+    max_usd = cfg["budget"].get("max_usd")
+    if max_usd is not None and not _usd(max_usd):
+        errs.append(f"budget.max_usd = {max_usd!r} must be a finite, non-negative number")
     ops = cfg["operators"]
     if sum(ops.values()) <= 0:
         errs.append("operators weights sum to zero")
@@ -179,9 +186,10 @@ def validate(cfg: dict) -> None:
         price = llm.get("price_usd_per_mtok") or {}
         for k in ("input", "output"):
             v = price.get(k)
-            if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0:
-                errs.append(f"llm.price_usd_per_mtok.{k} is unset: read it from the provider's pricing page for "
-                            "that exact model; the dollar budget cannot be enforced without it")
+            if not _usd(v):
+                errs.append(f"llm.price_usd_per_mtok.{k} is unset or not a finite, non-negative number: read it "
+                            "from the provider's pricing page for that exact model; the dollar budget cannot be "
+                            "enforced without it")
         if cfg["budget"].get("max_usd") is None:
             errs.append("budget.max_usd must be set for a real LLM backend")
         if not llm.get("api_key_env"):

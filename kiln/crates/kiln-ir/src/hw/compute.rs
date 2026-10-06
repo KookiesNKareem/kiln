@@ -346,7 +346,7 @@ impl SparsitySupport {
 
     /// Position bits each nonzero needs within its group of `m`.
     pub fn min_metadata_bits(&self) -> Option<u32> {
-        self.n_of_m().map(|(_, m)| m.next_power_of_two().trailing_zeros())
+        self.n_of_m().map(|(_, m)| u32::BITS - m.saturating_sub(1).leading_zeros())
     }
 }
 
@@ -1136,5 +1136,13 @@ mod tests {
         assert_eq!(c.boundary_adc_bits(), 9);
         let a = cim(serde_json::json!({ "rows": 256, "cols": 64, "parallel_rows": 256, "input_bits_per_cycle": 4, "style": "analog", "adc_bits": 6 }));
         assert_eq!(a.boundary_adc_bits(), 12, "ASiM 2411.11022: 256 rows x 4b inputs span 0..3840");
+    }
+
+    #[test]
+    fn metadata_bits_are_ceil_log2_m() {
+        let sp = |pattern: &str| SparsitySupport { pattern: pattern.into(), operand: OperandRole::B, speedup: 2.0, metadata_bits_per_nz: 0 };
+        for (p, bits) in [("1:1", 0), ("2:4", 2), ("1:2", 1), ("1:3", 2), ("2:8", 3), ("1:2147483648", 31), ("1:2147483649", 32), ("1:4294967295", 32)] {
+            assert_eq!(sp(p).min_metadata_bits(), Some(bits), "{p}");
+        }
     }
 }

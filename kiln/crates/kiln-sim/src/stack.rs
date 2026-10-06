@@ -25,7 +25,7 @@ pub fn attach(view: &HwView, prog: &Program, g: &mut TaskGraph, stack: &Stack) -
             let n = &prog.nodes[node];
             let info = |ts: &[usize]| -> Vec<TypeInfo> { ts.iter().map(|&t| prog.tensors[t].info()).collect() };
             let (inputs, outputs) = (info(&n.inputs), info(&n.outputs));
-            let shape = NodeShape { op: &n.op_name, role: n.role.as_deref(), inputs: &inputs, outputs: &outputs };
+            let shape = NodeShape { op: &n.op_name, role: n.role.as_deref(), inputs: &inputs, outputs: &outputs, seqs: prog.seqs };
             for k in stack.extra_kernels(&shape).map_err(|e| e.at(n.path.clone()))? {
                 let onchip = onchip_cap.is_some_and(|c| k.footprint_b <= c);
                 out.push(GroupKernel { group: gi as u32, bytes: k.bytes(), name: k.name, kind: k.kind, onchip });

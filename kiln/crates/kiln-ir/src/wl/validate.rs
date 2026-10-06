@@ -102,7 +102,59 @@ pub fn validate_model(m: &Model) -> Vec<Diagnostic> {
     for (gid, g) in &m.graphs {
         out.extend(validate_graph(m, gid, g, &check_decl));
     }
+    if let Some(cycle) = find_graph_cycle(m) {
+        out.push(
+            Diagnostic::error("E-WL-DAG-001", format!("graph reference cycle: {}", cycle.join(" -> ")))
+                .at(format!("graphs.{}", cycle[0]))
+                .hint("call and repeat bodies must not reach the graph that uses them"),
+        );
+    }
     out
+}
+
+/// A cycle among graphs through `call` and `repeat` references (lowering would recurse forever).
+fn find_graph_cycle(m: &Model) -> Option<Vec<String>> {
+    let refs = |g: &Graph| -> Vec<usize> {
+        g.nodes
+            .iter()
+            .filter_map(|n| match &n.op {
+                Op::Call(c) => m.graphs.get_index_of(&c.graph),
+                Op::Repeat(r) => m.graphs.get_index_of(&r.body),
+                _ => None,
+            })
+            .collect()
+    };
+    let adj: Vec<Vec<usize>> = m.graphs.values().map(refs).collect();
+    // 0 = unvisited, 1 = on the DFS stack, 2 = done.
+    let mut state = vec![0u8; adj.len()];
+    for root in 0..adj.len() {
+        if state[root] != 0 {
+            continue;
+        }
+        let mut stack = vec![(root, 0usize)];
+        state[root] = 1;
+        while let Some(&mut (v, ref mut next)) = stack.last_mut() {
+            if let Some(&w) = adj[v].get(*next) {
+                *next += 1;
+                match state[w] {
+                    0 => {
+                        state[w] = 1;
+                        stack.push((w, 0));
+                    }
+                    1 => {
+                        let from = stack.iter().position(|&(x, _)| x == w).expect("on stack");
+                        let name = |i: usize| m.graphs.get_index(i).expect("graph").0.as_str().to_owned();
+                        return Some(stack[from..].iter().map(|&(x, _)| name(x)).chain([name(w)]).collect());
+                    }
+                    _ => {}
+                }
+            } else {
+                state[v] = 2;
+                stack.pop();
+            }
+        }
+    }
+    None
 }
 
 fn validate_graph(
@@ -206,12 +258,6 @@ fn validate_graph(
                             }
                         }
                     }
-                }
-                if r.body == *gid {
-                    out.push(
-                        Diagnostic::error("E-WL-DAG-001", "repeat body is its own graph")
-                            .at(np.clone()),
-                    );
                 }
             }
             Op::Call(c) if !m.graphs.contains_key(&c.graph) => {
@@ -341,4 +387,42 @@ fn find_cycle(g: &Graph) -> Option<Vec<String>> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn model(graphs: serde_json::Value) -> Model {
+        serde_json::from_value(serde_json::json!({ "symbols": {}, "graphs": graphs, "entry": { "forward": "g" }, "tensors": {} })).unwrap()
+    }
+
+    fn graph(nodes: serde_json::Value) -> serde_json::Value {
+        serde_json::json!({ "params": [], "results": [], "tensors": {}, "nodes": nodes })
+    }
+
+    fn dag_errors(m: &Model) -> Vec<String> {
+        validate_model(m).into_iter().filter(|d| d.code == "E-WL-DAG-001").map(|d| d.message).collect()
+    }
+
+    #[test]
+    fn recursive_graph_references_are_cycles() {
+        let call = |id: &str, g: &str| serde_json::json!({ "id": id, "op": "call", "graph": g, "inputs": [], "outputs": [] });
+        let repeat = |id: &str, g: &str| serde_json::json!({ "id": id, "op": "repeat", "body": g, "count": 2, "carry": [], "stacked": [], "inputs": [], "outputs": [] });
+        let direct = model(serde_json::json!({ "g": graph(serde_json::json!([call("again", "g")])) }));
+        assert_eq!(dag_errors(&direct), vec!["graph reference cycle: g -> g".to_string()]);
+        let mutual = model(serde_json::json!({
+            "g": graph(serde_json::json!([call("c", "h")])),
+            "h": graph(serde_json::json!([repeat("r", "k")])),
+            "k": graph(serde_json::json!([call("back", "h")])),
+        }));
+        assert_eq!(dag_errors(&mutual), vec!["graph reference cycle: h -> k -> h".to_string()]);
+        let self_repeat = model(serde_json::json!({ "g": graph(serde_json::json!([repeat("r", "g")])) }));
+        assert_eq!(dag_errors(&self_repeat).len(), 1);
+        let shared = model(serde_json::json!({
+            "g": graph(serde_json::json!([call("a", "h"), call("b", "h")])),
+            "h": graph(serde_json::json!([])),
+        }));
+        assert!(dag_errors(&shared).is_empty(), "a diamond is not a cycle");
+    }
 }

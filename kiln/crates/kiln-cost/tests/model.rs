@@ -141,10 +141,11 @@ fn worked_example_counts_bytes_cycles_energy() {
     let b = access(&e, 0, 1);
     assert_eq!((b.to_low, b.from_high), (32, 32));
     assert_eq!(access(&e, 1, 1).to_low, 32);
-    // O: k4 merges down into the buffer (output tile stationary across it); 48 partial-sum readbacks at fp32.
+    // O: k4 merges down into the buffer (output tile stationary across it); 48 partial-sum readbacks at fp32,
+    // the 16 final writes at bf16.
     let o = access(&e, 0, 2);
     assert_eq!((o.to_low, o.from_high, o.to_high, o.from_low), (48, 0, 16, 64));
-    assert_eq!((o.read_bytes, o.write_bytes), (48 * 4 + 16 * 2, 64 * 4));
+    assert_eq!((o.read_bytes, o.write_bytes), (48 * 4 + 16 * 2, 48 * 4 + 16 * 2));
     assert_eq!(access(&e, 1, 2).from_low, 16);
     assert_eq!(e.useful_macs, 128);
     assert_eq!(e.issue_cycles, 32);
@@ -153,7 +154,7 @@ fn worked_example_counts_bytes_cycles_energy() {
     assert_eq!(e.fill_drain_cycles, 16);
     assert_eq!(e.cycles, 160);
     assert_eq!(e.limiter, Limiter::Port { level: 1, port: 0 });
-    let want = (128.0 + 0.1 * 416.0 + 0.2 * 448.0 + 10.0 * 192.0 + 11.0 * 32.0) * PJ;
+    let want = (128.0 + 0.1 * 416.0 + 0.2 * 416.0 + 10.0 * 192.0 + 11.0 * 32.0) * PJ;
     assert!((e.energy.total_j - want).abs() < 1e-18, "{} vs {want}", e.energy.total_j);
     assert_eq!(e.energy_source, EnergySource::Supplied);
 }
@@ -201,9 +202,11 @@ fn reduction_above_output_level_moves_partial_sums_at_accumulator_width() {
     let e = evaluate(&u, &n, &m, &CostOptions::default()).unwrap();
     let dram_o = access(&e, 1, 2);
     assert_eq!((dram_o.from_low, dram_o.to_low), (64, 48));
-    assert_eq!((dram_o.write_bytes, dram_o.read_bytes), (64 * 4, 48 * 4));
+    // 48 fp32 partial sums, then the 16 results at their bf16 output precision (03 §2.4).
+    assert_eq!((dram_o.write_bytes, dram_o.read_bytes), (48 * 4 + 16 * 2, 48 * 4));
     let buf_o = access(&e, 0, 2);
     assert_eq!((buf_o.to_high, buf_o.from_high), (64, 48));
+    assert_eq!(buf_o.dir_bytes[2], 48 * 4 + 16 * 2);
 }
 
 #[test]

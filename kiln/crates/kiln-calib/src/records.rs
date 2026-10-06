@@ -137,7 +137,8 @@ pub struct Record {
     /// Chip-state gate (08 §F): set on compute-bound records of a TPU session whose sanity GEMM changed state
     /// between start and end; such records never enter a fit.
     pub chip_state: Option<String>,
-    /// `rec1-` content hash of (session, name, mode, seconds).
+    /// `rec2-` content hash of (session, the complete runner record, mode, seconds): any change to what the
+    /// record measured or describes (dims, layers, attention, modes, quality) changes it.
     pub hash: String,
 }
 
@@ -176,8 +177,8 @@ pub fn family_of(op: &BenchOp) -> String {
     format!("{kind}|{}|{}|{}|{}|bf16", bucket(d("m")), d("n"), d("k"), bucket(d("batch")))
 }
 
-fn rec_hash(session: &str, name: &str, mode: &str, s: f64) -> String {
-    content_hash("rec1-", &json!({"session": session, "name": name, "mode": mode, "s": s}))
+fn rec_hash(session: &str, record: &Value, mode: &str, s: f64) -> String {
+    content_hash("rec2-", &json!({"session": session, "record": record, "mode": mode, "s": s}))
 }
 
 /// Chip state of a TPU session file (`None` for GPU devices: the gate is a TPU ruling).
@@ -301,7 +302,7 @@ pub fn micro(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
         out.push(Record {
             device: dev.id.into(),
             session: file.into(),
-            hash: rec_hash(file, &name, &mode, meas_s),
+            hash: rec_hash(file, r, &mode, meas_s),
             name,
             group,
             kind,
@@ -335,7 +336,7 @@ pub fn suite(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
         out.push(Record {
             device: dev.id.into(),
             session: file.into(),
-            hash: rec_hash(file, &r.name, &mode, meas_s),
+            hash: rec_hash(file, src, &mode, meas_s),
             name: format!("{}/{}", r.phase.as_deref().unwrap_or(&r.group), r.name),
             group: r.group.clone(),
             flops,
@@ -356,11 +357,18 @@ pub fn suite(dev: &Device, file: &str) -> Result<Vec<Record>, Diagnostic> {
 
 /// Best-software whole steps per phase (fastest checked implementation): test-only, always.
 pub fn steps(dev: &Device) -> Result<Vec<Record>, Diagnostic> {
+    steps_in(dev, &measurements_dir())
+}
+
+fn steps_in(dev: &Device, dir: &Path) -> Result<Vec<Record>, Diagnostic> {
     let mut best: BTreeMap<String, Record> = BTreeMap::new();
     for file in dev.seq {
-        let raw = std::fs::read(measurements_dir().join(file)).map_err(|e| Diagnostic::error(MEAS_CODE, format!("{file}: {e}")))?;
+        let raw = std::fs::read(dir.join(file)).map_err(|e| Diagnostic::error(MEAS_CODE, format!("{file}: {e}")))?;
+        let v: Value = serde_json::from_slice(&raw).map_err(|e| Diagnostic::error(MEAS_CODE, format!("{file}: {e}")))?;
+        let src: BTreeMap<&str, &Value> =
+            v["records"].as_array().into_iter().flatten().filter_map(|r| r["name"].as_str().map(|n| (n, r))).collect();
         for s in runner::step_records(&raw, file)? {
-            if s.checked == Some(false) || !(dev.attn.is_empty() || dev.attn.contains(&s.attn.as_str())) {
+            if s.checked == Some(false) || !s.quality_ok || !(dev.attn.is_empty() || dev.attn.contains(&s.attn.as_str())) {
                 continue;
             }
             let Some((mode, t)) = s
@@ -380,7 +388,7 @@ pub fn steps(dev: &Device) -> Result<Vec<Record>, Diagnostic> {
                 Record {
                     device: dev.id.into(),
                     session: (*file).into(),
-                    hash: rec_hash(file, &s.name, &mode, t),
+                    hash: rec_hash(file, src.get(s.name.as_str()).copied().unwrap_or(&Value::Null), &mode, t),
                     name: s.name.clone(),
                     group: "sequence".into(),
                     kind: Kind::Step { phase: s.phase.clone(), layers: s.n_layers, attn: s.attn.clone() },
@@ -441,4 +449,53 @@ pub fn session_noise(dev: &Device, a: &str, b: &str) -> Option<(f64, usize)> {
     }
     d.sort_by(f64::total_cmp);
     Some((d[d.len() / 2], d.len()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn seq_dir(tag: &str, records: Value) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("kiln-calib-steps-{tag}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("seq.json"), json!({ "records": records }).to_string()).unwrap();
+        dir
+    }
+
+    const DEV: Device = Device {
+        id: "test",
+        design: "",
+        micro: &[],
+        suite: &[],
+        seq: &["seq.json"],
+        op_modes: &[],
+        step_modes: &[],
+        attn: &[],
+        noise_pairs: &[],
+    };
+
+    fn step(name: &str, median_s: f64, quality: &str, n_layers: u64) -> Value {
+        json!({"name": name, "kind": "sequence", "scope": "step", "phase": "decode_b1", "n_layers": n_layers,
+               "attn_impl": "sdpa", "quality": quality, "modes": {"loop": {"median_s": median_s}}})
+    }
+
+    #[test]
+    fn rejected_steps_are_not_best_software() {
+        let dir = seq_dir("q", json!([step("ok", 0.010, "ok", 32), step("fast", 0.001, "rejected", 32)]));
+        let best = steps_in(&DEV, &dir).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(best.len(), 1);
+        assert_eq!((best[0].name.as_str(), best[0].meas_s, best[0].quality_ok), ("ok", 0.010, true));
+    }
+
+    #[test]
+    fn record_hash_covers_workload_semantics() {
+        let hash = |n_layers| {
+            let dir = seq_dir(&format!("h{n_layers}"), json!([step("s", 0.01, "ok", n_layers)]));
+            let h = steps_in(&DEV, &dir).unwrap()[0].hash.clone();
+            std::fs::remove_dir_all(&dir).unwrap();
+            h
+        };
+        assert_ne!(hash(32), hash(16));
+    }
 }

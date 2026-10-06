@@ -170,7 +170,7 @@ fn a_task_occupies_each_resource_for_its_summed_demands() {
             demands,
             preds: vec![0],
             groups: vec![TGroup { label: "g".into(), ops: vec![], tasks: (0, 2), barrier_after: true, launch: LaunchKind::StaticProgram, iteration: None, fused: false }],
-            profiles: vec![Arc::new(Profile { src: 0, dst: 0, entries: vec![(r as u32, 1.0)], latency_s: 0.0, lat_clk: vec![], hops: 1 })],
+            profiles: vec![Arc::new(Profile { src: 0, dst: 0, entries: vec![(r as u32, 1.0)], writes: vec![], latency_s: 0.0, lat_clk: vec![], hops: 1 })],
             op_node: vec![0, 1],
             ..TaskGraph::default()
         };

@@ -154,3 +154,36 @@ def test_floor_violation_is_quarantined(make_cfg, tmp_path):
     assert rec["elite_event"] is None and not camp.archive.grid
     found = json.loads((tmp_path / "adversarial" / "floor_violation" / "dsn-x.json").read_text())
     assert found["details"]["expected"] == "E-FLOOR"
+
+
+def test_torn_journal_tails_are_dropped_on_resume(make_cfg):
+    cfg = make_cfg("torn", budget={"max_evals": None, "max_generations": 0})
+    Campaign(cfg, log=_quiet).run()
+    out = Path(cfg["out_dir"])
+    committed = _records(out)
+    for name in ("evals.jsonl", "heldout.jsonl"):
+        with open(out / name, "a") as f:
+            f.write(json.dumps({"id": "g0001-i0-c00", "gen": 1, "status": "ok", "fitness": 9.0}) + "\n")
+            f.write('{"id": "g0001-i0-c01", "gen": 1, "sta')
+    cfg["budget"]["max_generations"] = 1
+    Campaign(cfg, resume=True, log=_quiet).run()
+    recs = _records(out)
+    assert recs[: len(committed)] == committed and all(r["fitness"] != 9.0 for r in recs)
+    lines = (out / "evals.jsonl").read_text().splitlines()
+    lines[0] = lines[0][:20]
+    (out / "evals.jsonl").write_text("\n".join(lines) + "\n")
+    with pytest.raises(CampaignError, match="evals.jsonl"):
+        Campaign(cfg, resume=True, log=_quiet)
+
+
+def test_resume_refuses_a_changed_stack_recipe(make_cfg, tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    recipe = tmp_path / "recipe.json5"
+    recipe.write_text((root / "stacks" / "kiln_ideal.json5").read_text().replace('id: "kiln_ideal"', 'id: "mine"'))
+    cfg = make_cfg("stk", options={"stack": str(recipe)}, budget={"max_evals": None, "max_generations": 0},
+                   operators={"parametric": 1.0, "llm_diff": 0.0, "llm_full": 0.0})
+    Campaign(cfg, log=_quiet).run()
+    recipe.write_text(recipe.read_text().replace("onchip_fraction: 0.25", "onchip_fraction: 0.9"))
+    cfg["budget"]["max_generations"] = 1
+    with pytest.raises(CampaignError, match="scoring basis changed"):
+        Campaign(cfg, resume=True, log=_quiet)

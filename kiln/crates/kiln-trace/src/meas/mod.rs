@@ -390,7 +390,18 @@ impl MeasSession {
                     )
                     .at(format!("uses[{phase}/{}]", u.op))
                 })?;
-            Ok(acc + u.count as f64 * stats.median_s)
+            let sum = acc + u.count as f64 * stats.median_s;
+            if !sum.is_finite() {
+                return Err(Diagnostic::error(
+                    codes::FIELD,
+                    format!(
+                        "{phase} {mode} time is not finite after {} x {}",
+                        u.count, u.record
+                    ),
+                )
+                .at(format!("uses[{phase}/{}]", u.op)));
+            }
+            Ok(sum)
         })
     }
 

@@ -640,7 +640,8 @@ Tensor references resolve in order: graph-local, then graph params, then model-l
 
 ### 7.2 Invariants (validated at load, structured errors)
 
-1. Acyclic per graph; the only iteration is `repeat` (`E-WL-DAG-001` with the cycle path).
+1. Acyclic per graph, and no graph reaches itself through `call`/`repeat` references; the only iteration is `repeat`
+   (`E-WL-DAG-001` with the cycle path).
 2. SSA: every non-param tensor has exactly one producer; in-place versions use `alias_of` (§3.6).
 3. Shapes/dtypes: `infer` of every node matches declared output decls (`E-WL-SHAPE-001`, with expected vs found).
 4. Ids unique in scope; dotted paths for nested references: `layers.body.attn` (repeat id, body, node).
@@ -706,7 +707,9 @@ novel design's compiler is assumed to achieve). `SimOptions.stack` overrides the
 the recipe as `provenance.flags.stack = <id>@stk1-<hash>`.
 
 - A rule matches a node by `op` (§5 name), optional `roles` (§7.5) and `when` (`tokens_min/max`, the leading
-  dim of input 0; `tokens_per_seq_min/max`, divided by the slots of the first KV-cache input); first match wins.
+  dim of input 0; `tokens_per_seq_min/max`, divided by the step's active sequences `N`, not the allocated
+  `slots`, which may exceed it; the slots of the first KV-cache input stand in only where no binding is known);
+  first match wins.
   A node without a matching rule is one kernel.
 - `kernels` lists the kernels in issue order. Exactly one is `primary`: the kernel the mapped task graph
   already models (its compute and traffic). Every other kernel (`count` copies, `kind: kernel | memset`) is

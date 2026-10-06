@@ -372,6 +372,13 @@ impl V<'_> {
             if m.rate() <= 0.0 || !m.rate().is_finite() {
                 self.push(key, err("E-IR-0303", format!("mode {m} has rate <= 0"), at));
             }
+            if s.kind.is_mac() != matches!(m, PrecisionMode::Mac { .. }) {
+                let want = if s.kind.is_mac() { "a MAC mode such as \"int8*int8+int32\"" } else { "an element mode such as \"fp32@1\"" };
+                self.push(
+                    &format!("{key}#0302{}", m.key()),
+                    err("E-IR-0302", format!("mode {m} does not fit a {} unit", s.kind.name()), at).hint(format!("a {} unit takes {want}", s.kind.name())),
+                );
+            }
             for p in m.operands() {
                 if !p.is_compute_name() {
                     self.push(
@@ -532,6 +539,12 @@ impl V<'_> {
     }
 
     fn memories(&mut self) {
+        if self.m.memories.iter().map(|m| u128::from(m.capacity.0)).sum::<u128>() > u128::from(u64::MAX) {
+            self.push(
+                "memories#0109",
+                err("E-IR-0109", "memory capacities sum beyond 2^64 bytes", "system").hint("capacity totals and level summaries are reported in u64 bytes"),
+            );
+        }
         let mut fed_by: Vec<Vec<usize>> = vec![vec![]; self.m.memories.len()];
         for u in &self.m.units {
             for f in u.feeds.values() {
@@ -1220,6 +1233,15 @@ impl V<'_> {
                     ),
                     (Some(_), None) => f.push(name),
                     _ => {}
+                }
+            }
+            if matches!(s.kind, ComputeKind::Scalar(_) | ComputeKind::Special(_)) {
+                for m in s.precisions.iter().filter(|m| m.rate() > 1.0 + 1e-9) {
+                    self.push(
+                        &format!("{}#1101m{}", n.entity, m.key()),
+                        err("E-IR-1101", format!("mode {m}: @rate above 1 on a {} unit is unpriced", s.kind.name()), &n.path)
+                            .hint("kiln-phys prices scalar and special datapaths per issue slot / lane; raise issue_width or lanes instead"),
+                    );
                 }
             }
             for (name, r, d) in rate_multipliers(s) {

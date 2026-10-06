@@ -1413,7 +1413,8 @@ Instance naming:
   in that order and are stable for a given canonical form.
 
 Expansion budget: `ExpandOptions::max_instances` (default 50,000,000) guards memory; exceeding it is `E-IR-0210`,
-which reports the per-entity contribution so the author can see which `count` exploded. This is a resource guard,
+which reports the per-entity contribution so the author can see which `count` exploded. Synthesized routers and
+network channels count against it too, charged before they are built. This is a resource guard,
 not a modelling cap.
 
 ## 16. Expanded hardware model (engine-facing)
@@ -1564,8 +1565,8 @@ E-IR-0907 = `E-PHYS-POWER-DENSITY`.
 | E-IR-0106 | duplicate id in scope | |
 | E-IR-0107 | unknown schema version | lists supported versions and `kiln migrate` |
 | E-IR-0108 | quantity dimension mismatch | `capacity "1.4GHz": expected bytes (e.g. "40MiB")` |
-| E-IR-0109 | implausible value | `clock freq 14.1 GHz outside [1 MHz, 20 GHz]; did you mean 1.41GHz?` |
-| E-IR-0110 | non-integer bytes/count after conversion | |
+| E-IR-0109 | implausible value (incl. totals beyond u64, e.g. summed memory capacity) | `clock freq 14.1 GHz outside [1 MHz, 20 GHz]; did you mean 1.41GHz?` |
+| E-IR-0110 | non-integer bytes/count after conversion, or not below 2^64 (integer literals convert exactly) | |
 
 **E02xx templates / expansion (S)**
 
@@ -1590,7 +1591,7 @@ E-IR-0907 = `E-PHYS-POWER-DENSITY`.
 | Code | Check |
 |---|---|
 | E-IR-0301 | unit has no precision modes |
-| E-IR-0302 | unknown precision name (lists registry) |
+| E-IR-0302 | unknown precision name (lists registry); mode form does not fit the unit kind (MAC modes on matrix/cim, element modes on vector/scalar/special) |
 | E-IR-0303 | accumulator incompatible with inputs (int inputs need int32/int16 acc; float acc narrower than inputs) |
 | E-IR-0304 | role used by a precision mode has no feed and no local buffer with `refill_from` (`unit 'tc' reads operand 'b' but has no feed for 'b'. Add feeds: { b: "rf" }`) |
 | E-IR-0305 | feed `from` is not a memory (or near-bound memory) |
@@ -1655,7 +1656,7 @@ E-IR-0907 = `E-PHYS-POWER-DENSITY`.
 | E-IR-0701 | endpoint selector resolves to a non-connectable entity (e.g. a cluster) |
 | E-IR-0702 | same instance bound twice to one network (use `multiplicity`) |
 | E-IR-0703 | topology too small for endpoints (`mesh 4x4 with concentration 1 cannot host 20 endpoints`) |
-| E-IR-0704 | router radix exceeded (topology degree + concentration > declared radix) |
+| E-IR-0704 | router radix exceeded (channels a router drives: topology links, endpoint multiplicity and link `count`, > declared radix) |
 | E-IR-0705 | custom graph disconnected or edge references router >= routers |
 | E-IR-0706 | zero link width / lanes / rate |
 | E-IR-0707 | routing deadlock-prone (dimension-order on torus/ring with vcs < 2; table routes with cyclic channel dependency) |
@@ -1733,7 +1734,7 @@ structural checks:
 |---|---|---|
 | `full` (default) | hand-written and exploratory designs | none |
 | `reference` | published chips (sec 20) | `*.overrides` / `PowerOverride` allowed only with `source` citation (E-IR-1103); `meta.claims` required for peak ops and off-chip bandwidth |
-| `search` | designs produced by the evolution loop (06) | **no unpriced performance** (06 "E-IR-UNPRICED" = E-IR-1101 and E-IR-1104; 00 decision 3: never rejects a change for being cost-neutral or cost-reducing): every performance override is compared with the value kiln derives from structure (kept next to the effective value in the expanded model, e.g. `bandwidth_derived`), regardless of `source` or legacy-import origin: a "more is better" field (bandwidth of on-chip memories, stacks, links/PHYs, DMA, switch `reduce_bandwidth`, `internal_bandwidth`, CIM `weight_write`, PHY `encoding_efficiency`, unit/CIM `@rate`, vector `class_rates` against table 6.3, special `fn_rates` against 1.0) is allowed at <= derived (1e-9 relative tolerance; a de-rate is cost-neutral) and rejected above it, with derived value, override and ratio in the message; a "less is better" field (latency, `command_latency`, energy, area, leakage, power, `fec_latency`, `switch_latency`, `crossing_latency`, `Pipeline` fill/drain, router pipeline) is allowed at >= derived and rejected below it; a field kiln-ir cannot derive yet (energies, area, leakage, power, most latencies until kiln-phys exists) is rejected as unverifiable, and becomes allowed under the same rule once kiln-phys derives it; `family` is rejected; every performance-bearing field must be one 04 prices (E-IR-1104 lists unpriceable fields). Assumed constants come only from versioned data files. |
+| `search` | designs produced by the evolution loop (06) | **no unpriced performance** (06 "E-IR-UNPRICED" = E-IR-1101 and E-IR-1104; 00 decision 3: never rejects a change for being cost-neutral or cost-reducing): every performance override is compared with the value kiln derives from structure (kept next to the effective value in the expanded model, e.g. `bandwidth_derived`), regardless of `source` or legacy-import origin: a "more is better" field (bandwidth of on-chip memories, stacks, links/PHYs, DMA, switch `reduce_bandwidth`, `internal_bandwidth`, CIM `weight_write`, PHY `encoding_efficiency`, unit/CIM `@rate`, vector `class_rates` against table 6.3, special `fn_rates` against 1.0, scalar/special mode `@rate` against 1.0) is allowed at <= derived (1e-9 relative tolerance; a de-rate is cost-neutral) and rejected above it, with derived value, override and ratio in the message; a "less is better" field (latency, `command_latency`, energy, area, leakage, power, `fec_latency`, `switch_latency`, `crossing_latency`, `Pipeline` fill/drain, router pipeline) is allowed at >= derived and rejected below it; a field kiln-ir cannot derive yet (energies, area, leakage, power, most latencies until kiln-phys exists) is rejected as unverifiable, and becomes allowed under the same rule once kiln-phys derives it; `family` is rejected; every performance-bearing field must be one 04 prices (E-IR-1104 lists unpriceable fields). Assumed constants come only from versioned data files. |
 | `stream_compat` | legacy subset for differential testing vs the Stream fork (06 sec 2.3) | 1 chip; matrix/vector units with one precision each feeding one shared memory; <= 2 on-chip levels + 1 DRAM; bf16*bf16+fp32 only; no near-memory, no NoC topologies other than bus/p2p (E-IR-1105 names the first violating entity) |
 
 | Code | Check |

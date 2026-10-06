@@ -461,6 +461,15 @@ pub(crate) fn evaluate_with(
             let bt = bits[j];
             let mut a = LevelAccess { level: l, operand: si, to_low: c[0], from_high: c[1], to_high: c[2], from_low: c[3], ..Default::default() };
             a.dir_bytes = [0, 1, 2, 3].map(|d| bytes(c[d], bt[d]));
+            // 03 §2.4: of an output's writes up, those read back are partial sums at accumulator precision; the final
+            // pass carries the result at output precision.
+            let partial = |d: usize| if d == 3 { c[0] } else { c[1] };
+            let split = |d: usize| s.is_output && !p.compat && (d == 2 || d == 3) && partial(d) > 0 && bt[d] != s.bits;
+            for d in [2, 3] {
+                if split(d) {
+                    a.dir_bytes[d] = bytes(partial(d), bt[d]) + bytes(c[d].saturating_sub(partial(d)), s.bits);
+                }
+            }
             a.read_bytes = a.dir_bytes[0] + a.dir_bytes[2];
             a.write_bytes = a.dir_bytes[1] + a.dir_bytes[3];
             if !p.compat {
@@ -483,20 +492,17 @@ pub(crate) fn evaluate_with(
             let down_buf = j == 0 || buf[j - 1];
             let chunk = if n > 1 { dn[1] } else { dn[0] };
             let mut push = |dir: Direction, period: u64, amount: u64, buffered: bool| {
-                acts.push(Act {
-                    stream: si,
-                    j,
-                    dir,
-                    level: l,
-                    port: p.ports[si][j][dir_ix(dir)],
-                    period,
-                    count: ttot / period,
-                    amount,
-                    bits: bt[dir_ix(dir)],
-                    inst: inst[j],
-                    buffered,
-                    chunk,
-                })
+                let d = dir_ix(dir);
+                let count = ttot / period;
+                let act = |count: u64, bits: u32| Act { stream: si, j, dir, level: l, port: p.ports[si][j][d], period, count, amount, bits, inst: inst[j], buffered, chunk };
+                if split(d) {
+                    // The final pass first (the drain carries it), then the partial-sum passes.
+                    let fin = ((u128::from(count) * u128::from(c[d].saturating_sub(partial(d)))).div_ceil(u128::from(c[d].max(1))) as u64).min(count);
+                    acts.push(act(fin, s.bits));
+                    acts.push(act(count - fin, bt[d]));
+                } else {
+                    acts.push(act(count, bt[d]));
+                }
             };
             if s.is_output {
                 push(Direction::FromLow, per_dn[j], dn[j], down_buf);
@@ -686,8 +692,7 @@ fn native_latency(p: &Prep, acts: &[Act], ttot: u64, ev: &mut ClassEval) {
         .streams
         .iter()
         .position(|s| s.is_output)
-        .and_then(|si| acts.iter().find(|a| a.stream == si && a.j == 0 && a.dir == Direction::ToHigh))
-        .map_or(1, |a| a.count);
+        .map_or(1, |si| acts.iter().filter(|a| a.stream == si && a.j == 0 && a.dir == Direction::ToHigh).map(|a| a.count).sum::<u64>().max(1));
     ev.fill_drain = pl.fill + pl.drain + pl.issue_overhead * out_tiles;
 
     let fd = ev.onload + ev.offload + ev.fill_drain;

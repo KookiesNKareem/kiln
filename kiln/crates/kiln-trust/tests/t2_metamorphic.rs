@@ -206,9 +206,7 @@ fn m8_fp8_weights_halve_weight_bytes_only() {
 /// and a listed pair that passes is printed so the entry can be removed.
 const KNOWN: &[(&str, &str, &str)] = &[
     ("M1", "tpu_v4", "2x HBM bandwidth draws 190 W against the 192 W cap: the core clock throttles 1050 -> 893 MHz and the on-die links, which move a fixed width per core cycle, bind (0.60x, not 0.51x)"),
-    ("M2", "h100_sxm5_80gb", "2x units stretch the die (04 §6.2: unit area stretches the arrangement, never shortens a wire): longer NoC/memory paths add wire latency (ratio 1.0004x)"),
-    ("M2", "tpu_v6e", "2x units stretch the die (04 §6.2): longer NoC/memory paths add wire latency (ratio 1.0000x)"),
-    ("M2", "h100_pcie_80gb", "2x units stretch the die (04 §6.2): longer NoC/memory paths add wire latency (ratio 1.0000015x)"),
+    ("M2", "h100_sxm5_80gb", "2x units stretch the die (04 §6.2: unit area stretches the arrangement, never shortens a wire): longer NoC/memory paths add wire latency (ratio 1.00004x)"),
     ("M3", "a100_sxm4_40gb", "2x tensor cores per SM: GEMM 0.81x, the SM's L1/LSU port (128 B/clk, unchanged) becomes the binding resource"),
     ("M3", "h100_sxm5_80gb", "2x tensor cores per SM: GEMM 0.99x, wgmma reads a and b from shared memory, whose 128 B/clk port (unchanged) binds"),
     ("M3", "h100_pcie_80gb", "2x tensor cores per SM: GEMM 0.73x, the shared-memory operand port (unchanged) binds part of the time"),

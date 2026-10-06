@@ -156,6 +156,20 @@ pub fn expand(doc: &HwDoc, design_hash: &str, opts: &ExpandOptions) -> Result<(H
 }
 
 impl B<'_> {
+    /// Charges `n` synthesized instances against the expansion budget (E-IR-0210); false once it is exceeded.
+    fn charge(&mut self, n: u64, key: &str) -> bool {
+        self.used = self.used.saturating_add(n);
+        if self.used > self.max {
+            self.d.push_inst(
+                "budget",
+                Diagnostic::error("E-IR-0210", format!("expansion budget of {} instances exceeded at '{key}' (count {n})", self.max))
+                    .at(key)
+                    .hint("reduce the largest counts or raise ExpandOptions::max_instances"),
+            );
+        }
+        self.used <= self.max
+    }
+
     fn add_node(&mut self, parent: Option<usize>, key: &str, id: &str, inst: &Inst, ix: NodeIx) -> usize {
         let path = match parent {
             Some(p) => join(&self.m.nodes[p].path, &inst.id),
@@ -219,17 +233,7 @@ impl B<'_> {
             );
             return vec![];
         }
-        self.used = self.used.saturating_add(n);
-        if self.used > self.max {
-            self.d.push_inst(
-                "budget",
-                Diagnostic::error(
-                    "E-IR-0210",
-                    format!("expansion budget of {} instances exceeded at '{key}' (count {n})", self.max),
-                )
-                .at(&key)
-                .hint("reduce the largest counts or raise ExpandOptions::max_instances"),
-            );
+        if !self.charge(n, &key) {
             return vec![];
         }
         let ids = instance_ids(id, rep);
@@ -1115,6 +1119,14 @@ impl B<'_> {
         self.m.networks[ni].endpoints = groups.iter().flat_map(|g| g.nodes.iter().map(|&n| self.m.nodes[n].ix)).collect();
         let total: usize = groups.iter().map(|g| g.nodes.len()).sum();
         let too_small = |msg: String| Diagnostic::error("E-IR-0703", msg).at(&at);
+        let endpoint_chans = groups
+            .iter()
+            .map(|g| (g.nodes.len() as u64).saturating_mul(u64::from(g.mult)).saturating_mul(u64::from(g.port.count.max(1))))
+            .fold(0u64, u64::saturating_add);
+        if !self.charge(synthesized(&spec, total as u64).saturating_add(endpoint_chans), &at) {
+            return;
+        }
+        let chan0 = self.m.channels.len();
 
         let (dims, rlinks): (Vec<u32>, Vec<RouterLink>) = match &spec.topology {
             Topology::Bus { .. } | Topology::Crossbar { .. } => {
@@ -1129,7 +1141,7 @@ impl B<'_> {
                         }
                     }
                 }
-                self.radix_check(&spec, &at, total * groups.first().map_or(1, |g| g.mult as usize));
+                self.radix_check(ni, &spec, &at, chan0);
                 return;
             }
             Topology::P2p => {
@@ -1163,7 +1175,7 @@ impl B<'_> {
             Topology::Ring { rings, .. } => {
                 let r = if direct { total } else { total.max(1) } as u32;
                 let links = grid_links(&[r], &[true]);
-                let l = LinkSpec { count: spec.link.count * rings, ..spec.link.clone() };
+                let l = LinkSpec { count: spec.link.count.saturating_mul(*rings), ..spec.link.clone() };
                 (vec![r], links.into_iter().map(|(a, b, d)| (a, b, d, Some(l.clone()))).collect())
             }
             Topology::Mesh { dims } => (dims.clone(), grid_links(dims, &vec![false; dims.len()]).into_iter().map(|(a, b, d)| (a, b, d, None)).collect()),
@@ -1204,7 +1216,7 @@ impl B<'_> {
                         let child = (starts[lv as usize] + j) as usize;
                         let parent = (starts[lv as usize - 1] + j / a) as usize;
                         let cnt = if fat { a.pow(l - 1 - lv) as u32 } else { 1 };
-                        let ls = LinkSpec { count: spec.link.count * cnt, ..spec.link.clone() };
+                        let ls = LinkSpec { count: spec.link.count.saturating_mul(cnt), ..spec.link.clone() };
                         links.push((child, parent, lv as usize, Some(ls)));
                     }
                 }
@@ -1268,11 +1280,6 @@ impl B<'_> {
             }
         }
 
-        let mut degree = vec![0usize; n_routers];
-        for &(a, b, ..) in &rlinks {
-            degree[a] += 1;
-            degree[b] += 1;
-        }
         if direct {
             self.direct_links(ni, &spec, &at, &groups.iter().filter(|g| g.ports.is_some()).flat_map(|g| g.nodes.iter().map(move |&n| (n, g.ports.clone().unwrap_or_default()))).collect::<Vec<_>>(), &placement, &rlinks, n_routers, clock);
             return;
@@ -1301,18 +1308,27 @@ impl B<'_> {
             self.link_dir(routers[*a], routers[*b], &l, ChannelKind::NocHop, clock, Some(ni), None, both);
         }
         for (n, r, mult, port) in placement {
-            degree[r] += mult as usize;
             for _ in 0..mult {
                 self.link(self.m.nodes[n].ix, routers[r], &port, ChannelKind::NocHop, clock, Some(ni), None);
             }
         }
-        self.radix_check(&spec, &at, degree.into_iter().max().unwrap_or(0));
+        self.radix_check(ni, &spec, &at, chan0);
     }
 
-    fn radix_check(&mut self, spec: &Network, at: &str, degree: usize) {
-        if let Some(r) = spec.router.radix
-            && degree > r as usize
-        {
+    /// A declared radix must cover every channel a router of `ni` drives (all created from `chan0` on): kiln-phys
+    /// prices the declared radix, and derives it from exactly these channels when it is omitted.
+    fn radix_check(&mut self, ni: NetIx, spec: &Network, at: &str, chan0: usize) {
+        let Some(r) = spec.router.radix else { return };
+        let mut out: BTreeMap<usize, usize> = BTreeMap::new();
+        for c in &self.m.channels[chan0..] {
+            if let NodeIx::Router(ri) = c.src
+                && self.m.routers[ri].net == ni
+            {
+                *out.entry(ri).or_default() += 1;
+            }
+        }
+        let degree = out.into_values().max().unwrap_or(0);
+        if degree > r as usize {
             self.d.push(
                 Diagnostic::error("E-IR-0704", format!("router radix {r} < required degree {degree}"))
                     .at(at)
@@ -1665,6 +1681,29 @@ impl B<'_> {
             }
         }
         self.m.levels = lv;
+    }
+}
+
+/// Routers plus router-to-router channels a network topology synthesizes, saturating (charged to the budget).
+fn synthesized(spec: &Network, endpoints: u64) -> u64 {
+    let count = u64::from(spec.link.count.max(1));
+    match &spec.topology {
+        Topology::Bus { .. } | Topology::Crossbar { .. } => 1,
+        Topology::P2p | Topology::Star { .. } | Topology::Hierarchical { .. } => 0,
+        Topology::Ring { rings, .. } => endpoints.saturating_mul(1 + count.saturating_mul(u64::from(*rings))),
+        Topology::Mesh { dims } | Topology::Torus { dims, .. } => {
+            let r = dims.iter().try_fold(1u64, |a, &d| a.checked_mul(u64::from(d))).unwrap_or(u64::MAX);
+            r.saturating_mul(1 + count.saturating_mul(dims.len() as u64))
+        }
+        Topology::Custom { routers, edges } => edges.iter().fold(u64::from(*routers), |a, e| {
+            let per = u64::from(e.link.as_ref().map_or(spec.link.count, |l| l.count).max(1));
+            a.saturating_add(u64::from(e.count.max(1)).saturating_mul(per))
+        }),
+        Topology::Tree { arity, levels } | Topology::FatTree { arity, levels, .. } => {
+            let (a, l) = (u64::from((*arity).max(1)), (*levels).max(1));
+            let routers = (0..l).fold(0u64, |s, lv| s.saturating_add(a.saturating_pow(lv)));
+            routers.saturating_add(u64::from(l - 1).saturating_mul(a.saturating_pow(l - 1)).saturating_mul(count))
+        }
     }
 }
 

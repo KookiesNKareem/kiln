@@ -95,14 +95,14 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
     let avg_ok = if r.makespan_s > 0.0 {
         close(r.power.avg_w, r.energy.total_j / r.makespan_s)
     } else {
-        r.power.avg_w == 0.0
+        r.power.avg_w == 0.0 && r.energy.total_j == 0.0
     };
     if !avg_ok {
         out.push(
             Diagnostic::error(
                 "E-TRACE-POWER",
                 format!(
-                    "average power {} W != energy {} J / makespan {} s",
+                    "average power {} W, energy {} J and makespan {} s are inconsistent",
                     r.power.avg_w, r.energy.total_j, r.makespan_s
                 ),
             )
@@ -187,11 +187,48 @@ pub fn check_sim(r: &SimResult) -> Vec<Diagnostic> {
                 .at(&op),
             );
         }
+        let window = o
+            .group
+            .and_then(|g| r.groups.iter().find(|x| x.group == g))
+            .map_or(o.time_s(), |g| (g.end_s - g.start_s).max(o.time_s()));
+        for (k, f) in o.floors.iter().enumerate() {
+            let path = format!("{op}.floors[{k}]");
+            quantity(&mut out, &path, f.seconds);
+            if f.seconds > window * (1.0 + SUM_REL_TOL) {
+                out.push(
+                    Diagnostic::error(
+                        "E-FLOOR-I15",
+                        format!(
+                            "{:?} floor {} s above op time {window} s",
+                            f.kind, f.seconds
+                        ),
+                    )
+                    .at(path),
+                );
+            }
+        }
         energy(&mut out, &format!("{op}.energy"), &o.energy);
         if !close(o.energy.total_j, o.energy.component_sum()) {
             out.push(
                 Diagnostic::error("E-FLOOR-I6", "op energy total != sum of components")
                     .at(format!("{op}.energy")),
+            );
+        }
+    }
+    for g in &r.groups {
+        if !(g.start_s >= 0.0
+            && g.start_s <= g.end_s
+            && g.end_s <= r.makespan_s * (1.0 + SUM_REL_TOL))
+        {
+            out.push(
+                Diagnostic::error(
+                    "E-TRACE-SPAN",
+                    format!(
+                        "group span [{}, {}] s outside [0, makespan {}]",
+                        g.start_s, g.end_s, r.makespan_s
+                    ),
+                )
+                .at(format!("{p}.groups[{}]", g.group)),
             );
         }
     }
@@ -478,11 +515,21 @@ pub fn check_trace(t: &crate::trace::Trace) -> Vec<Diagnostic> {
             ));
             continue;
         }
+        if !a.energy_j.is_finite() || a.energy_j < 0.0 {
+            out.push(bad(
+                "E-TRACE-NUMBER",
+                format!(
+                    "aggregates_op_resource energy {} J of op {} / resource {} is not a finite nonnegative number",
+                    a.energy_j, a.op, a.resource
+                ),
+            ));
+        }
         e[a.op as usize] += a.energy_j;
         seen[a.op as usize] = true;
     }
     for (i, o) in t.ops.iter().enumerate() {
-        if seen[i] && (e[i] - o.energy_j).abs() > SUM_REL_TOL * o.energy_j.abs().max(1e-30) * 10.0 {
+        let d = (e[i] - o.energy_j).abs();
+        if seen[i] && (d.is_nan() || d > SUM_REL_TOL * o.energy_j.abs().max(1e-30) * 10.0) {
             out.push(
                 bad(
                     "E-TRACE-ENERGY",
@@ -628,6 +675,17 @@ pub fn check_result(r: &EvalResult) -> Vec<Diagnostic> {
                         .at(format!("{p}.{name}")),
                     );
                 }
+            }
+        }
+        for (k, x) in &ph.bound_breakdown {
+            if !(x.is_finite() && (-1e-6..=1.0 + 1e-6).contains(x)) {
+                out.push(
+                    Diagnostic::error(
+                        "E-TRACE-ATTRIBUTION",
+                        format!("bound_breakdown fraction {x} outside [0, 1]"),
+                    )
+                    .at(format!("{p}.bound_breakdown[{k}]")),
+                );
             }
         }
         let bound: f64 = ph.bound_breakdown.values().sum();
@@ -1182,6 +1240,7 @@ pub(crate) mod tests {
                 binding: b.clone(),
                 macs_useful: *macs,
                 macs_issued: *macs,
+                floors: vec![Floor { kind: FloorKind::Compute, path: None, seconds: makespan * f }],
                 ..s.ops[0].clone()
             }).collect();
             let json = serde_json::to_string(&s).unwrap();
@@ -1191,5 +1250,83 @@ pub(crate) mod tests {
             prop_assert_eq!(content_hash("x-", &v), content_hash("x-", &serde_json::to_value(&back).unwrap()));
             prop_assert!(check_sim(&s).is_empty());
         }
+    }
+
+    #[test]
+    fn op_floors_bound_op_time() {
+        let mut r = result();
+        r.sim[0].ops[0].floors[0].seconds = 1.0;
+        assert!(codes(&check_result(&r)).contains(&"E-FLOOR-I15"));
+        let mut s = sim(Corner::Central, 1.0);
+        s.ops[0].floors[0].seconds = f64::NAN;
+        assert!(codes(&check_sim(&s)).contains(&"E-TRACE-NUMBER"));
+        s.ops[0].floors[0].seconds = -1.0;
+        assert!(codes(&check_sim(&s)).contains(&"E-TRACE-NEGATIVE"));
+        let mut s = sim(Corner::Central, 1.0);
+        s.ops[0].end_s = 0.25;
+        s.ops[0].floors[0].seconds = 0.5;
+        assert!(codes(&check_sim(&s)).contains(&"E-FLOOR-I15"));
+        s.groups.push(GroupResult {
+            group: 0,
+            kind: GroupKind::Fused,
+            ops: vec![s.ops[0].op.clone()],
+            start_s: 0.0,
+            end_s: 1.0,
+            binding: Binding::Dependency,
+            bubble_s: 0.0,
+            exposed_overhead_s: 0.0,
+        });
+        assert!(check_sim(&s).is_empty(), "{:?}", check_sim(&s));
+        s.groups[0].kind = GroupKind::Single;
+        assert!(check_sim(&s).is_empty(), "{:?}", check_sim(&s));
+        s.groups[0].end_s = 2.0;
+        assert!(codes(&check_sim(&s)).contains(&"E-TRACE-SPAN"));
+        s.groups[0].end_s = 0.25;
+        assert!(codes(&check_sim(&s)).contains(&"E-FLOOR-I15"));
+    }
+
+    #[test]
+    fn zero_makespan_has_zero_energy() {
+        let mut z = sim(Corner::Central, 1.0);
+        z.makespan_s = 0.0;
+        z.t_a0_s = 0.0;
+        z.t_a2_s = 0.0;
+        z.power.avg_w = 0.0;
+        z.ops.clear();
+        z.resources.clear();
+        z.bottleneck.time_by_binding.clear();
+        assert!(codes(&check_sim(&z)).contains(&"E-TRACE-POWER"));
+        z.energy = EnergyBreakdown::default().with_total();
+        assert!(check_sim(&z).is_empty(), "{:?}", check_sim(&z));
+    }
+
+    #[test]
+    fn nan_aggregate_energy_is_rejected() {
+        let mut t = span_trace(10, &[]);
+        t.ops[0].energy_j = 1.0;
+        let row = |energy_j| crate::trace::AggOpResourceRow {
+            op: 0,
+            resource: 0,
+            time_s: 0.0,
+            energy_component: 0,
+            energy_j,
+        };
+        t.aggregates_op_resource = vec![row(1.0)];
+        assert!(check_trace(&t).is_empty(), "{:?}", check_trace(&t));
+        t.aggregates_op_resource = vec![row(f64::NAN)];
+        assert!(codes(&check_trace(&t)).contains(&"E-TRACE-NUMBER"));
+        assert!(codes(&check_trace(&t)).contains(&"E-TRACE-ENERGY"));
+        t.aggregates_op_resource = vec![row(2.0), row(-1.0)];
+        assert!(codes(&check_trace(&t)).contains(&"E-TRACE-NUMBER"));
+    }
+
+    #[test]
+    fn bound_fractions_lie_in_unit_interval() {
+        let mut r = result();
+        r.phases[0].bound_breakdown =
+            BTreeMap::from([("compute".into(), -1.0), ("dram".into(), 2.0)]);
+        assert!(codes(&check_result(&r)).contains(&"E-TRACE-ATTRIBUTION"));
+        r.phases[0].bound_breakdown = BTreeMap::from([("compute".into(), f64::NAN)]);
+        assert!(codes(&check_result(&r)).contains(&"E-TRACE-ATTRIBUTION"));
     }
 }

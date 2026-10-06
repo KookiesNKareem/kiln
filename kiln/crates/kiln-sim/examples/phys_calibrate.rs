@@ -126,22 +126,23 @@ fn components(p: &Prepared, rec: &Rec, cal: &Arc<CalibSet>) -> Comp {
         .map(|(i, _)| format!("l{}", v.hw.levels[i]))
         .collect();
     let dram_levels: Vec<String> = v.resources.iter().filter(|r| r.class == kiln_map::hwview::ResClass::Dram).map(|r| format!("l{}", r.level.unwrap_or(0))).collect();
-    let phy = v.phys.dram_phy_fraction();
     for (k, x) in &c.energy.memory_j {
         if dram_levels.contains(k) {
-            out.dram += x * (1.0 - phy);
-            out.fixed += x * phy;
+            out.dram += x;
         } else if rf_levels.contains(k) {
             out.rf += x;
         } else {
             out.sram += x;
         }
     }
+    let phy = kiln_sim::result::dram_phy_j(v, &c.resources);
+    out.dram -= phy;
+    out.fixed += phy;
     for (k, x) in &c.energy.link_j {
         if OFF_DIE.contains(&k.as_str()) { out.fixed += x } else { out.wire += x }
     }
     // Per run of the measured kernel: whole-step results are per step already; the bench GEMM is one call.
-    let pe = kiln_sim::result::phase_energy(v, &c.energy, c.makespan_s, &plan);
+    let pe = kiln_sim::result::phase_energy(v, &c.energy, &c.resources, c.makespan_s, &plan);
     out.activity = pe.activity;
     eprintln!("  {:<12} sim {:.3e} s vs meas {:.3e} s (ratio {:.3}), activity {:.2}; W at meas time: dp {:.1} rf {:.1} sram {:.1} wire {:.1} dram {:.1} fixed {:.1}; mem {:?} link {:?}", rec.name, c.makespan_s, rec.t_meas_s, c.makespan_s / rec.t_meas_s, out.activity, out.dp / rec.t_meas_s, out.rf / rec.t_meas_s, out.sram / rec.t_meas_s, out.wire / rec.t_meas_s, out.dram / rec.t_meas_s, out.fixed / rec.t_meas_s, c.energy.memory_j.iter().map(|(k, v)| format!("{k}:{:.1}", v / rec.t_meas_s)).collect::<Vec<_>>(), c.energy.link_j.iter().map(|(k, v)| format!("{k}:{:.1}", v / rec.t_meas_s)).collect::<Vec<_>>());
     out

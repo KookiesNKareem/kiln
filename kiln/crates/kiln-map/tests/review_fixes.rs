@@ -28,7 +28,7 @@ fn infeasible_tiles_are_errors_not_roofline_estimates() {
     let u = &v.units[v.pool(Pool::Mac)[0]];
     let caps = vec![1u64; u.private.max(1)];
     let mems: Vec<usize> = u.chain[..caps.len()].iter().map(|&g| v.groups[g].mems[0]).collect();
-    let q = NestQuery { prog: &prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], gang: u.members.len() as u32, quick: true };
+    let q = NestQuery { prog: &prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
     let kc = KilnCost::new();
     let e = kc.cost(&q).expect_err("one byte holds no tile");
     assert_eq!(e.code, "E-COST-INFEASIBLE", "{e:?}");
@@ -41,14 +41,15 @@ fn variant(name: &str, from: &str, to: &str) -> HwView {
     assert!(src.contains(from), "{from}");
     let dir = std::env::temp_dir().join(format!("kiln-map-review-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("tmp");
-    let p = dir.join(format!("{}-{name}", to.len()));
+    static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let p = dir.join(format!("{}-{name}", N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
     std::fs::write(&p, src.replace(from, to)).expect("write");
     HwView::new(Arc::new(check_file(&p, Profile::Reference).model.expect("expands"))).expect("view")
 }
 
 fn whole_query<'a>(v: &'a HwView, prog: &'a Program, op: &'a kiln_map::program::POp, s: &'a kiln_map::geom::Slice) -> NestQuery<'a> {
     let u = &v.units[v.pool(Pool::Mac)[0]];
-    NestQuery { prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], gang: u.members.len() as u32, quick: true }
+    NestQuery { prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true }
 }
 
 #[test]
@@ -173,12 +174,16 @@ fn staged_copies_never_outlive_a_write() {
     let v = view("a100_sxm4_40gb.json5");
     let prog = program("llama3_8b:decode_b8");
     let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
-    // A contraction reading a tensor an earlier op writes.
+    // A contraction reading a tensor an earlier op writes (and no private temps, which only its own node produces).
+    let private = |t: usize| m.tensors.get(&prog.tensors[prog.root(t)].id).is_some_and(|p| p.lifetime == kiln_map::mapping::Lifetime::Private);
     let (c, p) = (0..prog.ops.len())
-        .filter(|&c| prog.ops[c].class() == KernelClass::Contraction && prog.placed(c))
+        .filter(|&c| prog.ops[c].class() == KernelClass::Contraction && prog.placed(c) && !prog.ops[c].operands.iter().any(|o| private(o.tensor)))
         .find_map(|c| {
             let ins: Vec<usize> = prog.ops[c].operands.iter().filter(|o| o.access.reads()).map(|o| prog.root(o.tensor)).collect();
-            (0..c).rev().find(|&p| prog.placed(p) && prog.ops[p].operands.iter().any(|o| o.access.writes() && ins.contains(&prog.root(o.tensor)))).map(|p| (c, p))
+            (0..c)
+                .rev()
+                .find(|&p| prog.placed(p) && !prog.ops[p].operands.iter().any(|o| o.access.reads() && private(o.tensor)) && prog.ops[p].operands.iter().any(|o| o.access.writes() && ins.contains(&prog.root(o.tensor))))
+                .map(|p| (c, p))
         })
         .expect("a producer and its consumer");
     let mut l = Lowerer::new(&prog, &v, &m, &kiln_map::RooflineCost).unwrap();
@@ -377,7 +382,7 @@ fn map_cost(v: &HwView, prog: &Program, oi: usize) -> Result<kiln_map::NestCost,
     let op = &prog.ops[oi];
     let s = Lowerer::slices(op, &placement(op, 0, vec![], 1)).swap_remove(0);
     let u = &v.units[v.pool(Pool::Vector)[0]];
-    let q = NestQuery { prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], gang: u.members.len() as u32, quick: true };
+    let q = NestQuery { prog, op, slice: &s, points: kiln_map::geom::slice_points(op, &s), hw: &v.hw, unit: u.unit, level_caps: &[], level_mems: &[], level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
     kiln_map::RooflineCost.cost(&q)
 }
 
@@ -417,7 +422,7 @@ fn combine_cycles(v: &HwView) -> Result<f64, kiln_ir::common::Diagnostic> {
         .filter(|t| t.kind == kiln_map::lower::TaskKind::Reduce)
         .flat_map(|t| l.g.demands_of(t))
         .map(|a| match *a {
-            kiln_map::lower::Amount::Res(_, x) => x,
+            kiln_map::lower::Amount::Res(r, x) if v.resources[r as usize].kind == kiln_trace::sim::ResourceKind::ComputeUnit => x,
             _ => 0.0,
         })
         .sum())
@@ -460,4 +465,203 @@ fn vector_work_stays_beside_the_mac_feed() {
     let kc = KilnCost::new();
     let e = kiln_map::heuristic::heuristic_lowered(&prog, &v, &kc, &kiln_map::heuristic::MapOptions::default()).expect_err("the conversion's partials never reach the vector unit");
     assert_eq!(e.code, "E-MAP-OP-004", "{e:?}");
+}
+
+#[test]
+fn vector_modes_hold_every_operand_precision() {
+    use kiln_ir::precision::Precision;
+    let prog = program("llama3_8b:prefill_b1");
+    let float = |p: &Program, oi: usize| p.ops[oi].operands.iter().map(|o| p.tensors[o.tensor].dtype.scalar.compute()).filter(|x| x.is_float()).collect::<Vec<_>>();
+    let oi = (0..prog.ops.len())
+        .find(|&i| prog.ops[i].class() == KernelClass::Map && float(&prog, i).first() == Some(&Precision::Bf16) && float(&prog, i).contains(&Precision::Fp32))
+        .expect("a map kernel over bf16 and fp32 operands");
+    let e = map_cost(&alu_modes("\"bf16@4\""), &prog, oi).expect_err("a bf16-only ALU cannot hold the fp32 operand");
+    assert_eq!(e.code, "E-MAP-PREC-002", "{e:?}");
+    assert!(map_cost(&alu_modes("\"fp32@1\""), &prog, oi).unwrap().mode.starts_with("fp32"));
+    let mut ints = prog.clone();
+    let ts: Vec<usize> = ints.ops[oi].operands.iter().map(|o| o.tensor).collect();
+    for t in ts {
+        ints.tensors[t].dtype = kiln_ir::wl::ElemType::plain(Precision::Int32);
+    }
+    let c = map_cost(&alu_modes("\"int32@1\""), &ints, oi).expect("an int32 kernel runs on an int32 ALU");
+    assert!(c.mode.starts_with("int32"), "{}", c.mode);
+}
+
+#[test]
+fn homes_name_exactly_one_memory_group() {
+    let v = view("a100_sxm4_40gb.json5");
+    let prog = Program::bench_op(&kiln_ir::bench::BenchOp::gemm(64, 64, 4096, true)).unwrap();
+    let (mut m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    let hbm = v.offchip.unwrap();
+    let stacks = v.group_paths(hbm);
+    assert!(stacks.len() > 1);
+    let tp = m.tensors.values_mut().find(|t| t.home.first().is_some_and(|h| h.mems == stacks)).expect("an HBM-homed tensor");
+    tp.home[0].mems = vec![stacks[0].clone()];
+    let codes: Vec<String> = m.validate(&prog, &v).into_iter().map(|d| d.code).collect();
+    assert!(codes.contains(&"E-MAP-VAL-011".to_string()), "one stack of an interleaved group: {codes:?}");
+    assert!(kiln_map::lower(&prog, &v, &m, &kiln_map::RooflineCost).is_err(), "lowered over all {} stacks", stacks.len());
+}
+
+#[test]
+fn private_reads_need_every_element_produced_in_their_span() {
+    use kiln_map::mapping::Lifetime;
+    let v = view("a100_sxm4_40gb.json5");
+    let prog = program("llama3_8b:decode_b8");
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    // The first KV-cache append and the first op reading the cache after it.
+    let (p, c, t) = (0..prog.ops.len())
+        .filter(|&p| prog.placed(p) && prog.ops[p].class() == KernelClass::Scatter)
+        .find_map(|p| {
+            let t = prog.ops[p].operands.iter().find(|o| o.access.writes())?.tensor;
+            let t = prog.root(t);
+            let c = (p + 1..prog.ops.len()).find(|&c| prog.placed(c) && prog.ops[c].operands.iter().any(|o| o.access.reads() && prog.root(o.tensor) == t))?;
+            Some((p, c, t))
+        })
+        .expect("an append and its reader");
+    let mut bad = m.clone();
+    bad.tensors.get_mut(&prog.tensors[t].id).unwrap().lifetime = Lifetime::Private;
+    let gp = bad.groups.iter().position(|g| g.ops.contains(&prog.ops[p].id)).unwrap();
+    let gc = bad.groups.iter().position(|g| g.ops.contains(&prog.ops[c].id)).unwrap();
+    for g in &mut bad.groups[gp..gc] {
+        g.barrier_after = false;
+    }
+    let codes: Vec<String> = bad.validate(&prog, &v).into_iter().map(|d| d.code).collect();
+    assert!(codes.contains(&"E-MAP-VAL-017".to_string()), "the append writes one row of the cache, the reader reads all: {codes:?}");
+    let e = kiln_map::lower(&prog, &v, &bad, &kiln_map::RooflineCost).expect_err("unproduced rows have no source");
+    assert_eq!(e.code, "E-MAP-VAL-017", "{e:?}");
+}
+
+/// Most bytes of non-resident tensors homed on group `g` live at once (a tensor lives from the first op touching it to
+/// the last, model state for the whole program).
+fn live_peak(prog: &Program, m: &kiln_map::Mapping, v: &HwView, g: usize) -> u128 {
+    use kiln_map::mapping::Lifetime;
+    let n = prog.ops.len();
+    let mut live = vec![0u128; n];
+    for (id, tp) in &m.tensors {
+        if tp.lifetime == Lifetime::Resident {
+            continue;
+        }
+        let t = prog.tensor(id).unwrap();
+        let bytes: u128 = tp.home.iter().filter(|h| v.group_by_paths(&h.mems) == Some(g)).map(|h| prog.tensors[t].bytes(h.region.lo.iter().zip(&h.region.hi).map(|(l, h)| u128::from(h - l)).product())).sum();
+        let uses: Vec<usize> = (0..n).filter(|&i| prog.ops[i].operands.iter().any(|o| prog.root(o.tensor) == t)).collect();
+        let (a, b) = if prog.tensors[t].model_state() { (0, n - 1) } else { (*uses.first().unwrap_or(&0), *uses.last().unwrap_or(&0)) };
+        live[a..=b].iter_mut().for_each(|x| *x += bytes);
+    }
+    live.into_iter().max().unwrap_or(0)
+}
+
+#[test]
+fn live_activations_fit_their_on_chip_home() {
+    use kiln_map::mapping::{Home, Lifetime, TensorRegion};
+    // Decode b8's 64 KiB activations each fit 128 KiB of vmem; three of them are live at once.
+    let v = variant("tpu_v5e.json5", "vmem_cap: \"128MiB\"", "vmem_cap: \"128KiB\"");
+    let prog = program("llama3_8b:decode_b8");
+    let s = v.shared_onchip().expect("vmem");
+    let cap = u128::from(v.groups[s].capacity);
+    let opts = kiln_map::heuristic::MapOptions { onchip_activation_fraction: 1.0, ..Default::default() };
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &opts).unwrap();
+    assert!(m.validate(&prog, &v).is_empty(), "{:?}", m.validate(&prog, &v));
+    let peak = live_peak(&prog, &m, &v, s);
+    assert!(peak > 0 && peak <= cap, "{peak} B of activations live at once in {cap} B of vmem");
+    // Every activation that fits vmem on its own, homed there.
+    let mut all = m.clone();
+    for (id, tp) in all.tensors.iter_mut() {
+        let t = &prog.tensors[prog.tensor(id).unwrap()];
+        if matches!(tp.lifetime, Lifetime::Spilled { .. } | Lifetime::Streamed) && t.class == kiln_ir::wl::TensorClass::Activation && t.footprint() <= cap {
+            *tp = kiln_map::mapping::TensorPlacement { home: vec![Home { region: TensorRegion { lo: vec![0; t.shape.len()], hi: t.shape.clone() }, mems: v.group_paths(s) }], interleave_granule_b: None, lifetime: Lifetime::Streamed };
+        }
+    }
+    assert!(live_peak(&prog, &all, &v, s) > cap);
+    let codes: Vec<String> = all.validate(&prog, &v).into_iter().map(|d| d.code).collect();
+    assert!(codes.contains(&"E-MAP-CAP-003".to_string()), "{codes:?}");
+}
+
+#[test]
+fn slices_are_costed_at_their_position() {
+    use kiln_map::mapping::SplitAxis;
+    let v = view("ember.json5");
+    let prog = mx_gemm(64, 256, 64);
+    let op = &prog.ops[0];
+    let a = op.mac.as_ref().unwrap().a;
+    // k slices [0, 2) and [31, 33): equal extents, one and two blocks of 32 scales.
+    let split = vec![SplitAxis { dim: "k".into(), parts: vec![2, 29, 2, 31] }];
+    let slices = Lowerer::slices(op, &placement(op, 0, split.clone(), 1));
+    let kc = KilnCost::new();
+    let fed = |s: &kiln_map::geom::Slice| kc.cost(&whole_query(&v, &prog, op, s)).unwrap().feed_bytes[a];
+    assert_eq!(fed(&slices[2]) - fed(&slices[0]), 64.0, "64 rows read one more E8M0 scale each");
+    // Lowered, the second slice must not reuse the first's cost.
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    let u = v.pool(Pool::Mac)[0];
+    let feed = v.units[u].feed_in.iter().find(|x| x.0 == kiln_ir::hw::compute::OperandRole::A).unwrap().1;
+    let mut l = Lowerer::new(&prog, &v, &m, &kc).unwrap();
+    l.begin_group(String::new(), &single_group(&op.id), None);
+    l.lower_op(0, &placement(op, 0, split, 1), &[u], true).unwrap();
+    let per_task: Vec<f64> = l
+        .g
+        .tasks
+        .iter()
+        .filter(|t| t.kind == kiln_map::lower::TaskKind::Compute)
+        .map(|t| l.g.demands_of(t).iter().map(|d| if let kiln_map::lower::Amount::Res(r, x) = *d { if r == feed { x } else { 0.0 } } else { 0.0 }).sum())
+        .filter(|&x: &f64| x > 0.0)
+        .collect();
+    assert_eq!(per_task.len(), 4, "{per_task:?}");
+    assert_eq!(per_task[2] - per_task[0], 64.0, "{per_task:?}");
+}
+
+/// MAC compute cycles of a lowered 1024^3 gemm on `v` with every operand homed on group `g`.
+fn mac_cycles_homed(v: &HwView, g: usize) -> f64 {
+    let prog = Program::bench_op(&kiln_ir::bench::BenchOp::gemm(1024, 1024, 1024, true)).unwrap();
+    let (mut m, _) = kiln_map::heuristic(&prog, v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    for tp in m.tensors.values_mut() {
+        tp.home.iter_mut().for_each(|h| h.mems = v.group_paths(g));
+        tp.lifetime = kiln_map::mapping::Lifetime::Streamed;
+    }
+    assert!(m.validate(&prog, v).is_empty(), "{:?}", m.validate(&prog, v));
+    let g = kiln_map::lower(&prog, v, &m, &KilnCost::new()).unwrap();
+    let mac: Vec<u32> = v.pool(Pool::Mac).iter().flat_map(|&u| v.units[u].members.iter().map(|&x| v.units[x].compute)).collect();
+    g.tasks.iter().flat_map(|t| g.demands_of(t)).map(|a| if let kiln_map::lower::Amount::Res(r, x) = *a { if mac.contains(&r) { x } else { 0.0 } } else { 0.0 }).sum()
+}
+
+#[test]
+fn operand_residency_reaches_the_unit_cost_model() {
+    // HBM so slow that refilling from it would dominate; operands homed in vmem never touch it.
+    let v = variant("tpu_v5e.json5", "hbm_pin: \"3.2Gbps\"", "hbm_pin: \"0.01Gbps\"");
+    let (vmem, hbm) = (v.shared_onchip().unwrap(), v.offchip.unwrap());
+    let (on_chip, off_chip) = (mac_cycles_homed(&v, vmem), mac_cycles_homed(&v, hbm));
+    assert!(on_chip < 0.5 * off_chip, "{on_chip} cycles from vmem vs {off_chip} from HBM");
+    let fast = view("tpu_v5e.json5");
+    assert_eq!(on_chip, mac_cycles_homed(&fast, fast.shared_onchip().unwrap()), "HBM speed changed the cost of vmem-resident operands");
+}
+
+#[test]
+fn vector_work_moves_its_bytes_through_the_vector_feed() {
+    use kiln_map::mapping::SplitAxis;
+    let v = view("a100_sxm4_40gb.json5");
+    let prog = Program::bench_op(&kiln_ir::bench::BenchOp::gemm(64, 64, 4096, true)).unwrap();
+    let (m, _) = kiln_map::heuristic(&prog, &v, &kiln_map::RooflineCost, &kiln_map::heuristic::MapOptions::default()).unwrap();
+    let op = &prog.ops[0];
+    let units = v.pool(Pool::Mac);
+    let p = placement(op, 0, vec![SplitAxis { dim: "k".into(), parts: vec![2048, 2048] }], units.len());
+    let kc = KilnCost::new();
+    let mut l = Lowerer::new(&prog, &v, &m, &kc).unwrap();
+    l.begin_group(String::new(), &single_group(&op.id), None);
+    l.lower_op(0, &p, &units, true).unwrap();
+    let vec_units: Vec<usize> = v.pool(Pool::Vector).iter().flat_map(|&x| v.units[x].members.clone()).collect();
+    let feeds: Vec<u32> = vec_units.iter().flat_map(|&x| v.units[x].feed_in.iter().chain(&v.units[x].feed_out).map(|f| f.1)).collect();
+    let bytes = |kind: kiln_map::lower::TaskKind| -> f64 {
+        l.g.tasks.iter().filter(|t| t.kind == kind).flat_map(|t| l.g.demands_of(t)).map(|a| if let kiln_map::lower::Amount::Res(r, x) = *a { if feeds.contains(&r) { x } else { 0.0 } } else { 0.0 }).sum()
+    };
+    // The combine reads two fp32 partials and writes one per output element.
+    assert!(bytes(kiln_map::lower::TaskKind::Reduce) >= 64.0 * 64.0 * 4.0 * 3.0, "{}", bytes(kiln_map::lower::TaskKind::Reduce));
+    // The down-conversion and any scale passes read accumulators and write results on the vector unit.
+    assert!(bytes(kiln_map::lower::TaskKind::Compute) >= 64.0 * 64.0 * (4.0 + 2.0), "{}", bytes(kiln_map::lower::TaskKind::Compute));
+}
+
+#[test]
+fn vector_units_sharing_a_feed_still_gang_per_sm() {
+    // Two ALUs per SMSP register file: an SM's eight ALUs are one mappable unit, as its tensor cores are.
+    let v = variant("a100_sxm4_40gb.json5", "{ id: \"alu\", kind: \"vector\", lanes: 16,", "{ id: \"alu\", kind: \"vector\", count: 2, lanes: 16,");
+    let pool = v.pool(Pool::Vector);
+    assert_eq!(pool.len(), 108);
+    assert_eq!(v.units[pool[0]].members.len(), 8);
 }

@@ -2298,7 +2298,8 @@ fn quantize(ctx: &NodeCtx, a: &QuantizeAttrs) -> Out {
     let n = ctx.node;
     let mut kb = Kb::new(ctx);
     let h = H::new(ctx).all_inputs().all_outputs();
-    let group = scale_group(ctx, &out_t, x)?.filter(|_| a.amax_from == AmaxFrom::Dynamic);
+    let group = scale_group(ctx, &out_t, x)?
+        .filter(|&g| g > 0 && a.amax_from == AmaxFrom::Dynamic);
     let Some(g) = group else {
         let cast = ScalarBody { cvt: 1, ..Z };
         kb.push(

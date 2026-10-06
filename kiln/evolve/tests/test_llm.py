@@ -185,3 +185,52 @@ def test_multiple_completions_cannot_bypass_the_reservation(tmp_path):
             "budget": {"max_usd": 0.1}}
     with pytest.raises(C.ConfigError, match="extra_body.n"):
         C.finalize(base, tmp_path)
+
+
+@pytest.mark.parametrize("backend,response", [
+    ("openai", {"choices": [{"message": {"content": "valid"}}]}),
+    ("openai", {"choices": [{"message": {"content": "valid"}}], "usage": {"prompt_tokens": 10}}),
+    ("openai", {"choices": [{"message": {"content": "valid"}}],
+                "usage": {"prompt_tokens": -5, "completion_tokens": "7"}}),
+    ("anthropic", {"content": [{"type": "text", "text": "valid"}]}),
+    ("anthropic", {"content": [{"type": "text", "text": "valid"}],
+                   "usage": {"input_tokens": 10, "output_tokens": 5, "cache_read_input_tokens": -1}}),
+])
+def test_missing_usage_is_charged_at_the_reservation(monkeypatch, backend, response):
+    monkeypatch.setenv("TEST_KEY", "sk-test")
+    monkeypatch.setattr(L, "_post", lambda *a, **k: response)
+    price = {"input": 1.0, "output": 1.0}
+    spend = L.Spend(price, 1.0)
+    b = L.make_backend(_llm_cfg(backend=backend, model="m", base_url="http://x/v1", api_key_env="TEST_KEY",
+                                max_tokens=1000, price_usd_per_mtok=price), spend)
+    c = b.complete("s", "u")
+    worst = spend.cost(2 + L.PROMPT_OVERHEAD_TOKENS + 2, 1000)
+    assert worst > 0 and c.text == "valid" and c.cost_usd == pytest.approx(worst)
+    assert spend.spent_usd == pytest.approx(worst) and spend._reserved == 0
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -1.0, True])
+def test_non_finite_prices_and_limits_are_rejected(tmp_path, bad):
+    base = {"llm": {"backend": "openai", "model": "m", "base_url": "http://x/v1", "api_key_env": "K",
+                    "price_usd_per_mtok": {"input": bad, "output": 1}}, "budget": {"max_usd": 0.001}}
+    with pytest.raises(C.ConfigError, match="price_usd_per_mtok.input"):
+        C.finalize(base, tmp_path)
+    base = C._merge(base, {"llm": {"price_usd_per_mtok": {"input": 1}}, "budget": {"max_usd": bad}})
+    with pytest.raises(C.ConfigError, match="max_usd"):
+        C.finalize(base, tmp_path)
+    with pytest.raises(ValueError):
+        L.Spend({"input": bad, "output": 1.0}, 1.0)
+    with pytest.raises(ValueError):
+        L.Spend({"input": 1.0, "output": 1.0}, bad)
+
+
+def test_torn_ledger_tail_does_not_swallow_the_next_reservation(tmp_path):
+    ledger = tmp_path / "spend.jsonl"
+    s = L.Spend({"input": 0.0, "output": 1.0}, 10.0, ledger=ledger)
+    s.settle(s.reserve(0, 100_000), 0, 100_000)
+    with open(ledger, "a") as f:
+        f.write('{"op":')
+    s = L.Spend({"input": 0.0, "output": 1.0}, 10.0, ledger=ledger)
+    assert s.spent_usd == pytest.approx(0.1)
+    s.reserve(0, 500_000)  # $0.50 in flight, then the process dies
+    assert L.Spend({"input": 0.0, "output": 1.0}, 10.0, ledger=ledger).spent_usd == pytest.approx(0.6)

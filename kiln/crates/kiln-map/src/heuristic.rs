@@ -78,13 +78,18 @@ fn whole(shape: &[u64]) -> TensorRegion {
 }
 
 /// Homes (03 §3.4): model state and graph I/O off chip; fused temps private; other activations on the
-/// shared on-chip level when small enough, else off chip; isolated programs keep everything off chip.
+/// shared on-chip level when small enough and while the activations live there at once fit it (next to the model
+/// state on a design without off-chip memory), else off chip; isolated programs keep everything off chip.
 pub fn place_tensors(prog: &Program, view: &HwView, opts: &MapOptions, report: &mut MapReport) -> Result<IndexMap<String, TensorPlacement>, Diagnostic> {
     let top = view.offchip.or_else(|| view.shared_onchip()).ok_or_else(|| Diagnostic::error("E-MAP-CAP-002", "design has no memory every unit can reach"))?;
     let shared = view.shared_onchip();
     let mut out = IndexMap::new();
     let mut resident: u128 = 0;
-    for t in &prog.tensors {
+    let ranges = prog.live_ranges();
+    let mut live = vec![0u128; prog.ops.len()];
+    let state: u128 = prog.tensors.iter().filter(|t| t.alias_of.is_none() && t.model_state()).map(|t| t.footprint()).sum();
+    let free = shared.map_or(0, |s| u128::from(view.groups[s].capacity).saturating_sub(if s == top { prog.resident_bytes.map_or(state, |r| r.max(state)) } else { 0 }));
+    for (i, t) in prog.tensors.iter().enumerate() {
         if t.alias_of.is_some() {
             continue;
         }
@@ -101,8 +106,13 @@ pub fn place_tensors(prog: &Program, view: &HwView, opts: &MapOptions, report: &
         } else if prog.kind == ProgramKind::Isolated || !matches!(t.class, kiln_ir::wl::TensorClass::Activation) {
             home(top, Lifetime::Streamed)
         } else {
+            let fp = t.footprint();
+            let r = ranges[i].map_or(0..0, |(a, b)| a..b + 1);
             match shared {
-                Some(s) if (t.footprint() as f64) <= view.groups[s].capacity as f64 * opts.onchip_activation_fraction => home(s, Lifetime::Streamed),
+                Some(s) if (fp as f64) <= view.groups[s].capacity as f64 * opts.onchip_activation_fraction && live[r.clone()].iter().all(|&x| x + fp <= free) => {
+                    live[r].iter_mut().for_each(|x| *x += fp);
+                    home(s, Lifetime::Streamed)
+                }
                 _ => home(top, Lifetime::Spilled { to: view.group_paths(top) }),
             }
         };
@@ -241,20 +251,6 @@ fn supports(view: &HwView, u: usize, a: kiln_ir::precision::Precision, b: kiln_i
     use kiln_wl::convert::accepts;
     view.hw.units[view.units[u].unit].spec.precisions.iter().any(|m| {
         matches!(m, kiln_ir::hw::compute::PrecisionMode::Mac { a: x, b: y, .. } if accepts(x.precision, a) && accepts(y.precision, b))
-    })
-}
-
-fn vector_precision(prog: &Program, op: &POp) -> kiln_ir::precision::Precision {
-    op.operands
-        .iter()
-        .map(|o| prog.tensors[o.tensor].dtype.scalar.compute())
-        .find(|p| p.is_float())
-        .unwrap_or(kiln_ir::precision::Precision::Fp32)
-}
-
-fn supports_elem(view: &HwView, u: usize, p: kiln_ir::precision::Precision) -> bool {
-    view.hw.units[view.units[u].unit].spec.precisions.iter().any(|m| {
-        matches!(m, kiln_ir::hw::compute::PrecisionMode::Elem { dtype, .. } if dtype.precision == p || dtype.precision == kiln_ir::precision::Precision::Fp32)
     })
 }
 
@@ -436,10 +432,11 @@ pub fn heuristic_lowered(
                 let (pa, pb) = mac_precisions(prog, op);
                 (format!("mac.{}x{}", pa.name(), pb.name()), balanced_prefix(view, mac.iter().copied().filter(|&u| supports(view, u, pa, pb)).collect()))
             } else {
-                // Vector work runs at its precision or in fp32 (01 §6); units with neither cannot take it.
-                let p = vector_precision(prog, op);
-                let ok = balanced_prefix(view, all_vec.iter().copied().filter(|&u| supports_elem(view, u, p)).collect());
-                (if ok == vec { "vector".into() } else { format!("vector.{}", p.name()) }, ok)
+                // Vector work runs in a mode holding every operand precision (01 §6); units without one cannot take it.
+                let dts = crate::cost::vector_dtypes(prog, op);
+                let ok = balanced_prefix(view, all_vec.iter().copied().filter(|&u| crate::cost::vector_mode(&view.hw, view.units[u].unit, &dts).is_ok()).collect());
+                let names: Vec<&str> = dts.iter().map(|p| p.name()).collect();
+                (if ok == vec { "vector".into() } else { format!("vector.{}", names.join("+")) }, ok)
             };
             let set = match mapping.unit_sets.iter().position(|s| s.name == name) {
                 Some(s) => s,

@@ -169,6 +169,8 @@ pub struct Program {
     pub window: Option<(u32, u64)>,
     /// Resident model state of the whole model (all layers), when known (02 `StepStats::resident`).
     pub resident_bytes: Option<u128>,
+    /// Active sequences of the lowered step (software-stack `tokens_per_seq` conditions), when known.
+    pub seqs: Option<u64>,
     op_index: std::collections::BTreeMap<String, usize>,
     sigs: Vec<u32>,
     /// Per op: the `(contraction, operand)` a convert op is fused into (03 §3.6 operand fusion).
@@ -218,6 +220,25 @@ impl Program {
         r.into_iter().find(|&c| self.fused[c] == Some((op as u32, oi as u32))).map(|c| (self.ops[c].operands[0].tensor, c)).filter(|_| self.tensors[t].temp)
     }
 
+    /// Per tensor, by root: the program-order ops `(first, last)` it is live over, from the first op touching it to
+    /// the last; model state over the whole program. None for views and unused tensors.
+    pub fn live_ranges(&self) -> Vec<Option<(usize, usize)>> {
+        let mut r: Vec<Option<(usize, usize)>> = vec![None; self.tensors.len()];
+        for (i, op) in self.ops.iter().enumerate() {
+            for o in &op.operands {
+                let x = &mut r[self.root(o.tensor)];
+                *x = Some(x.map_or((i, i), |(a, _)| (a, i)));
+            }
+        }
+        let last = self.ops.len().saturating_sub(1);
+        for (t, x) in r.iter_mut().enumerate() {
+            if self.tensors[t].alias_of.is_none() && self.tensors[t].model_state() {
+                *x = Some((0, last));
+            }
+        }
+        r
+    }
+
     /// Ops with a placement of their own (not layout views, not fused converts).
     pub fn placed(&self, op: usize) -> bool {
         !self.ops[op].is_layout() && self.fused[op].is_none()
@@ -241,7 +262,7 @@ impl Program {
             for n in &lg.nodes {
                 b.node(n, None, &|_, o| o.root.as_str().to_string())?;
             }
-            return Ok(b.finish(None));
+            return Ok(Program { seqs: lg.seqs, ..b.finish(None) });
         };
         let prefix = format!("{rid}.");
         let body: Vec<&LoweredNode> = lg.nodes.iter().filter(|n| n.path.starts_with(&prefix)).collect();
@@ -276,7 +297,7 @@ impl Program {
         for n in lg.nodes[first_body..].iter().filter(|n| !n.path.starts_with(&prefix)) {
             b.node(n, None, &outer)?;
         }
-        Ok(b.finish(Some((w, count))))
+        Ok(Program { seqs: lg.seqs, ..b.finish(Some((w, count))) })
     }
 
     /// Each lowered node once, as an isolated op (02 §12.6 `isolated{cold}`); multiplicities are not expanded.
@@ -285,7 +306,7 @@ impl Program {
         for n in &lg.nodes {
             b.node(n, None, &|_, o| o.root.as_str().to_string())?;
         }
-        Ok(b.finish(None))
+        Ok(Program { seqs: lg.seqs, ..b.finish(None) })
     }
 
     /// A single-kernel program for a GEMM-family bench descriptor (06 §4.2), operands cold off-chip.
@@ -462,7 +483,7 @@ impl Builder {
             })
             .collect();
         let fused = fused_converts(&self.ops, &self.nodes, &self.list);
-        Program { kind: self.kind, tensors: self.list, ops: self.ops, nodes: self.nodes, window, resident_bytes: None, op_index, sigs, fused }
+        Program { kind: self.kind, tensors: self.list, ops: self.ops, nodes: self.nodes, window, resident_bytes: None, seqs: None, op_index, sigs, fused }
     }
 }
 

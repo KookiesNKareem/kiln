@@ -94,3 +94,18 @@ def test_explain_dict_and_render_stub(session):
     assert kiln.explain(r.to_dict()) == r.explain()
     with pytest.raises(NotImplementedError, match="E-NOT-IMPLEMENTED"):
         kiln.render(r, view="floorplan")
+
+
+@pytest.mark.parametrize("kind", ["perf_per_area", "perf_per_watt"])
+def test_score_rel_width_describes_the_final_fitness_interval(session, kind):
+    d = session.evaluate("a100_40gb", "smoke", {"profile": "full", "interval": "corners",
+                                                "fitness": {"kind": kind}}).to_dict()
+    assert d["status"] == "ok", d["errors"]
+    si = d["score_interval"]
+    assert d["features"]["score_rel_width"] == pytest.approx((si["high"] - si["low"]) / si["central"])
+
+
+def test_unrepresentable_timeouts_are_option_errors(session):
+    for t in (1e300, 1e20):
+        with pytest.raises(ValueError, match="timeout_s"):
+            session.evaluate("a100_40gb", "smoke", {"profile": "full", "timeout_s": {"A": t}})

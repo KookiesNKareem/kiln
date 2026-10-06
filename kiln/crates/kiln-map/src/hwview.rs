@@ -77,7 +77,10 @@ pub struct Resource {
     /// B/s for links and memories, 1 for compute and the sequencer (their demands are cycles or seconds).
     pub capacity: f64,
     pub clock: Option<ClockIx>,
+    /// Energy per byte read (moved, for links).
     pub energy_j_per_b: f64,
+    /// Energy per byte written: a memory's own, `energy_j_per_b` elsewhere.
+    pub write_j_per_b: f64,
     pub link_class: Option<String>,
     pub level: Option<u8>,
 }
@@ -89,6 +92,8 @@ pub struct Profile {
     pub src: GroupIx,
     pub dst: GroupIx,
     pub entries: Vec<(ResId, f64)>,
+    /// Of `entries`, the shares that are writes into memory instances (priced at their write energy).
+    pub writes: Vec<(ResId, f64)>,
     pub latency_s: f64,
     /// The part of `latency_s` that is cycles of a clock domain (on-die links, on-chip memories), by domain
     /// ascending, in seconds at nominal clocks; the rest (DRAM, PHYs) is clock independent.
@@ -197,6 +202,7 @@ impl HwView {
                 capacity: lp.bandwidth_bps,
                 clock: first.and_then(|c| hw.channels[c].clock),
                 energy_j_per_b: lp.energy_j_per_b,
+                write_j_per_b: lp.energy_j_per_b,
                 link_class: class,
                 level: None,
             });
@@ -211,6 +217,7 @@ impl HwView {
                 capacity: mp.bandwidth_bps,
                 clock: mi.clock,
                 energy_j_per_b: mp.read_j_per_b,
+                write_j_per_b: mp.write_j_per_b,
                 link_class: None,
                 level: Some(hw.levels[m]),
             });
@@ -223,6 +230,7 @@ impl HwView {
             capacity: 1.0,
             clock: None,
             energy_j_per_b: 0.0,
+            write_j_per_b: 0.0,
             link_class: None,
             level: None,
         });
@@ -281,6 +289,7 @@ impl HwView {
                 capacity: 1.0,
                 clock: ui.clock,
                 energy_j_per_b: 0.0,
+                write_j_per_b: 0.0,
                 link_class: None,
                 level: None,
             });
@@ -332,6 +341,7 @@ impl HwView {
                         capacity: 1.0,
                         clock: ui.clock,
                         energy_j_per_b: 0.0,
+                write_j_per_b: 0.0,
                         link_class: None,
                         level: None,
                     });
@@ -359,8 +369,7 @@ impl HwView {
             feeds.dedup();
             let (g, k) = (members.len(), feeds.len());
             let even = feeds.iter().all(|&f| members.iter().filter(|&&i| self.units[i].chain[0] == f).count() * k == g);
-            let mixed = k < g;
-            if k == 1 || !even || mixed && self.units[members[0]].pool != Pool::Mac {
+            if k == 1 || !even {
                 continue;
             }
             for &i in &members {
@@ -552,10 +561,18 @@ impl HwView {
         }
     }
 
-    /// Transfer profile from group `src` to group `dst` (cached per design).
+    /// Transfer profile from group `src` to group `dst` (cached per design). From a group to itself: bytes a unit
+    /// writes into the group in place (interleaved over its instances, all writes).
     pub fn profile(&self, src: GroupIx, dst: GroupIx) -> Result<Arc<Profile>, Diagnostic> {
         if let Some(p) = self.profiles.lock().expect("profile cache").get(&(src, dst)) {
             return Ok(p.clone());
+        }
+        if src == dst {
+            let mems = &self.groups[src].mems;
+            let entries: Vec<(ResId, f64)> = mems.iter().map(|&m| (self.res_of_mem[m], 1.0 / mems.len() as f64)).collect();
+            let p = Arc::new(Profile { src, dst, writes: entries.clone(), entries, latency_s: 0.0, lat_clk: vec![], hops: 0 });
+            self.profiles.lock().expect("profile cache").insert((src, dst), p.clone());
+            return Ok(p);
         }
         let hw = &self.hw;
         let (gs, gd) = (&self.groups[src], &self.groups[dst]);
@@ -592,10 +609,12 @@ impl HwView {
             }
         }
         let mut acc: BTreeMap<ResId, f64> = BTreeMap::new();
+        let mut wacc: BTreeMap<ResId, f64> = BTreeMap::new();
         let (mut latency, mut hops, mut lat_clk, mut first) = (0.0f64, 0usize, vec![], true);
         for (a, b, w, (chans, l, h, mut clk)) in pairs {
             *acc.entry(self.res_of_mem[a]).or_default() += w;
             *acc.entry(self.res_of_mem[b]).or_default() += w;
+            *wacc.entry(self.res_of_mem[b]).or_default() += w;
             let mut pair: BTreeMap<ResId, f64> = BTreeMap::new();
             for (c, f) in chans {
                 let r = self.res_of_shared[hw.channels[c].resource];
@@ -618,7 +637,7 @@ impl HwView {
             }
             hops = hops.max(h);
         }
-        let p = Arc::new(Profile { src, dst, entries: acc.into_iter().collect(), latency_s: latency, lat_clk, hops });
+        let p = Arc::new(Profile { src, dst, entries: acc.into_iter().collect(), writes: wacc.into_iter().collect(), latency_s: latency, lat_clk, hops });
         self.profiles.lock().expect("profile cache").insert((src, dst), p.clone());
         Ok(p)
     }
@@ -656,11 +675,13 @@ impl HwView {
         self.unit_index.get(path).copied()
     }
 
-    /// Group whose instances are exactly `mems`, or the group of the first one.
+    /// Group whose instances are exactly `mems` (a transfer is interleaved over the group's instances, so a
+    /// subset of a group is no home).
     pub fn group_by_mems(&self, mems: &[MemIx]) -> Option<GroupIx> {
         let mut s = mems.to_vec();
         s.sort_unstable();
-        self.groups.iter().position(|g| g.mems == s).or_else(|| mems.first().and_then(|&m| self.group_of[m]))
+        s.dedup();
+        self.groups.iter().position(|g| g.mems == s)
     }
 
     pub fn group_by_paths(&self, paths: &[String]) -> Option<GroupIx> {

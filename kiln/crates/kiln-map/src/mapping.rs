@@ -5,7 +5,8 @@ use indexmap::IndexMap;
 use kiln_ir::common::{Diagnostic, content_hash};
 use serde::{Deserialize, Serialize};
 
-use crate::hwview::HwView;
+use crate::geom::{Slice, TBox, footprint, uncovered};
+use crate::hwview::{GroupIx, HwView};
 use crate::program::Program;
 
 pub const MAPPING_VERSION: u32 = 1;
@@ -151,35 +152,89 @@ fn partition_error(shape: &[u64], homes: &[Home]) -> Option<String> {
 }
 
 impl Mapping {
-    /// Every tensor a placed op reads or writes has a placement; a private one is read only after an op of the
-    /// same barrier-free span has written it (lowering finds no home to load it from otherwise).
+    /// Every tensor a placed op reads or writes has a placement; a private one is read only where an earlier op of
+    /// the same barrier-free span has written it (lowering finds no home to load the rest from).
     fn validate_uses(&self, prog: &Program) -> Vec<Diagnostic> {
         let mut out = vec![];
-        let mut produced: Vec<usize> = vec![];
+        // Per written root: the boxes written (in the root's coordinates; None when written through a view).
+        let mut produced: Vec<(usize, Option<TBox>)> = vec![];
         for g in &self.groups {
             for o in &g.ops {
                 let Some(i) = prog.op(o).filter(|&i| prog.placed(i)) else { continue };
                 let op = &prog.ops[i];
                 for (oi, x) in op.operands.iter().enumerate() {
-                    let root = prog.root(prog.converted_from(i, oi).map_or(x.tensor, |c| c.0));
+                    let tensor = prog.converted_from(i, oi).map_or(x.tensor, |c| c.0);
+                    let root = prog.root(tensor);
                     let t = &prog.tensors[root];
                     match self.tensors.get(&t.id) {
                         None => out.push(Diagnostic::error("E-MAP-VAL-016", format!("{} uses tensor {} which has no placement", op.id, t.id)).at(t.id.clone())),
-                        Some(tp) if tp.lifetime == Lifetime::Private && x.access.reads() && !produced.contains(&root) => out.push(
-                            Diagnostic::error("E-MAP-VAL-017", format!("{} reads private tensor {} before any op of its span writes it", op.id, t.id))
-                                .at(t.id.clone())
-                                .hint("give the tensor a home, or fuse its producer into the same span"),
-                        ),
+                        Some(tp) if tp.lifetime == Lifetime::Private && x.access.reads() => {
+                            let mine: Vec<&Option<TBox>> = produced.iter().filter(|p| p.0 == root).map(|p| &p.1).collect();
+                            let missing = if mine.is_empty() {
+                                Some("before any op of its span writes it".to_string())
+                            } else if tensor != root || mine.iter().any(|b| b.is_none()) {
+                                None
+                            } else {
+                                let shape = &prog.tensors[tensor].shape;
+                                let by: Vec<TBox> = mine.iter().filter_map(|b| **b).collect();
+                                let gap: u128 = (0..op.segs.len())
+                                    .flat_map(|s| uncovered(&footprint(op, oi, &Slice::whole(s as u32, &op.segs[s]), shape), &by))
+                                    .map(|b| b.elems())
+                                    .sum();
+                                (gap > 0).then(|| format!("where no earlier op of its span wrote it ({gap} elements)"))
+                            };
+                            if let Some(why) = missing {
+                                out.push(
+                                    Diagnostic::error("E-MAP-VAL-017", format!("{} reads private tensor {} {why}", op.id, t.id))
+                                        .at(t.id.clone())
+                                        .hint("give the tensor a home, or fuse its producers into the same span"),
+                                );
+                            }
+                        }
                         _ => {}
                     }
                 }
-                produced.extend(op.operands.iter().filter(|x| x.access.writes()).map(|x| prog.root(x.tensor)));
+                for (oi, x) in op.operands.iter().enumerate().filter(|(_, x)| x.access.writes()) {
+                    let root = prog.root(x.tensor);
+                    if root != x.tensor {
+                        produced.push((root, None));
+                        continue;
+                    }
+                    let shape = &prog.tensors[root].shape;
+                    produced.extend((0..op.segs.len()).map(|s| (root, Some(footprint(op, oi, &Slice::whole(s as u32, &op.segs[s]), shape)))));
+                }
             }
             if g.barrier_after {
                 produced.clear();
             }
         }
         out
+    }
+
+    /// Per on-chip memory group holding non-resident tensors: bytes homed there for the whole program (resident
+    /// lifetimes, model state) and the most bytes of the others live at once ([`Program::live_ranges`]).
+    pub fn onchip_live_bytes(&self, prog: &Program, view: &HwView) -> Vec<(GroupIx, u128, u128)> {
+        let ranges = prog.live_ranges();
+        let n = prog.ops.len();
+        let mut fixed = vec![0u128; view.groups.len()];
+        let mut live: Vec<Vec<u128>> = vec![vec![]; view.groups.len()];
+        for (id, tp) in &self.tensors {
+            let Some(t) = prog.tensor(id) else { continue };
+            let pt = &prog.tensors[t];
+            for h in &tp.home {
+                let Some(g) = view.group_by_paths(&h.mems).filter(|&g| !view.groups[g].offchip) else { continue };
+                let elems: u128 = h.region.lo.iter().zip(&h.region.hi).map(|(l, h)| u128::from(h.saturating_sub(*l))).product();
+                let bytes = pt.bytes(elems);
+                if tp.lifetime == Lifetime::Resident || pt.model_state() {
+                    fixed[g] += bytes;
+                } else if let Some((a, b)) = ranges[t] {
+                    let v = &mut live[g];
+                    v.resize(n, 0);
+                    v[a..=b].iter_mut().for_each(|x| *x += bytes);
+                }
+            }
+        }
+        live.iter().enumerate().filter(|(_, v)| !v.is_empty()).map(|(g, v)| (g, fixed[g], v.iter().copied().max().unwrap_or(0))).collect()
     }
 
     pub fn hash(&self) -> String {
@@ -274,10 +329,19 @@ impl Mapping {
                 out.push(err("E-MAP-VAL-011", format!("home regions {why}"), id).hint("regions must be in bounds, disjoint and cover the tensor"));
             }
             if tp.home.iter().any(|h| view.group_by_paths(&h.mems).is_none()) {
-                out.push(err("E-MAP-VAL-011", "home names unknown memories".into(), id));
+                out.push(err("E-MAP-VAL-011", "home names unknown memories or not exactly one memory group".into(), id).hint("home a region on every instance of an interleaved group"));
             }
         }
         out.extend(self.validate_uses(prog));
+        for (g, fixed, live) in self.onchip_live_bytes(prog, view) {
+            let (name, cap) = (&view.groups[g].name, view.groups[g].capacity);
+            if live > 0 && fixed + live > u128::from(cap) {
+                out.push(
+                    err("E-MAP-CAP-003", format!("{live} B of tensors live at once next to {fixed} B of resident state exceed {name} capacity {cap} B"), name)
+                        .hint("home some activations off chip (spilled)"),
+                );
+            }
+        }
         // Lowering routes every transfer over the view's ECMP profiles: other choices would be scored as ECMP.
         if self.routing != RoutingPolicy::Ecmp {
             out.push(err("E-MAP-ROUTE-002", format!("routing policy {:?} is unmodelled in v0", self.routing), "routing").hint("use ecmp"));

@@ -234,6 +234,53 @@ fn node_clocks(hw: &HwModel) -> (Vec<Option<ClockIx>>, Option<ClockIx>) {
     (dom, main)
 }
 
+/// Tier A thermal limits (04 §9) of the packages holding the scoped dies.
+struct Thermal {
+    die_mm2: f64,
+    r_ja_k_mm2_w: f64,
+    tj_max_c: f64,
+    q_avg_max: f64,
+}
+
+impl Thermal {
+    /// Each enabled package holding a scoped die (every die when none is in scope) contributes its own cooling,
+    /// `theta_ja` and `tj_max`; the worst package sets each limit. With power spread over the dies by area, a
+    /// package's junction rise is `P * theta_ja * A_pkg / A`, so `theta_ja` (K/W) enters as `theta_ja * A_pkg`.
+    fn of(hw: &HwModel, params: &Params, dies: &[(usize, f64)], inside: &impl Fn(usize) -> bool) -> Thermal {
+        let scoped: Vec<(usize, f64)> = dies.iter().copied().filter(|d| inside(d.0)).collect();
+        let scoped = if scoped.iter().map(|d| d.1).sum::<f64>() > 0.0 { scoped } else { dies.to_vec() };
+        let die_mm2: f64 = scoped.iter().map(|d| d.1).sum();
+        let package_of = |n: usize| {
+            std::iter::successors(Some(n), |&x| hw.nodes[x].parent).find_map(|x| match hw.nodes[x].ix {
+                NodeIx::Container(c) if hw.tree[c].kind == ContainerKind::Package => Some(c),
+                _ => None,
+            })
+        };
+        let mut pkgs: Vec<(Option<usize>, f64)> = vec![];
+        for &(n, a) in scoped.iter().filter(|d| hw.nodes[d.0].enabled) {
+            let p = package_of(n);
+            match pkgs.iter_mut().find(|x| x.0 == p) {
+                Some(x) => x.1 += a,
+                None => pkgs.push((p, a)),
+            }
+        }
+        let (r_air, r_liquid) = (params.get("r_ja_k_mm2_w", None), params.get("r_ja_liquid_k_mm2_w", None));
+        let (q_air, q_liquid) = (params.get("q_avg_max_air", None), params.get("q_avg_max_liquid", None));
+        let tj_default = params.get("tj_max_c", None);
+        let worst = pkgs
+            .iter()
+            .map(|&(p, a)| {
+                let th = p.and_then(|c| hw.tree[c].package.as_ref()).and_then(|p| p.power.as_ref()).and_then(|p| p.thermal.as_ref());
+                let liquid = th.is_some_and(|t| matches!(t.cooling, CoolingClass::LiquidColdPlate | CoolingClass::Immersion));
+                let r = th.and_then(|t| t.theta_ja).map_or(if liquid { r_liquid } else { r_air }, |k| k * a);
+                (r, th.map_or(tj_default, |t| t.tj_max_c), if liquid { q_liquid } else { q_air })
+            })
+            .reduce(|a, b| (a.0.max(b.0), a.1.min(b.1), a.2.min(b.2)));
+        let (r_ja_k_mm2_w, tj_max_c, q_avg_max) = worst.unwrap_or((r_air, tj_default, q_air));
+        Thermal { die_mm2, r_ja_k_mm2_w, tj_max_c, q_avg_max }
+    }
+}
+
 impl CapDomain {
     /// The enforced caps of `hw` (an assumed cap never throttles, 04 §8.1). `dies` holds every die's node and
     /// envelope area, mm^2.
@@ -255,9 +302,7 @@ impl CapDomain {
                     cs.dedup();
                     cs
                 };
-                let area: f64 = dies.iter().filter(|d| nodes[d.0]).map(|d| d.1).sum();
-                let die_mm2 = if area > 0.0 { area } else { dies.iter().map(|d| d.1).sum() };
-                let power = PowerModel::scoped(hw, ch, params, die_mm2, clocked_um2, Some((&nodes, p.idle.map(|w| w.0))));
+                let power = PowerModel::scoped(hw, ch, params, dies, clocked_um2, Some((&nodes, p.idle.map(|w| w.0))));
                 CapDomain { path: p.path.clone(), cap_w: p.cap.0, level: p.level.unwrap_or(CapLevel::Board), clocks, nodes, power }
             })
             .collect()
@@ -312,13 +357,14 @@ impl PowerBreakdown {
 }
 
 impl PowerModel {
-    pub fn build(hw: &HwModel, ch: &Characterized, params: &Params, die_mm2: f64, clocked_um2: &[f64]) -> PowerModel {
-        Self::scoped(hw, ch, params, die_mm2, clocked_um2, None)
+    /// The whole design's power terms; `dies` holds every die's node and envelope area, mm^2.
+    pub fn build(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64]) -> PowerModel {
+        Self::scoped(hw, ch, params, dies, clocked_um2, None)
     }
 
     /// The power terms of the whole design, or of the nodes in `scope.0` with board power `scope.1` (a cap's
     /// declared idle power, else the board overhead of its packages).
-    pub fn scoped(hw: &HwModel, ch: &Characterized, params: &Params, die_mm2: f64, clocked_um2: &[f64], scope: Option<(&[bool], Option<f64>)>) -> PowerModel {
+    pub fn scoped(hw: &HwModel, ch: &Characterized, params: &Params, dies: &[(usize, f64)], clocked_um2: &[f64], scope: Option<(&[bool], Option<f64>)>) -> PowerModel {
         let t = Tables::get();
         let nc = hw.clocks.len();
         let (dom, main) = node_clocks(hw);
@@ -387,8 +433,7 @@ impl PowerModel {
             let pk = hw.tree.iter().filter(|c| c.kind == ContainerKind::Package && hw.nodes[c.node].enabled && inside(c.node)).count().max(1) as f64;
             params.get("p_board_w", None) * pk
         });
-        let liquid = hw.tree.iter().filter_map(|c| c.package.as_ref()).filter_map(|p| p.power.as_ref()).filter_map(|p| p.thermal.as_ref()).any(|th| matches!(th.cooling, CoolingClass::LiquidColdPlate | CoolingClass::Immersion));
-        let tj_max = hw.tree.iter().filter_map(|c| c.package.as_ref()).filter_map(|p| p.power.as_ref()).filter_map(|p| p.thermal.as_ref()).map(|th| th.tj_max_c).next();
+        let th = Thermal::of(hw, params, dies, &inside);
         PowerModel {
             domains,
             indep_leak_w: indep,
@@ -399,11 +444,11 @@ impl PowerModel {
             cap_w,
             assumed_cap_w,
             cap_level,
-            die_mm2,
+            die_mm2: th.die_mm2,
             t_inlet_c: params.get("t_inlet_c", None),
-            r_ja_k_mm2_w: if liquid { params.get("r_ja_liquid_k_mm2_w", None) } else { params.get("r_ja_k_mm2_w", None) },
-            tj_max_c: tj_max.unwrap_or_else(|| params.get("tj_max_c", None)),
-            q_avg_max: if liquid { params.get("q_avg_max_liquid", None) } else { params.get("q_avg_max_air", None) },
+            r_ja_k_mm2_w: th.r_ja_k_mm2_w,
+            tj_max_c: th.tj_max_c,
+            q_avg_max: th.q_avg_max,
         }
     }
 
@@ -517,7 +562,7 @@ impl PowerModel {
         let gain = dp_dt * self.r_ja_k_mm2_w / self.die_mm2.max(1.0);
         (gain >= 1.0).then(|| {
             Diagnostic::error("E-PHYS-THERMAL-RUNAWAY", format!("leakage-temperature loop gain {gain:.2} >= 1 at {t_j:.0} C"))
-                .hint("cut leakage (smaller die, power-gated memories) or improve cooling")
+                .hint("cut leakage (smaller die, fewer or smaller memories) or improve cooling")
         })
     }
 }

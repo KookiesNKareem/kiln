@@ -193,6 +193,15 @@ pub trait Quantity: Sized {
     const SCALE: f64 = 1.0;
     fn from_base(v: f64) -> Result<Self, Diagnostic>;
 
+    fn from_u64(v: u64) -> Result<Self, Diagnostic> {
+        Self::from_base(v as f64)
+    }
+
+    /// Exact parse that bypasses `f64` (integer quantities), when `s` admits one.
+    fn parse_exact(_s: &str) -> Option<Result<Self, Diagnostic>> {
+        None
+    }
+
     fn convert(v: f64, dim: Dim) -> Option<f64> {
         (dim == Self::DIM || dim.is_none()).then_some(if dim.is_none() { v } else { v / Self::SCALE })
     }
@@ -202,6 +211,9 @@ pub trait Quantity: Sized {
             Diagnostic::error("E-IR-0108", format!("{what} {s:?}: expected {} (e.g. {:?})", Self::DIM, Self::EXAMPLE))
                 .hint(format!("write a {} quantity such as {:?} or a bare number in base units", Self::DIM, Self::EXAMPLE))
         };
+        if let Some(r) = Self::parse_exact(s) {
+            return r;
+        }
         let (v, dim) = parse_literal(s).ok_or_else(|| mismatch("unrecognized quantity"))?;
         Self::from_base(Self::convert(v, dim).ok_or_else(|| mismatch("quantity has the wrong dimension:"))?)
     }
@@ -215,10 +227,10 @@ impl<T: Quantity> Visitor<'_> for QVisitor<T> {
         write!(f, "a number in base units or a quantity string like {:?}", T::EXAMPLE)
     }
     fn visit_u64<E: de::Error>(self, v: u64) -> Result<T, E> {
-        T::from_base(v as f64).map_err(de_error)
+        T::from_u64(v).map_err(de_error)
     }
     fn visit_i64<E: de::Error>(self, v: i64) -> Result<T, E> {
-        T::from_base(v as f64).map_err(de_error)
+        u64::try_from(v).map_or_else(|_| T::from_base(v as f64), T::from_u64).map_err(de_error)
     }
     fn visit_f64<E: de::Error>(self, v: f64) -> Result<T, E> {
         T::from_base(v).map_err(de_error)
@@ -320,13 +332,19 @@ macro_rules! int_quantity {
         impl Quantity for $name {
             const DIM: Dim = $dim;
             const EXAMPLE: &'static str = $ex;
+            /// Floats must be whole and strictly below 2^64; integer literals take the exact path instead.
             fn from_base(v: f64) -> Result<Self, Diagnostic> {
-                if v >= 0.0 && v.fract() == 0.0 && v <= u64::MAX as f64 {
+                if v >= 0.0 && v.fract() == 0.0 && v < TWO_64 {
                     Ok(Self(v as u64))
                 } else {
-                    Err(Diagnostic::error("E-IR-0110", format!("{v} is not a non-negative whole number of {}", Self::DIM))
-                        .hint("byte and bit quantities must convert to an integer (\"1.5KiB\" is fine, \"0.3B\" is not)"))
+                    Err(not_whole(v, Self::DIM))
                 }
+            }
+            fn from_u64(v: u64) -> Result<Self, Diagnostic> {
+                Ok(Self(v))
+            }
+            fn parse_exact(s: &str) -> Option<Result<Self, Diagnostic>> {
+                exact_int(s, Self::DIM).map(|v| v.map(Self).ok_or_else(|| not_whole_str(s, Self::DIM)))
             }
         }
 
@@ -336,6 +354,33 @@ macro_rules! int_quantity {
             }
         }
     };
+}
+
+const TWO_64: f64 = 18_446_744_073_709_551_616.0;
+
+fn not_whole(v: impl fmt::Display, dim: Dim) -> Diagnostic {
+    Diagnostic::error("E-IR-0110", format!("{v} is not a non-negative whole number of {dim} below 2^64"))
+        .hint("byte and bit quantities must convert to an integer (\"1.5KiB\" is fine, \"0.3B\" is not)")
+}
+
+fn not_whole_str(s: &str, dim: Dim) -> Diagnostic {
+    not_whole(format!("{s:?}"), dim)
+}
+
+/// `"<digits>"` or `"<digits><integer suffix of dim>"` in base units without going through `f64`: `Some(None)`
+/// when it overflows `u64`, `None` when `s` is not of that form.
+fn exact_int(s: &str, dim: Dim) -> Option<Option<u64>> {
+    let s = s.trim();
+    let digits = |n: &str| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit());
+    let (num, mul) = if digits(s) {
+        (s, 1.0)
+    } else {
+        SUFFIXES.iter().filter(|(_, _, div, d)| *d == dim && *div == 1.0).find_map(|(suf, mul, ..)| {
+            let n = s.strip_suffix(suf)?.trim_end();
+            digits(n).then_some((n, *mul))
+        })?
+    };
+    Some(num.parse::<u128>().ok().and_then(|n| n.checked_mul(mul as u128)).and_then(|n| u64::try_from(n).ok()))
 }
 
 int_quantity!(Bytes, Dim::BYTES, "40MiB");
@@ -394,6 +439,21 @@ mod tests {
         assert!(de::<Bytes>("1.4GHz".into()).unwrap_err().contains("E-IR-0108"));
         assert!(de::<Bytes>("0.3B".into()).unwrap_err().contains("E-IR-0110"));
         assert!(de::<Hz>("fast".into()).unwrap_err().contains("E-IR-0108"));
+    }
+
+    #[test]
+    fn integer_quantities_are_exact_and_bounded() {
+        assert_eq!(de::<Bytes>(Value::from(9_007_199_254_740_993u64)).unwrap(), Bytes(9_007_199_254_740_993));
+        assert_eq!(de::<Bytes>(Value::from(u64::MAX)).unwrap(), Bytes(u64::MAX));
+        assert_eq!(de::<Bytes>("9007199254740993B".into()).unwrap(), Bytes(9_007_199_254_740_993));
+        assert_eq!(de::<Bytes>("9007199254740993".into()).unwrap(), Bytes(9_007_199_254_740_993));
+        assert_eq!(de::<Bytes>("18446744073709551615B".into()).unwrap(), Bytes(u64::MAX));
+        assert_eq!(de::<Bits>("3Kib".into()).unwrap(), Bits(3072));
+        for s in ["18446744073709551616B", "18446744073709551616", "16777216TiB", "1.8446744073709552e19B"] {
+            assert!(de::<Bytes>(s.into()).unwrap_err().contains("E-IR-0110"), "{s}");
+        }
+        assert!(de::<Bytes>(Value::from(1.8446744073709552e19)).unwrap_err().contains("E-IR-0110"));
+        assert!(de::<Bytes>(Value::from(-1)).unwrap_err().contains("E-IR-0110"));
     }
 
     #[test]

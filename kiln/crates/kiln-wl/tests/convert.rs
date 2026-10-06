@@ -180,3 +180,26 @@ fn widening_respects_the_required_accumulator() {
     assert_eq!(choose_with(&int, &t(Int4), &t(Int4), Some(Int32), [true, true]), None);
     assert!(kiln_wl::convert::accumulates(Fp32, Bf16) && !kiln_wl::convert::accumulates(Fp16, Bf16));
 }
+
+#[test]
+fn kv_converts_keep_the_sliding_window() {
+    use kiln_ir::wl::{Mask, Op, PhaseKind, SeqBatch};
+    let w = kiln_wl::zoo::workload("llama3_8b:decode_b1+kv=fp8_e4m3").unwrap();
+    let mut model = w.model().clone();
+    let points = |model: &kiln_ir::wl::Model| {
+        let sc = kiln_wl::zoo::whole_step(PhaseKind::Decode, SeqBatch::uniform(1, 1, 2048));
+        let (_, mut lg, _) = kiln_wl::evaluate_snapshot(model, &sc).unwrap();
+        insert_converts(&mut lg, &modes(&[(Bf16, Bf16, 1.0)], false)).unwrap();
+        let attn = lg.nodes.iter().find(|n| matches!(n.node.op, Op::Attention(_))).unwrap();
+        attn.lowered.kernels.iter().filter(|k| k.id.contains("cvt")).map(|k| k.points().unwrap()).collect::<Vec<_>>()
+    };
+    assert_eq!(points(&model), [2048 * 8 * 128; 2], "causal: the whole context");
+    for g in model.graphs.values_mut() {
+        for n in &mut g.nodes {
+            if let Op::Attention(a) = &mut n.op {
+                a.mask = Mask::SlidingWindow { window: 1 };
+            }
+        }
+    }
+    assert_eq!(points(&model), [8 * 128; 2], "window 1: the last position only");
+}

@@ -18,7 +18,7 @@ use serde_json::json;
 use crate::cache::{self, Cache};
 use crate::engine::{self, Calibration, Engine, EngineRequest};
 use crate::inputs::{self, DesignInput, WorkloadInput, WorkloadSet};
-use crate::options::{Options, STACK_OWN, TierChoice};
+use crate::options::{MAX_TIMEOUT_S, Options, STACK_OWN, TierChoice};
 use crate::{features, fitness};
 
 pub const TIMEOUT_CODE: &str = kiln_sim::TIMEOUT_CODE;
@@ -29,6 +29,13 @@ pub const DEFAULT_CALIBRATION: &str = "generic-v1";
 /// Slack after `timeout_s` before an evaluation is cut off (the engine's cooperative deadline).
 const GRACE: Duration = Duration::from_millis(500);
 const ENGINE_STACK: usize = 16 << 20;
+
+/// `timeout_s` (+ [`GRACE`]) from now, clamped to [`MAX_TIMEOUT_S`] so it cannot overflow.
+fn deadline(timeout_s: f64) -> Instant {
+    let t = Duration::try_from_secs_f64(timeout_s.min(MAX_TIMEOUT_S)).unwrap_or(Duration::ZERO);
+    let now = Instant::now();
+    now.checked_add(t + GRACE).unwrap_or(now + GRACE)
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct SessionConfig {
@@ -431,7 +438,7 @@ impl Session {
                     member,
                     options: options.clone(),
                     calibration: cal.clone(),
-                    deadline: Instant::now() + Duration::from_secs_f64(opts.timeout()) + GRACE,
+                    deadline: deadline(opts.timeout()),
                 };
                 let r = self.run_isolated(req, &m.name);
                 if let Some(c) = &self.cache {

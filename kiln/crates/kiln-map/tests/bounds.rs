@@ -54,7 +54,7 @@ fn floor_costs_never_exceed_costs() {
                 let u = &v.units[units[0]];
                 let caps: Vec<u64> = u.chain[..u.private].iter().map(|&g| v.groups[g].capacity / 4).collect();
                 let mems: Vec<usize> = u.chain[..caps.len()].iter().map(|&g| v.groups[g].mems[0]).collect();
-                let q = NestQuery { prog: &prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], gang: u.members.len() as u32, quick: true };
+                let q = NestQuery { prog: &prog, op, slice: s, points: kiln_map::geom::slice_points(op, s), hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
                 let (f, c) = (cost.cost_floor(&q).expect("bound").expect("floor"), cost.cost(&q).expect("cost"));
                 assert!(f.cycles <= c.cycles && f.fill_cycles <= c.fill_cycles, "{oi}: {} > {}", f.cycles, c.cycles);
                 assert!(f.feed_bytes.iter().zip(&c.feed_bytes).all(|(a, b)| a <= b), "{oi}: {:?} > {:?}", f.feed_bytes, c.feed_bytes);
@@ -87,7 +87,7 @@ fn slice_costs_depend_on_position_only_through_points_and_footprints() {
                     let points = kiln_map::geom::slice_points(op, s);
                     let fps: Vec<u128> = (0..op.operands.len()).map(|oi| kiln_map::geom::footprint(op, oi, s, &prog.tensors[op.operands[oi].tensor].shape).elems()).collect();
                     let ext: Vec<u64> = (0..s.lo.len()).map(|d| s.extent(d)).collect();
-                    let q = NestQuery { prog: &prog, op, slice: s, points, hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], gang: u.members.len() as u32, quick: true };
+                    let q = NestQuery { prog: &prog, op, slice: s, points, hw: &v.hw, unit: u.unit, level_caps: &caps, level_mems: &mems, level_bw: &[], residency: &[], gang: u.members.len() as u32, quick: true };
                     let (a, b) = (kc.cost(&q).expect("cost"), kiln_map::RooflineCost.cost(&q).expect("roofline"));
                     match seen.iter().find(|x| x.0 == ext && x.1 == s.seg && x.2 == points && x.3 == fps) {
                         Some(x) => {

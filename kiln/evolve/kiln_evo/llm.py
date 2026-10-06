@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -52,6 +53,20 @@ class Reservation:
     usd: float
 
 
+def _usd(v, what: str) -> float:
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
+        raise ValueError(f"{what} = {v!r} must be a finite, non-negative number")
+    return float(v)
+
+
+def _tokens(usage, key: str, required: bool = True) -> int | None:
+    """A provider-reported token count, or None when it is missing or not a non-negative integer."""
+    v = usage.get(key) if isinstance(usage, dict) else None
+    if v is None and not required:
+        return 0
+    return v if isinstance(v, int) and not isinstance(v, bool) and v >= 0 else None
+
+
 class Spend:
     """Token and dollar accounting with a hard stop. With a `ledger` path every reservation and settlement is
     appended (and fsynced) before the call proceeds; a reloaded ledger restores the totals, charging a reservation
@@ -59,9 +74,9 @@ class Spend:
 
     def __init__(self, price: dict, max_usd: float | None, spent_usd: float = 0.0, input_tokens: int = 0,
                  output_tokens: int = 0, calls: int = 0, ledger: str | os.PathLike | None = None):
-        self.price_in = float(price.get("input") or 0.0)
-        self.price_out = float(price.get("output") or 0.0)
-        self.max_usd = max_usd
+        self.price_in = _usd(price.get("input") or 0.0, "price_usd_per_mtok.input")
+        self.price_out = _usd(price.get("output") or 0.0, "price_usd_per_mtok.output")
+        self.max_usd = None if max_usd is None else _usd(max_usd, "budget.max_usd")
         self.spent_usd, self.input_tokens, self.output_tokens, self.calls = spent_usd, input_tokens, output_tokens, calls
         self._reserved = 0.0
         self._seq = 0
@@ -85,11 +100,18 @@ class Spend:
     def _replay(self) -> None:
         self.spent_usd, self.input_tokens, self.output_tokens, self.calls = 0.0, 0, 0, 0
         open_ids: dict[int, float] = {}
-        for line in self._ledger.read_text().splitlines():
+        data = self._ledger.read_bytes()
+        end = data.rfind(b"\n") + 1
+        if end < len(data):  # a torn final record from a crash mid-write: cut it so the next append starts clean
+            with open(self._ledger, "r+b") as f:
+                f.truncate(end)
+                os.fsync(f.fileno())
+            data = data[:end]
+        for line in data.decode().splitlines():
             try:
                 r = json.loads(line)
             except ValueError:
-                continue  # a torn final line from a crash mid-write
+                continue
             op = r.get("op")
             if op == "open":
                 self.spent_usd += r["spent_usd"]
@@ -224,6 +246,9 @@ class Backend:
             except BaseException:
                 self.spend.settle_worst(reserved)
                 raise
+            if tin is None or tout is None:  # billed, but by an unknown amount
+                return Completion(text, 0, 0, self.spend.settle_worst(reserved), self.model,
+                                  time.monotonic() - t0)
             cost = self.spend.settle(reserved, tin, tout)
             return Completion(text, tin, tout, cost, self.model, time.monotonic() - t0)
         detail = last.read().decode(errors="replace")[:500] if isinstance(last, urllib.error.HTTPError) else ""
@@ -238,7 +263,8 @@ class Backend:
             raise err
         return key
 
-    def _call(self, system: str, user: str) -> tuple[str, int, int]:
+    def _call(self, system: str, user: str) -> tuple[str, int | None, int | None]:
+        """(text, input tokens, output tokens); a count the provider did not report validly is None."""
         raise NotImplementedError
 
     def list_models(self) -> list[str]:
@@ -260,8 +286,8 @@ class OpenAIBackend(Backend):
         if "choices" not in r:
             raise LLMError(f"no choices in response: {json.dumps(r)[:300]}")
         text = r["choices"][0]["message"].get("content") or ""
-        u = r.get("usage") or {}
-        return text, int(u.get("prompt_tokens", 0)), int(u.get("completion_tokens", 0))
+        u = r.get("usage")
+        return text, _tokens(u, "prompt_tokens"), _tokens(u, "completion_tokens")
 
     def list_models(self):
         r = _get(self.cfg["base_url"].rstrip("/") + "/models", {"authorization": f"Bearer {self._key()}"})
@@ -287,10 +313,10 @@ class AnthropicBackend(Backend):
         if "content" not in r:
             raise LLMError(f"no content in response: {json.dumps(r)[:300]}")
         text = "".join(b.get("text", "") for b in r["content"] if b.get("type") == "text")
-        u = r.get("usage") or {}
-        tin = int(u.get("input_tokens", 0)) + int(u.get("cache_creation_input_tokens", 0) or 0) \
-            + int(u.get("cache_read_input_tokens", 0) or 0)
-        return text, tin, int(u.get("output_tokens", 0))
+        u = r.get("usage")
+        parts = [_tokens(u, "input_tokens"), _tokens(u, "cache_creation_input_tokens", required=False),
+                 _tokens(u, "cache_read_input_tokens", required=False)]
+        return text, None if None in parts else sum(parts), _tokens(u, "output_tokens")
 
     def list_models(self):
         r = _get(self._base() + "/models?limit=1000", self._headers())

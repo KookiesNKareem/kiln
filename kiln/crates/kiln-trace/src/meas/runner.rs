@@ -138,6 +138,9 @@ pub struct StepRecord {
     pub n_layers: u64,
     /// The runner's numerical check of the attention implementation passed (absent = not checked).
     pub checked: Option<bool>,
+    /// The runner accepted the timing (`quality` absent or `ok`); rejected records carry `quality_flags`.
+    pub quality_ok: bool,
+    pub quality_flags: Vec<String>,
     pub median_s: BTreeMap<String, f64>,
 }
 
@@ -220,6 +223,13 @@ pub fn step_records(raw: &[u8], file: &str) -> Result<Vec<StepRecord>, Diagnosti
                     .to_string(),
                 n_layers: r["n_layers"].as_u64().unwrap_or(0),
                 checked: r["attn_check"]["ok"].as_bool(),
+                quality_ok: r["quality"].as_str().is_none_or(|q| q == "ok"),
+                quality_flags: r["quality_flags"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|f| f.as_str().map(String::from))
+                    .collect(),
                 median_s: medians(r, file)?,
             })
         })
@@ -277,10 +287,19 @@ mod tests {
         }
         let ok = step_records(raw("0.5").as_bytes(), "f").unwrap();
         assert_eq!(ok[0].median_s["loop"], 0.5);
+        assert!(ok[0].quality_ok && ok[0].quality_flags.is_empty());
         assert_eq!(
             op_records(raw("0.5").as_bytes(), "f").unwrap()[0].median_s["loop"],
             0.5
         );
+    }
+
+    #[test]
+    fn step_records_keep_rejection_status() {
+        let raw = br#"{"records": [{"kind": "sequence", "scope": "step", "n_layers": 32, "phase": "decode_b1", "quality": "rejected", "quality_flags": ["loop cv 0.5 > 0.03"], "modes": {"loop": {"median_s": 0.001}}}]}"#;
+        let r = &step_records(raw, "f").unwrap()[0];
+        assert!(!r.quality_ok);
+        assert_eq!(r.quality_flags, ["loop cv 0.5 > 0.03"]);
     }
 
     #[test]

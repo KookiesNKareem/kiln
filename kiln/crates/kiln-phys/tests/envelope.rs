@@ -199,3 +199,73 @@ fn clock_domains_use_their_own_technology() {
     assert!((ph.dyn_scale(u16.clock, Some(u16.node), &plan) - 1.0).abs() < 1e-12);
     assert!((ph.dyn_scale(u7.clock, Some(u7.node), &plan) - (0.8f64 / 0.75).powi(2)).abs() < 1e-12);
 }
+
+/// 04 §4.7: power gating cuts only an idle block's leakage; characterization charges a gated SRAM its full
+/// active leakage, so the flag alone buys no power headroom.
+#[test]
+fn power_gating_is_not_a_static_leakage_discount() {
+    let leak = |gated: bool| {
+        let mut v = mesh(json!("128b"), clk(1e9));
+        v["system"]["package"]["dies"][0]["clusters"][0]["memories"][0]["power_gated"] = json!(gated);
+        let ph = Phys::new(&model(&v));
+        let m = ph.m3().unwrap();
+        (m.ch.nodes.iter().map(|n| n.leak_w).sum::<f64>(), m.power.p_static(&[1e9], 85.0))
+    };
+    let (open, gated) = (leak(false), leak(true));
+    assert!(open.0 > 0.0);
+    assert_eq!(open, gated);
+}
+
+fn thermal_package(id: &str, power: Option<Value>) -> Value {
+    let mut p = mesh(json!("128b"), clk(1e9))["system"]["package"].clone();
+    p["id"] = json!(id);
+    if let Some(pw) = power {
+        p["power"] = pw;
+    }
+    p
+}
+
+fn two_packages(b_cooling: &str) -> HwModel {
+    let mut v = mesh(json!("128b"), clk(1e9));
+    v["system"] = json!({ "boards": [ { "id": "board", "packages": [
+        thermal_package("a", Some(json!({ "cap": "1000W" }))),
+        thermal_package("b", Some(json!({ "cap": "1000W", "thermal": { "tj_max_c": 95.0, "cooling": b_cooling } }))),
+    ] } ] });
+    model(&v)
+}
+
+/// 04 §9: a cap's thermal limits come from the packages holding its members; another package's liquid cooling
+/// does not cool them, and the whole design is held to its worst package.
+#[test]
+fn cooling_is_resolved_per_package() {
+    let (air, liquid) = (Phys::new(&two_packages("air")), Phys::new(&two_packages("liquid_cold_plate")));
+    let (ma, ml) = (air.m3().unwrap(), liquid.m3().unwrap());
+    let p = &ml.params;
+    let a = |m: &kiln_phys::Model| m.caps.iter().find(|c| c.path.contains(".a.")).unwrap().power.clone();
+    let b = |m: &kiln_phys::Model| m.caps.iter().find(|c| c.path.contains(".b.")).unwrap().power.clone();
+    assert_eq!(a(ml).r_ja_k_mm2_w, p.get("r_ja_k_mm2_w", None));
+    assert_eq!(a(ml).q_avg_max, p.get("q_avg_max_air", None));
+    assert_eq!(a(ml).tj_max_c, p.get("tj_max_c", None));
+    assert_eq!(a(ml), a(ma));
+    assert_eq!(b(ml).r_ja_k_mm2_w, p.get("r_ja_liquid_k_mm2_w", None));
+    assert_eq!(b(ml).q_avg_max, p.get("q_avg_max_liquid", None));
+    assert_eq!(b(ml).tj_max_c, 95.0);
+    assert_eq!(ml.power.r_ja_k_mm2_w, p.get("r_ja_k_mm2_w", None));
+    assert_eq!(ml.power.q_avg_max, p.get("q_avg_max_air", None));
+    assert_eq!(ml.power.tj_max_c, 95.0f64.min(p.get("tj_max_c", None)));
+}
+
+/// 01 §12, 04 §4.7: a declared `theta_ja` (K/W) replaces the area-normalized default junction-to-ambient
+/// resistance.
+#[test]
+fn declared_theta_ja_is_used() {
+    let mut v = mesh(json!("128b"), clk(1e9));
+    v["system"]["package"]["power"] = json!({ "cap": "1000W", "thermal": { "tj_max_c": 105.0, "theta_ja": 1.0 } });
+    let ph = Phys::new(&model(&v));
+    let m = ph.m3().unwrap();
+    let e = kiln_phys::PhaseEnergy { makespan_s: 1.0, core_dyn_j: 20.0, ..Default::default() };
+    for pm in [&m.power, &m.caps[0].power] {
+        let b = pm.power(&e, &[1e9]);
+        assert!((b.t_j_c - (pm.t_inlet_c + b.package_w * 1.0)).abs() < 0.01, "{b:?}");
+    }
+}

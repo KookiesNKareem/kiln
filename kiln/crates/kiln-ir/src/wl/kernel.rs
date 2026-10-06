@@ -394,8 +394,11 @@ impl Kernel {
                     && params.iter().all(|p| param(s, p) == param(s0, p))
             });
             let same_params = members.iter().all(|(s, ..)| params.iter().all(|p| param(s, p) == param(s0, p)));
-            total += if members.len() == 1 || !same_params {
-                members.iter().map(|m| m.2).sum::<u128>()
+            total += if members.len() == 1 {
+                members[0].2
+            } else if !same_params {
+                let sets: Vec<(&SegmentDomain, &[(&str, u64)])> = members.iter().map(|(s, ext, ..)| (*s, ext.as_slice())).collect();
+                index_union(&sets, &op.index, &keep)?
             } else if !uniform {
                 let sets: Vec<SegSet> = members.iter().map(|(s, ext, ..)| (s.constraints.as_slice(), ext.as_slice())).collect();
                 union_footprint(&sets, &keep)?
@@ -476,6 +479,69 @@ fn overlap(a: &Option<Vec<(i128, i128)>>, b: &Option<Vec<(i128, i128)>>) -> bool
         (Some(a), Some(b)) => a.iter().zip(b).all(|(x, y)| x.0 <= y.1 && y.0 <= x.1),
         _ => true,
     }
+}
+
+fn eval_index(e: &IndexExpr, at: &[(&str, i128)], params: &[(String, i64)]) -> Option<i128> {
+    match e {
+        IndexExpr::Affine { terms, offset } => terms.iter().try_fold(i128::from(*offset), |acc, t| {
+            let d = match &t.dim {
+                Some(d) => at.iter().find(|x| x.0 == d)?.1,
+                None => 1,
+            };
+            let p = match &t.param {
+                Some(p) => i128::from(params.iter().find(|(n, _)| n == p)?.1),
+                None => 1,
+            };
+            Some(acc + i128::from(t.coeff) * d * p)
+        }),
+        IndexExpr::FloorDiv { inner, by } if *by > 0 => Some(eval_index(inner, at, params)?.div_euclid(i128::from(*by))),
+        _ => None,
+    }
+}
+
+/// Distinct index tuples an operand touches over overlapping segments whose index params differ, by enumerating
+/// each segment's points on the operand's dims.
+fn index_union(sets: &[(&SegmentDomain, &[(&str, u64)])], index: &[IndexExpr], keep: &[&str]) -> Result<u128, Diagnostic> {
+    const BUDGET: u128 = 1 << 22;
+    let ext = |e: &[(&str, u64)], d: &str| e.iter().find(|x| x.0 == d).map_or(1, |x| x.1);
+    let points: u128 = sets
+        .iter()
+        .map(|(_, e)| keep.iter().fold(1u128, |a, d| a.saturating_mul(u128::from(ext(e, d)))))
+        .fold(0, u128::saturating_add);
+    let too_big = || {
+        Diagnostic::error(
+            "E-WL-DOM-001",
+            format!("operand footprint over {} overlapping segments with differing index params is too large to count exactly", sets.len()),
+        )
+        .hint("keep the segments' index ranges disjoint, or give them identical index params")
+    };
+    if points > BUDGET {
+        return Err(too_big());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for (s, e) in sets {
+        let span: Vec<u64> = keep.iter().map(|d| ext(e, d)).collect();
+        let n: u64 = span.iter().product();
+        let mut at = vec![0u64; keep.len()];
+        for _ in 0..n {
+            let fixed: Vec<(&str, i128)> = keep.iter().copied().zip(at.iter().map(|&x| i128::from(x))).collect();
+            if admits(&s.constraints, e, &fixed) {
+                let tuple: Option<Vec<i128>> = index.iter().map(|ix| eval_index(ix, &fixed, &s.params)).collect();
+                seen.insert(tuple.ok_or_else(|| {
+                    Diagnostic::error("E-WL-DOM-001", "indirect operand over overlapping segments with differing index params has no exact footprint")
+                        .hint("keep the segments' index ranges disjoint, or give them identical index params")
+                })?);
+            }
+            for (x, &m) in at.iter_mut().zip(&span).rev() {
+                *x += 1;
+                if *x < m {
+                    break;
+                }
+                *x = 0;
+            }
+        }
+    }
+    Ok(seen.len() as u128)
 }
 
 /// One segment's constraints and extents.
@@ -958,5 +1024,24 @@ mod tests {
             }
             assert_eq!(kern.operand_footprint(&Operand::ident(&x, Access::Read, keep)).unwrap(), seen.len() as u128, "{keep:?}");
         }
+    }
+
+    #[test]
+    fn overlapping_segments_with_differing_params_union_their_index_sets() {
+        let seg = |base: i64| SegmentDomain { extents: vec![("s".into(), 1), ("i".into(), 4)], params: vec![("base".into(), base)], constraints: vec![] };
+        let k = |bases: &[i64]| kernel(&[("s", 1), ("i", 4)], Domain::Segmented { seg_dim: "s".into(), segments: bases.iter().map(|&b| seg(b)).collect() });
+        let x = Id::new("x").unwrap();
+        let shifted = Operand::new(
+            &x,
+            Access::Read,
+            vec![IndexExpr::terms(vec![Term { coeff: 1, dim: Some("i".into()), param: None }, Term { coeff: 1, dim: None, param: Some("base".into()) }], 0)],
+        );
+        assert_eq!(k(&[0, 2]).operand_footprint(&shifted).unwrap(), 6);
+        assert_eq!(k(&[0, 4]).operand_footprint(&shifted).unwrap(), 8);
+        assert_eq!(k(&[0, 1, 2]).operand_footprint(&shifted).unwrap(), 6);
+        let halved = Operand::new(&x, Access::Read, vec![IndexExpr::FloorDiv { inner: Box::new(shifted.index[0].clone()), by: 2 }]);
+        assert_eq!(k(&[0, 2]).operand_footprint(&halved).unwrap(), 3);
+        let gathered = Operand::new(&x, Access::Read, vec![IndexExpr::Indirect { via: Id::new("idx").unwrap(), index: vec![shifted.index[0].clone()] }]);
+        assert_eq!(k(&[0, 2]).operand_footprint(&gathered).unwrap_err().code, "E-WL-DOM-001");
     }
 }

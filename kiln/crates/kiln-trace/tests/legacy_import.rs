@@ -108,6 +108,22 @@ fn import_is_deterministic() {
 }
 
 #[test]
+fn overflowing_phase_sum_is_an_error() {
+    let mut s = import("a100_2026-10-04.json", true).session;
+    let u = s.uses.iter().position(|u| u.phase == "decode_b1").unwrap();
+    s.uses[u].count = 2;
+    let rec = s.uses[u].record.clone();
+    let r = s.records.iter_mut().find(|r| r.id == rec).unwrap();
+    r.modes.get_mut("graph_cold").unwrap().median_s = 1e308;
+    let s = s.seal();
+    assert_eq!(s.validate(), vec![]);
+    assert_eq!(
+        s.phase_sum_s("decode_b1", "graph_cold").unwrap_err().code,
+        codes::FIELD
+    );
+}
+
+#[test]
 fn a100_without_oplist_warns() {
     let imp = import("a100_2026-10-04.json", false);
     assert!(imp.session.uses.is_empty());

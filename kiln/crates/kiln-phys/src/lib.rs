@@ -422,11 +422,11 @@ impl Phys {
             .sum()
     }
 
-    /// Share of a DRAM byte's energy spent in the die-side PHY (the rest is DRAM core + IO on the board).
-    pub fn dram_phy_fraction(&self) -> f64 {
-        let Some(m) = &self.m3 else { return 0.0 };
-        let (phy, tot) = m.ch.mems.iter().filter(|x| x.dram).fold((0.0, 0.0), |a, x| (a.0 + x.e_phy_j_per_b, a.1 + x.read_j_per_b));
-        if tot > 0.0 { phy / tot } else { 0.0 }
+    /// Share of a byte's energy at DRAM memory `m` spent in its die-side PHY (the rest is DRAM core + IO on the
+    /// board); 0 for on-chip memories.
+    pub fn dram_phy_fraction(&self, m: MemIx) -> f64 {
+        let Some(x) = self.m3.as_ref().and_then(|x| x.ch.mems.get(m)).filter(|x| x.dram) else { return 0.0 };
+        if x.read_j_per_b > 0.0 { x.e_phy_j_per_b / x.read_j_per_b } else { 0.0 }
     }
 
     pub fn report(&self) -> Option<&PhysReport> {
@@ -449,8 +449,8 @@ fn build_model(hw: &HwModel, params: Params, tier: PlaceTier) -> Model {
     let links = links::derive(hw, &ch, &fp, &params);
     let t_links = t1.elapsed().as_secs_f64() * 1e6;
     let clocked: Vec<f64> = ch.nodes.iter().map(|n| n.area_um2 - n.parts[characterize::Part::Phy as usize]).collect();
-    let die_mm2: f64 = fp.dies.iter().map(|d| d.area_env_um2).sum::<f64>() / 1e6;
-    let power = PowerModel::build(hw, &ch, &params, die_mm2, &clocked);
+    let dies: Vec<(usize, f64)> = fp.dies.iter().map(|d| (d.node, d.area_env_um2 / 1e6)).collect();
+    let power = PowerModel::build(hw, &ch, &params, &dies, &clocked);
     let report = report::build(hw, &ch, &fp, &power, &params, (t_char, fp.stats.place_us, t_links));
     let mac_peak = hw
         .units
@@ -472,7 +472,6 @@ fn build_model(hw: &HwModel, params: Params, tier: PlaceTier) -> Model {
                 .map(|(mpc, e)| (u.clock, mpc, e, u.node))
         })
         .collect();
-    let dies: Vec<(usize, f64)> = fp.dies.iter().map(|d| (d.node, d.area_env_um2 / 1e6)).collect();
     let caps = CapDomain::build_all(hw, &ch, &params, &dies, &clocked);
     Model { params, ch, fp, power, links, report, caps, mac_peak }
 }

@@ -100,3 +100,24 @@ def test_full_rewrite_and_errors():
 def test_design_hash_is_key_order_independent():
     assert P.design_hash({"a": 1, "b": [1, 2]}) == P.design_hash({"b": [1, 2], "a": 1})
     assert Path(C.PKG / "docs" / "design_language.md").read_text().startswith("# kiln design language")
+
+
+
+@pytest.mark.parametrize("params,space", [
+    ('{"x": 1}', '{"x": {"scale": 0}}'),
+    ('{"x": 1}', '{"x": {"step": 1e999}}'),
+    ('{"x": 1}', '{"x": {"min": -1e999, "max": 1e999, "scale": 1e999}}'),
+    ('{"x": 1}', '{"x": {"min": 5, "max": 2}}'),
+    ('{"x": 1}', '{"x": {"choices": []}}'),
+    ('{"x": 1}', '{"x": {"choices": 3}}'),
+    ('{"x": 1}', '{"x": 7}'),
+    ('{"x": 1}', '[1, 2]'),
+    ('{"x": "a"}', '{"x": {"min": 0}}'),
+    ('{"x": 1e308}', '{"x": {"scale": 1e10, "min": 1e308}}'),
+    ('{"x": 10 ** 400}'.replace("10 ** 400", "1" + "0" * 400), '{"x": {"log2": True}}'),
+])
+def test_malformed_mutation_metadata_is_a_program_error(params, space):
+    code = f"PARAMS = {params}\nPARAM_SPACE = {space}\n\ndef build():\n    return {{}}\n"
+    for seed in range(8):
+        with pytest.raises(P.ProgramError):
+            P.parametric_mutation(code, random.Random(seed))

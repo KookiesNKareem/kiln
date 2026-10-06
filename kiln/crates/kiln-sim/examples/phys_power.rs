@@ -13,7 +13,7 @@ use kiln_trace::IntervalMethod;
 fn line(p: &Prepared, name: &str, run: &PhaseRun) {
     let c = &run.central;
     let plan = ClockPlan { hz: c.clocks.iter().map(|x| x.hz).collect(), solved: true, throttled: false };
-    let pe = phase_energy(&p.view, &c.energy, c.makespan_s, &plan);
+    let pe = phase_energy(&p.view, &c.energy, &c.resources, c.makespan_s, &plan);
     let b = p.view.phys.phase_power(&pe, &plan).unwrap_or_default();
     let f = c.clocks.iter().map(|x| x.hz).fold(0.0, f64::max);
     println!(

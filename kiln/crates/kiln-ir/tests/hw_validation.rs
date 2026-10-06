@@ -470,3 +470,83 @@ fn inherited_imports_resolve_against_the_base() {
     let lanes: Vec<u64> = m.units.iter().filter(|u| u.spec.id.as_str() == "vpu").map(|u| u.spec.kind.base_ops_per_cycle()).collect();
     assert_eq!(lanes[0], 16);
 }
+
+#[test]
+fn search_rejects_unpriced_scalar_and_special_mode_rates() {
+    let unit = |u: &str| mutate("units: [", &format!("units: [ {u},"));
+    let sfu = |p: &str| unit(&format!("{{ id: \"sfu\", kind: \"special\", lanes: 1, functions: [\"exp\"], precisions: [\"{p}\"], feeds: {{ any: \"sram\" }} }}"));
+    let scalar = |p: &str| unit(&format!("{{ id: \"sc\", kind: \"scalar\", issue_width: 1, precisions: [\"{p}\"], feeds: {{ any: \"sram\" }} }}"));
+    for src in [sfu("fp32@1000"), scalar("fp32@1000")] {
+        assert!(codes_with(&src, Profile::Search).contains(&"E-IR-1101".into()), "{:?}", codes_with(&src, Profile::Search));
+        assert!(!codes(&src).iter().any(|c| c.starts_with("E-")), "legal outside search: {:?}", codes(&src));
+    }
+    for src in [sfu("fp32@1"), sfu("fp32@0.5"), scalar("fp32@1")] {
+        assert_eq!(codes_with(&src, Profile::Search), Vec::<String>::new());
+    }
+}
+
+#[test]
+fn precision_mode_form_matches_unit_kind() {
+    expect(&mutate("precisions: [\"bf16*bf16+fp32\"],", "precisions: [\"bf16*bf16+fp32\", \"int8\"],"), "E-IR-0302");
+    expect(&mutate("precisions: [\"fp32@1\"]", "precisions: [\"bf16*bf16+fp32\"]"), "E-IR-0302");
+    let cim = mutate("units: [", "units: [ { id: \"cim\", kind: \"cim\", rows: 64, cols: 64, precisions: [\"int8\"], feeds: { a: \"sram\", o: \"sram\" } },");
+    assert!(codes_with(&cim, Profile::Search).contains(&"E-IR-0302".into()), "{:?}", codes_with(&cim, Profile::Search));
+}
+
+#[test]
+fn summary_peaks_respect_declared_ops() {
+    let peak = |src: &str| check_str(&MemLoader::default(), None, src, Profile::Full).model.expect("expands").summary().peak_ops.get("bf16*bf16+fp32").copied();
+    assert_eq!(peak(&mutate("precisions: [\"bf16*bf16+fp32\"],", "precisions: [\"bf16*bf16+fp32\"], ops: [],")), None);
+    assert_eq!(peak(&mutate("precisions: [\"bf16*bf16+fp32\"],", "precisions: [\"bf16*bf16+fp32\"], ops: [\"conv\"],")), None);
+    assert_eq!(peak(BASE), Some(2.048e12));
+}
+
+#[test]
+fn aggregate_memory_capacity_beyond_u64_is_rejected() {
+    let src = mutate("capacity: \"256KiB\", banks: 4,", "capacity: 9223372036854775808, banks: 4,");
+    let r = check_str(&MemLoader::default(), None, &src, Profile::Full);
+    assert!(r.diagnostics.iter().any(|d| d.code == "E-IR-0109"), "{:?}", r.diagnostics);
+    if let Some(m) = r.model {
+        assert_eq!(m.summary().onchip_capacity.0, u64::MAX);
+    }
+}
+
+fn with_net(net: &str) -> String {
+    mutate("networks: [", &format!("networks: [ {net},"))
+}
+
+#[test]
+fn crossbar_radix_counts_every_endpoint_port() {
+    let xb = |radix: u32| {
+        with_net(&format!(
+            "{{ id: \"xb\", topology: {{ type: \"crossbar\" }}, router: {{ radix: {radix} }}, endpoints: [ {{ select: \"tile[0].sram\" }}, {{ select: \"tile[1].sram\", multiplicity: 16 }} ], link: \"256b\" }}"
+        ))
+    };
+    expect(&xb(2), "E-IR-0704");
+    expect(&xb(16), "E-IR-0704");
+    assert!(!codes(&xb(17)).contains(&"E-IR-0704".into()), "{:?}", codes(&xb(17)));
+}
+
+#[test]
+fn router_radix_counts_replicated_links() {
+    let mesh = |radix: u32, count: u32| {
+        mutate("endpoints: [ { select: \"tile*.sram\", at: \"layout\" } ], link: \"256b\" }", &format!("endpoints: [ {{ select: \"tile*.sram\", at: \"layout\" }} ], link: {{ width_bits: 256, count: {count} }}, router: {{ radix: {radix} }} }}"))
+    };
+    // Corner router: 2 mesh neighbours, its tile's sram and the attached HBM stack, each over `count` links.
+    assert!(!codes(&mesh(4, 1)).contains(&"E-IR-0704".into()), "{:?}", codes(&mesh(4, 1)));
+    expect(&mesh(4, 2), "E-IR-0704");
+    expect(&mesh(7, 2), "E-IR-0704");
+    assert!(!codes(&mesh(8, 2)).contains(&"E-IR-0704".into()), "{:?}", codes(&mesh(8, 2)));
+}
+
+#[test]
+fn synthesized_routers_are_charged_to_the_expansion_budget() {
+    use kiln_ir::hw::{Design, ExpandOptions};
+    let src = |dims: &str| mutate("dims: [2, 2] }", &format!("dims: {dims} }}")).replace("at: \"layout\" }", "}");
+    let expand = |dims: &str, max: u64| Design::from_source(&MemLoader::default(), None, &src(dims)).unwrap().expand(&ExpandOptions { max_instances: max });
+    let err = expand("[100, 100]", 1000).expect_err("10,000 routers exceed a 1000-instance budget");
+    assert!(err.iter().any(|d| d.code == "E-IR-0210"), "{err:?}");
+    let err = expand("[4294967295, 4294967295, 4294967295]", 1000).expect_err("dimension product overflows");
+    assert!(err.iter().any(|d| d.code == "E-IR-0210"), "{err:?}");
+    assert!(expand("[2, 2]", 1000).is_ok());
+}
